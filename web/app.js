@@ -69,6 +69,10 @@ const CHOIX = {
                "Dans l'attente de votre réponse, je vous prie d'agréer, Madame, Monsieur, l'expression de mes salutations distinguées.",
                "Veuillez recevoir, Madame, Monsieur, mes salutations respectueuses.",
                "Je vous prie de croire, Madame, Monsieur, à l'assurance de ma considération distinguée."],
+    interets: ["Football", "Basket-ball", "Course à pied", "Natation", "Musculation", "Arts martiaux", "Danse",
+               "Lecture", "Écriture", "Musique", "Chant", "Cinéma", "Photographie", "Dessin et peinture", "Cuisine",
+               "Voyages", "Bénévolat associatif", "Engagement communautaire", "Jeux vidéo", "Échecs", "Jardinage",
+               "Informatique et nouvelles technologies", "Entrepreneuriat", "Mode", "Théâtre"],
     pieces: ["Curriculum vitae", "CV et copies des diplômes", "CV, diplômes et attestations de travail"],
   },
   en: {
@@ -95,6 +99,10 @@ const CHOIX = {
                   "Dear Human Resources Manager,", "Dear Recruitment Team,"],
     formules: ["Yours faithfully,", "Yours sincerely,", "Kind regards,",
                "I look forward to hearing from you. Yours faithfully,"],
+    interets: ["Football", "Basketball", "Running", "Swimming", "Fitness", "Martial arts", "Dancing",
+               "Reading", "Writing", "Music", "Singing", "Cinema", "Photography", "Drawing and painting", "Cooking",
+               "Travelling", "Volunteering", "Community involvement", "Video games", "Chess", "Gardening",
+               "Technology and IT", "Entrepreneurship", "Fashion", "Theatre"],
     pieces: ["Curriculum vitae", "CV and copies of diplomas", "CV, diplomas and work certificates"],
   },
   it: {
@@ -121,6 +129,10 @@ const CHOIX = {
                   "Gentile Responsabile delle Risorse Umane,", "Spettabile Azienda,"],
     formules: ["In attesa di un Vostro cortese riscontro, porgo distinti saluti.", "Distinti saluti.", "Cordiali saluti.",
                "RingraziandoVi per l'attenzione, porgo cordiali saluti."],
+    interets: ["Calcio", "Pallacanestro", "Corsa", "Nuoto", "Palestra", "Arti marziali", "Danza",
+               "Lettura", "Scrittura", "Musica", "Canto", "Cinema", "Fotografia", "Disegno e pittura", "Cucina",
+               "Viaggi", "Volontariato", "Impegno nella comunità", "Videogiochi", "Scacchi", "Giardinaggio",
+               "Informatica e nuove tecnologie", "Imprenditoria", "Moda", "Teatro"],
     pieces: ["Curriculum vitae", "CV e copie dei titoli di studio", "CV, titoli di studio e attestati di lavoro"],
   },
 };
@@ -170,10 +182,39 @@ function convertirChoix(ancienne, nouvelle) {
   for (const f of etat.cv.formations) f.diplome = convertir("diplomes", f.diplome);
   for (const c of etat.cv.competences) c.categorie = convertir("categories", c.categorie);
   for (const l of etat.cv.liens) l.label = convertir("liens", l.label);
+  etat.cv.interets = separerInterets(etat.cv.interets).map(i => convertir("interets", i)).join(", ");
   const ec = etat.cv.etat_civil;
   ec.situation = convertir("situations", ec.situation);
   ec.nationalite = convertir("nationalites", ec.nationalite);
   ec.permis = convertir("permis", ec.permis);
+}
+
+// ---------- Centres d'intérêt : un champ libre + des propositions à ajouter d'un clic ----------
+function separerInterets(texte) {
+  return (texte || "").split(/\s*[,;]\s*/).map(x => x.trim()).filter(Boolean);
+}
+function dessinerInterets() {
+  const zone = $("#interets-choix");
+  if (!zone) return;
+  const choisis = separerInterets(etat.cv.interets).map(x => x.toLowerCase());
+  zone.setAttribute("translate", "no");          // dans la langue du document, comme les autres listes
+  zone.replaceChildren(...choix("interets").map(nom => {
+    const puce = document.createElement("button");
+    puce.type = "button"; puce.className = "puce-choix"; puce.textContent = nom;
+    puce.setAttribute("aria-pressed", choisis.includes(nom.toLowerCase()));
+    puce.addEventListener("click", () => {
+      const actuels = separerInterets(etat.cv.interets);
+      const i = actuels.findIndex(x => x.toLowerCase() === nom.toLowerCase());
+      if (i >= 0) actuels.splice(i, 1); else actuels.push(nom);
+      const texte = actuels.join(", ");
+      if (texte.length > 500) return;              // même limite que le champ
+      etat.cv.interets = texte;
+      $("#interets").value = texte;
+      dessinerInterets();
+      modifie(0);
+    });
+    return puce;
+  }));
 }
 
 const CONSEILS = {
@@ -620,6 +661,7 @@ $("#formulaire").addEventListener("input", e => {
   if (!el.dataset.k) return;   // les champs des listes ont leur propre écouteur
   ecrire(el.dataset.k, el.type === "checkbox" ? el.checked : el.value);
   if (el.dataset.k === "options.modele") afficherType();
+  if (el.dataset.k === "cv.interets") dessinerInterets();
   if (el.dataset.k === "options.langue") {
     // Les listes de choix suivent la langue du document, et les choix déjà faits sont convertis.
     convertirChoix(langueDocument, el.value);
@@ -715,6 +757,7 @@ function toutDessiner() {
   remplirChoix();       // avant remplirChamps : un menu doit contenir la valeur à afficher
   remplirChamps();
   Object.keys(LISTES).forEach(dessinerListe);
+  dessinerInterets();
   afficherPhoto();
   afficherType();
 }

@@ -131,10 +131,17 @@
       <details><summary>Projets <small>facultatif</small></summary><div data-liste="projets"></div></details>
       <details><summary>Liens <small>LinkedIn, portfolio…</small></summary><div data-liste="liens"></div></details>
 
+      <details open>
+        <summary>Centres d'intérêt <small>loisirs, sports, engagement</small></summary>
+        <label>Tes centres d'intérêt <small>séparés par des virgules</small>
+          <input data-k="cv.interets" id="interets" maxlength="500" placeholder="Ex. : football, lecture, bénévolat"></label>
+        <p class="aide-choix">Ajoute-les d'un clic :</p>
+        <div class="puces-choix" id="interets-choix"></div>
+      </details>
+
       <details>
-        <summary>Centres d'intérêt et références</summary>
-        <label>Centres d'intérêt<input data-k="cv.interets" maxlength="500"></label>
-        <div data-liste="references" class="espace-haut"></div>
+        <summary>Références et mention finale</summary>
+        <div data-liste="references"></div>
         <label class="case"><input type="checkbox" data-k="options.certifier">
           Ajouter la mention « Je certifie sur l'honneur l'exactitude des informations »</label>
       </details>

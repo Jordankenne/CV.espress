@@ -730,3 +730,14 @@ body:has(#admin) .article { max-width: 1040px; }
 .dialogue-admin label { display: block; margin: 12px 0; }
 .dialogue-admin input { width: 100%; }
 .bouton.danger-bouton { background: var(--erreur); border-color: var(--erreur); color: var(--carte); }
+
+/* ---------- Centres d'intérêt : propositions à ajouter d'un clic ---------- */
+.aide-choix { margin: 4px 0 8px; color: var(--doux); font-size: 13px; }
+.puces-choix { display: flex; flex-wrap: wrap; gap: 6px; }
+.puce-choix {
+  padding: 5px 11px; border: 1px solid var(--bord); border-radius: 99px;
+  background: var(--carte); color: var(--texte); font: 500 13px var(--corps); cursor: pointer;
+}
+.puce-choix:hover { border-color: var(--primaire); }
+.puce-choix[aria-pressed="true"] { background: var(--primaire); border-color: var(--primaire); color: var(--carte); }
+.puce-choix[aria-pressed="true"]::before { content: "✓ "; }
