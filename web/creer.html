@@ -105,6 +105,7 @@
         <div class="photo-ligne">
           <img id="photo-apercu" alt="" hidden>
           <label class="mini">Choisir une photo<input type="file" id="photo-fichier" accept="image/jpeg,image/png" hidden></label>
+          <button type="button" id="photo-recadrer" class="mini" hidden>Recadrer</button>
           <button type="button" id="photo-retirer" class="mini" hidden>Retirer</button>
         </div>
         <div class="grille">
@@ -225,6 +226,20 @@
 </div>
 
 <!-- ===================== Compte (facultatif) ===================== -->
+<!-- Recadrage de la photo -->
+<dialog id="dlg-photo" aria-labelledby="photo-titre">
+  <h2 id="photo-titre">Recadre ta photo</h2>
+  <p class="conseil">Fais glisser la photo pour placer ton visage dans le cadre, et zoome si besoin.</p>
+  <div class="recadrage">
+    <canvas id="recadrage-toile" width="480" height="600" tabindex="0" aria-label="Photo à recadrer : flèches pour la déplacer"></canvas>
+  </div>
+  <label class="zoom">Zoom<input type="range" id="recadrage-zoom" min="100" max="400" value="100"></label>
+  <div class="actions-dialogue">
+    <button type="button" class="bouton" id="recadrage-annuler">Annuler</button>
+    <button type="button" class="bouton principal" id="recadrage-valider">Valider</button>
+  </div>
+</dialog>
+
 <dialog id="dlg-compte" aria-labelledby="compte-titre">
   <button type="button" class="fermer" id="compte-fermer" aria-label="Fermer">×</button>
 

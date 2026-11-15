@@ -582,27 +582,103 @@ function champPeriode(element, champ) {
 function afficherPhoto() {
   const img = $("#photo-apercu");
   img.hidden = !etat.cv.photo;
-  $("#photo-retirer").hidden = !etat.cv.photo;
+  $("#photo-retirer").hidden = $("#photo-recadrer").hidden = !etat.cv.photo;
   if (etat.cv.photo) img.src = etat.cv.photo;
 }
+
+// Recadrage : la photo est cadrée au format portrait 4:5 (celui des modèles), puis enregistrée
+// en 480 × 600 pixels. On peut la déplacer à la souris, au doigt ou avec les flèches, et zoomer.
+const RECADRAGE = { image: null, zoom: 1, x: 0, y: 0 };
+const TOILE = $("#recadrage-toile");
+function echelleMin() {
+  return Math.max(TOILE.width / RECADRAGE.image.width, TOILE.height / RECADRAGE.image.height);
+}
+function borner() {
+  const e = echelleMin() * RECADRAGE.zoom;
+  const largeur = RECADRAGE.image.width * e, hauteur = RECADRAGE.image.height * e;
+  RECADRAGE.x = Math.min(0, Math.max(TOILE.width - largeur, RECADRAGE.x));
+  RECADRAGE.y = Math.min(0, Math.max(TOILE.height - hauteur, RECADRAGE.y));
+}
+function dessinerRecadrage(guide = true) {
+  const ctx = TOILE.getContext("2d");
+  const e = echelleMin() * RECADRAGE.zoom;
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, TOILE.width, TOILE.height);
+  ctx.drawImage(RECADRAGE.image, RECADRAGE.x, RECADRAGE.y, RECADRAGE.image.width * e, RECADRAGE.image.height * e);
+  if (!guide) return;
+  // Repères : le cercle du modèle Moderne et l'ovale où placer le visage.
+  ctx.save();
+  ctx.strokeStyle = "rgba(255,255,255,.9)"; ctx.lineWidth = 3; ctx.setLineDash([10, 8]);
+  ctx.beginPath(); ctx.arc(TOILE.width / 2, TOILE.height / 2, TOILE.width / 2 - 4, 0, 2 * Math.PI); ctx.stroke();
+  ctx.restore();
+}
+function ouvrirRecadrage(image) {
+  Object.assign(RECADRAGE, { image, zoom: 1 });
+  const e = echelleMin();
+  RECADRAGE.x = (TOILE.width - image.width * e) / 2;
+  RECADRAGE.y = (TOILE.height - image.height * e) / 2;
+  $("#recadrage-zoom").value = 100;
+  dessinerRecadrage();
+  $("#dlg-photo").showModal();
+}
+function zoomer(nouveau) {
+  // Le zoom garde le centre de la photo au centre du cadre.
+  const avant = echelleMin() * RECADRAGE.zoom;
+  const cx = (TOILE.width / 2 - RECADRAGE.x) / avant, cy = (TOILE.height / 2 - RECADRAGE.y) / avant;
+  RECADRAGE.zoom = nouveau;
+  const apres = echelleMin() * nouveau;
+  RECADRAGE.x = TOILE.width / 2 - cx * apres;
+  RECADRAGE.y = TOILE.height / 2 - cy * apres;
+  borner(); dessinerRecadrage();
+}
+$("#recadrage-zoom").addEventListener("input", e => zoomer(e.target.value / 100));
+let glisse = null;
+TOILE.addEventListener("pointerdown", e => { glisse = { x: e.clientX, y: e.clientY }; TOILE.setPointerCapture(e.pointerId); });
+TOILE.addEventListener("pointermove", e => {
+  if (!glisse) return;
+  const facteur = TOILE.width / TOILE.getBoundingClientRect().width;      // la toile est affichée plus petite
+  RECADRAGE.x += (e.clientX - glisse.x) * facteur; RECADRAGE.y += (e.clientY - glisse.y) * facteur;
+  glisse = { x: e.clientX, y: e.clientY };
+  borner(); dessinerRecadrage();
+});
+TOILE.addEventListener("pointerup", () => { glisse = null; });
+TOILE.addEventListener("wheel", e => {
+  e.preventDefault();
+  const z = Math.min(4, Math.max(1, RECADRAGE.zoom * (e.deltaY < 0 ? 1.1 : 1 / 1.1)));
+  $("#recadrage-zoom").value = Math.round(z * 100); zoomer(z);
+}, { passive: false });
+TOILE.addEventListener("keydown", e => {
+  const pas = { ArrowLeft: [20, 0], ArrowRight: [-20, 0], ArrowUp: [0, 20], ArrowDown: [0, -20] }[e.key];
+  if (!pas) return;
+  e.preventDefault();
+  RECADRAGE.x += pas[0]; RECADRAGE.y += pas[1]; borner(); dessinerRecadrage();
+});
+$("#recadrage-annuler").addEventListener("click", () => $("#dlg-photo").close());
+$("#recadrage-valider").addEventListener("click", () => {
+  dessinerRecadrage(false);                           // sans les repères
+  etat.cv.photo = TOILE.toDataURL("image/jpeg", 0.88);
+  $("#dlg-photo").close();
+  afficherPhoto(); modifie();
+});
+
 $("#photo-fichier").addEventListener("change", async e => {
   const fichier = e.target.files[0];
   e.target.value = "";
   if (!fichier) return;
   try {
-    const image = await createImageBitmap(fichier);
-    const echelle = Math.min(1, 600 / Math.max(image.width, image.height));
-    const toile = document.createElement("canvas");
-    toile.width = Math.round(image.width * echelle);
-    toile.height = Math.round(image.height * echelle);
-    const ctx = toile.getContext("2d");
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(0, 0, toile.width, toile.height);
-    ctx.drawImage(image, 0, 0, toile.width, toile.height);
-    etat.cv.photo = toile.toDataURL("image/jpeg", 0.88);
-    afficherPhoto(); modifie();
+    ouvrirRecadrage(await createImageBitmap(fichier));
   } catch {
     montrerErreur("Impossible de lire cette image (JPEG ou PNG uniquement).");
+  }
+});
+$("#photo-recadrer").addEventListener("click", async () => {
+  try {
+    const image = new Image();
+    image.src = etat.cv.photo;
+    await image.decode();
+    ouvrirRecadrage(await createImageBitmap(image));
+  } catch {
+    montrerErreur("Impossible de recadrer cette photo : choisis-la à nouveau.");
   }
 });
 $("#photo-retirer").addEventListener("click", () => { etat.cv.photo = ""; afficherPhoto(); modifie(); });
