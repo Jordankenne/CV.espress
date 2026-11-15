@@ -14,7 +14,7 @@ const CLE_SYNCHRO = "cv-saas-synchro";   // { vu: date de la version du compte d
 let compte = { connecte: false, email: null };
 let modeInscription = false;
 let minuterieEnvoi = null;
-const MODELES = ["moderne", "classique", "europeen", "africain"];
+const MODELES = ["moderne", "classique", "europeen", "africain", "elegant", "compact"];
 
 // Description des listes répétables : [champ, libellé, type]
 const LISTES = {
@@ -230,11 +230,13 @@ const CONSEILS = {
   classique: "Une colonne, sans fioritures : le plus sûr pour les logiciels de tri de candidatures (ATS). En Europe, la photo et l'état civil sont en général facultatifs.",
   europeen: "Présentation inspirée d'Europass : libellés à gauche, expériences de la plus récente à la plus ancienne, langues avec niveau CECRL (A1 à C2).",
   africain: "Présentation courante en Afrique : bloc d'état civil complet, photo, références et mention de certification sur l'honneur.",
+  elegant: "Police à empattements et dates dans une colonne à gauche : un CV sobre et raffiné, très lisible, pour les métiers du droit, de la finance, de l'enseignement ou de la culture.",
+  compact: "Bandeau de couleur et rubriques serrées pour tout faire tenir sur une page : idéal quand on a beaucoup à dire, ou pour un premier emploi.",
 };
 
 // Ce qui compte dans la jauge « CV complété à … % » : [test, conseil si manquant]
 const PARTIES_LETTRE = ["accroche", "parcours", "entreprise", "conclusion"];
-const MODELES_LETTRE = ["classique", "moderne", "epure"];
+const MODELES_LETTRE = ["classique", "moderne", "epure", "elegante"];
 const TEXTES_LETTRE = {
   fr: { salutation: "Madame, Monsieur,",
         formule: "Je vous prie d'agréer, Madame, Monsieur, l'expression de mes salutations distinguées.",

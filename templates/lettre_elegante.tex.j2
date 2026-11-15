@@ -1,0 +1,27 @@
+\#{ Lettre elegante : assortie au CV Elegant. Police a empattements, nom en petites
+    capitales centre, double filet fin de couleur. }
+\BLOCK{include "_preambule.tex.j2"}
+\policeserif
+\geometry{margin=2.5cm, top=2cm}
+\hypersetup{pdftitle={\VAR{l.objet or "Lettre de motivation"} - \VAR{l.exp.nom}}, pdfauthor={\VAR{l.exp.nom}}}
+\setlength{\parskip}{9pt}
+
+\begin{document}
+
+% ---------- Expéditeur (en-tête centré) ----------
+\begin{center}
+  {\fontsize{22}{26}\selectfont\scshape \VAR{l.exp.nom}\par}
+  \BLOCK{if l.exp.titre}
+  \vspace{3pt}{\large\itshape\color{accent} \VAR{l.exp.titre}\par}
+  \BLOCK{endif}
+  \vspace{5pt}{\color{accent}\rule{\textwidth}{0.6pt}\par\vspace{-8pt}\rule{\textwidth}{0.3pt}}\par
+  \BLOCK{if l.expediteur_ligne}
+  \vspace{2pt}{\small \VAR{l.expediteur_ligne}\par}
+  \BLOCK{endif}
+\end{center}
+
+\vspace{0.4cm}
+
+\BLOCK{include "_lettre_corps.tex.j2"}
+
+\end{document}

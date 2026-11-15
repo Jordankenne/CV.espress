@@ -1,0 +1,131 @@
+\#{ Modele elegant : police a empattements, en-tete centre en petites capitales,
+    dates dans une colonne a gauche, filets fins de couleur. Une colonne : lisible par les ATS. }
+\BLOCK{include "_preambule.tex.j2"}
+\policeserif
+\geometry{margin=1.9cm}
+\hypersetup{pdftitle={CV - \VAR{cv.nom}}, pdfauthor={\VAR{cv.nom}}}
+\titleformat{\section}{\color{accent}\normalsize\scshape\bfseries}{}{0pt}{\MakeLowercase}[{\color{accent}\titlerule[0.4pt]}]
+\titlespacing{\section}{0pt}{12pt}{6pt}
+\newlength{\coldates}\setlength{\coldates}{3.3cm}
+% \entree{dates}{contenu} : dates à gauche, contenu à droite.
+\newcommand{\entree}[2]{%
+  \noindent\begin{minipage}[t]{\coldates}\raggedright\small\leavevmode\color{accent}#1\end{minipage}%
+  \hspace{0.3cm}\begin{minipage}[t]{\dimexpr\textwidth-\coldates-0.3cm\relax}#2\end{minipage}\par\vspace{7pt}}
+
+\begin{document}
+
+% ---------- En-tête ----------
+\BLOCK{if cv.photo}
+\begin{minipage}[c]{0.2\textwidth}
+  \includegraphics[width=2.8cm,height=3.5cm,keepaspectratio]{\VAR{cv.photo}}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.78\textwidth}\centering
+\BLOCK{else}
+\begin{center}
+\BLOCK{endif}
+  {\fontsize{24}{28}\selectfont\scshape \VAR{cv.nom}\par}
+  \BLOCK{if cv.titre}
+  \vspace{4pt}{\large\itshape\color{accent} \VAR{cv.titre}\par}
+  \BLOCK{endif}
+  \vspace{6pt}{\color{accent}\rule{0.35\linewidth}{0.6pt}}\par
+  \BLOCK{if cv.contact_tex}
+  \vspace{5pt}{\small \VAR{cv.contact_tex}\par}
+  \BLOCK{endif}
+  \BLOCK{if cv.etat_civil}
+  \vspace{3pt}{\footnotesize
+  \BLOCK{for ligne in cv.etat_civil}
+  \VAR{ligne[0]} : \VAR{ligne[1]}\BLOCK{if not loop.last} \textperiodcentered{}\BLOCK{endif}
+
+  \BLOCK{endfor}
+  }\par
+  \BLOCK{endif}
+\BLOCK{if cv.photo}
+\end{minipage}
+\BLOCK{else}
+\end{center}
+\BLOCK{endif}
+
+\BLOCK{if cv.profil}
+\section{\VAR{t.profil}}
+{\itshape \VAR{cv.profil}\par}
+
+\BLOCK{endif}
+\BLOCK{if cv.experiences}
+\section{\VAR{t.experiences}}
+\BLOCK{for exp in cv.experiences}
+\entree{\VAR{exp.dates}}{%
+  \textbf{\VAR{exp.poste}}\BLOCK{if exp.entreprise or exp.lieu} \textperiodcentered{} \textit{\VAR{[exp.entreprise, exp.lieu]|select|join(", ")}}\BLOCK{endif}\par
+  \BLOCK{if exp.points}
+  \begin{itemize}
+    \BLOCK{for point in exp.points}
+    \item {}\VAR{point}
+    \BLOCK{endfor}
+  \end{itemize}
+  \BLOCK{endif}
+}
+\BLOCK{endfor}
+\BLOCK{endif}
+
+\BLOCK{if cv.formations}
+\section{\VAR{t.formations}}
+\BLOCK{for f in cv.formations}
+\entree{\VAR{f.dates}}{%
+  \textbf{\VAR{f.diplome}}\BLOCK{if f.ecole} \textperiodcentered{} \textit{\VAR{f.ecole}}\BLOCK{endif}\par
+  \BLOCK{if f.details}
+  {\small \VAR{f.details}\par}
+  \BLOCK{endif}
+}
+\BLOCK{endfor}
+\BLOCK{endif}
+
+\BLOCK{if cv.certifications}
+\section{\VAR{t.certifications}}
+\BLOCK{for c in cv.certifications}
+\entree{\VAR{c.date}}{\textbf{\VAR{c.titre}}\BLOCK{if c.organisme} \textperiodcentered{} \textit{\VAR{c.organisme}}\BLOCK{endif}\par}
+\BLOCK{endfor}
+\BLOCK{endif}
+
+\BLOCK{if cv.projets}
+\section{\VAR{t.projets}}
+\BLOCK{for pr in cv.projets}
+\entree{\VAR{pr.dates}}{%
+  \textbf{\VAR{pr.titre}}\par
+  \BLOCK{if pr.details}
+  \VAR{pr.details}\par
+  \BLOCK{endif}
+}
+\BLOCK{endfor}
+\BLOCK{endif}
+
+\BLOCK{if cv.competences}
+\section{\VAR{t.competences}}
+\BLOCK{for c in cv.competences}
+\entree{\BLOCK{if c.categorie}\VAR{c.categorie}\BLOCK{endif}}{\VAR{c.liste}\par}
+\BLOCK{endfor}
+\BLOCK{endif}
+
+\BLOCK{if cv.langues}
+\section{\VAR{t.langues}}
+\BLOCK{for l in cv.langues}
+\entree{\VAR{l.langue}}{\VAR{l.niveau}\par}
+\BLOCK{endfor}
+\BLOCK{endif}
+
+\BLOCK{if cv.interets}
+\section{\VAR{t.interets}}
+\VAR{cv.interets}\par
+\BLOCK{endif}
+
+\BLOCK{if cv.references}
+\section{\VAR{t.references}}
+\BLOCK{for r in cv.references}
+\textbf{\VAR{r.nom}}\BLOCK{if r.fonction}, \VAR{r.fonction}\BLOCK{endif}\BLOCK{if r.contact} -- \VAR{r.contact}\BLOCK{endif}\par
+\BLOCK{endfor}
+\BLOCK{endif}
+
+\BLOCK{if o.certifier}
+\vspace{14pt}
+\textit{\VAR{t.certif}}
+\BLOCK{endif}
+
+\end{document}

@@ -17,7 +17,8 @@ import moteur
 RACINE = Path(__file__).parent
 IMAGES = RACINE / "web" / "img"
 # Une couleur par modèle : la galerie est plus parlante.
-COULEURS = {"moderne": "1E5F4B", "classique": "1F4E79", "europeen": "5B3A8C", "africain": "7A1F1F"}
+COULEURS = {"moderne": "1E5F4B", "classique": "1F4E79", "europeen": "5B3A8C", "africain": "7A1F1F",
+            "elegant": "7A5C2E", "compact": "0F6E7A"}
 
 
 def avatar(cote=360):
@@ -44,7 +45,7 @@ def avatar(cote=360):
     return "data:image/png;base64," + base64.b64encode(png).decode()
 
 
-COULEURS_LETTRE = {"moderne": "1E5F4B", "classique": "1F4E79", "epure": "7A1F1F"}
+COULEURS_LETTRE = {"moderne": "1E5F4B", "classique": "1F4E79", "epure": "7A1F1F", "elegante": "7A5C2E"}
 
 
 def enregistrer(pdf, cible):

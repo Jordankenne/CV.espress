@@ -61,11 +61,14 @@ MODELES_CV = {
     "classique": "Classique (sobre, 1 colonne, compatible ATS)",
     "europeen": "Européen (style Europass)",
     "africain": "Africain (état civil, photo, références)",
+    "elegant": "Élégant (empattements, dates dans une colonne à gauche)",
+    "compact": "Compact (bandeau de couleur, tient sur une page)",
 }
 MODELES_LETTRE = {
     "moderne": "Moderne (bandeau de couleur en haut)",
     "classique": "Classique (présentation française traditionnelle)",
     "epure": "Épurée (en-tête centré, filet de couleur)",
+    "elegante": "Élégante (empattements, assortie au CV Élégant)",
 }
 # Les quatre parties du texte d'une lettre, dans l'ordre où elles sont imprimées.
 PARTIES_LETTRE = ("accroche", "parcours", "entreprise", "conclusion")

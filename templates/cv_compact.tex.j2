@@ -1,0 +1,133 @@
+\#{ Modele compact : bandeau de couleur en tete (nom en blanc), rubriques serrees, competences et
+    langues cote a cote. Pense pour tenir sur une page. }
+\BLOCK{include "_preambule.tex.j2"}
+\policesans
+\geometry{margin=1.5cm, top=1.2cm}
+\hypersetup{pdftitle={CV - \VAR{cv.nom}}, pdfauthor={\VAR{cv.nom}}}
+\titleformat{\section}{\color{accent}\small\bfseries}{}{0pt}{\rule[-1pt]{3pt}{10pt}\hspace{6pt}\MakeUppercase}
+\titlespacing{\section}{0pt}{9pt}{4pt}
+\setlist[itemize]{leftmargin=1.1em, itemsep=0pt, topsep=1pt}
+\setlength{\fboxsep}{10pt}
+
+\begin{document}
+
+% ---------- Bandeau ----------
+\noindent\colorbox{accent}{\parbox{\dimexpr\textwidth-2\fboxsep\relax}{\color{white}%
+\BLOCK{if cv.photo}
+  \begin{minipage}[c]{0.8\linewidth}
+\BLOCK{endif}
+  {\fontsize{22}{26}\selectfont\bfseries \VAR{cv.nom}\par}
+  \BLOCK{if cv.titre}
+  \vspace{2pt}{\large \VAR{cv.titre}\par}
+  \BLOCK{endif}
+  \BLOCK{if cv.contact_tex}
+  \vspace{5pt}{\small \VAR{cv.contact_tex}\par}
+  \BLOCK{endif}
+  \BLOCK{if cv.etat_civil}
+  \vspace{2pt}{\footnotesize
+  \BLOCK{for ligne in cv.etat_civil}
+  \VAR{ligne[0]} : \VAR{ligne[1]}\BLOCK{if not loop.last} \textbar{}\BLOCK{endif}
+
+  \BLOCK{endfor}
+  }\par
+  \BLOCK{endif}
+\BLOCK{if cv.photo}
+  \end{minipage}\hfill
+  \begin{minipage}[c]{0.17\linewidth}\raggedleft
+    \includegraphics[width=2.4cm,height=3cm,keepaspectratio]{\VAR{cv.photo}}
+  \end{minipage}
+\BLOCK{endif}
+}}
+
+\BLOCK{if cv.profil}
+\section{\VAR{t.profil}}
+\VAR{cv.profil}\par
+\BLOCK{endif}
+
+\BLOCK{if cv.experiences}
+\section{\VAR{t.experiences}}
+\BLOCK{for exp in cv.experiences}
+\textbf{\VAR{exp.poste}}\BLOCK{if exp.entreprise or exp.lieu} {\color{accent}|} \VAR{[exp.entreprise, exp.lieu]|select|join(", ")}\BLOCK{endif} \hfill {\small\color{accent}\VAR{exp.dates}}\par
+\BLOCK{if exp.points}
+\begin{itemize}
+  \BLOCK{for point in exp.points}
+  \item {}\VAR{point}
+  \BLOCK{endfor}
+\end{itemize}
+\BLOCK{endif}
+\vspace{3pt}
+\BLOCK{endfor}
+\BLOCK{endif}
+
+\BLOCK{if cv.formations}
+\section{\VAR{t.formations}}
+\BLOCK{for f in cv.formations}
+\textbf{\VAR{f.diplome}}\BLOCK{if f.ecole} {\color{accent}|} \VAR{f.ecole}\BLOCK{endif} \hfill {\small\color{accent}\VAR{f.dates}}\par
+\BLOCK{if f.details}
+{\small \VAR{f.details}\par}
+\BLOCK{endif}
+\vspace{2pt}
+\BLOCK{endfor}
+\BLOCK{endif}
+
+\BLOCK{if cv.competences or cv.langues}
+\noindent
+\begin{minipage}[t]{\BLOCK{if cv.competences and cv.langues}0.6\textwidth\BLOCK{else}\textwidth\BLOCK{endif}}
+\BLOCK{if cv.competences}
+\section{\VAR{t.competences}}
+\BLOCK{for c in cv.competences}
+\BLOCK{if c.categorie}\textbf{\VAR{c.categorie} :} \BLOCK{endif}\VAR{c.liste}\par
+\BLOCK{endfor}
+\BLOCK{endif}
+\end{minipage}\BLOCK{if cv.competences and cv.langues}\hfill
+\begin{minipage}[t]{0.36\textwidth}
+\BLOCK{endif}
+\BLOCK{if cv.langues}
+\BLOCK{if not cv.competences}
+\begin{minipage}[t]{\textwidth}
+\BLOCK{endif}
+\section{\VAR{t.langues}}
+\BLOCK{for l in cv.langues}
+\textbf{\VAR{l.langue}}\BLOCK{if l.niveau} : \VAR{l.niveau}\BLOCK{endif}\par
+\BLOCK{endfor}
+\end{minipage}
+\BLOCK{endif}
+\par
+\BLOCK{endif}
+
+\BLOCK{if cv.certifications}
+\section{\VAR{t.certifications}}
+\BLOCK{for c in cv.certifications}
+\textbf{\VAR{c.titre}}\BLOCK{if c.organisme} {\color{accent}|} \VAR{c.organisme}\BLOCK{endif} \hfill {\small\color{accent}\VAR{c.date}}\par
+\BLOCK{endfor}
+\BLOCK{endif}
+
+\BLOCK{if cv.projets}
+\section{\VAR{t.projets}}
+\BLOCK{for pr in cv.projets}
+\textbf{\VAR{pr.titre}} \hfill {\small\color{accent}\VAR{pr.dates}}\par
+\BLOCK{if pr.details}
+\VAR{pr.details}\par
+\BLOCK{endif}
+\vspace{2pt}
+\BLOCK{endfor}
+\BLOCK{endif}
+
+\BLOCK{if cv.interets}
+\section{\VAR{t.interets}}
+\VAR{cv.interets}\par
+\BLOCK{endif}
+
+\BLOCK{if cv.references}
+\section{\VAR{t.references}}
+\BLOCK{for r in cv.references}
+\textbf{\VAR{r.nom}}\BLOCK{if r.fonction}, \VAR{r.fonction}\BLOCK{endif}\BLOCK{if r.contact} -- \VAR{r.contact}\BLOCK{endif}\par
+\BLOCK{endfor}
+\BLOCK{endif}
+
+\BLOCK{if o.certifier}
+\vspace{10pt}
+\textit{\VAR{t.certif}}
+\BLOCK{endif}
+
+\end{document}

@@ -73,10 +73,10 @@ _MOT_BBOX = re.compile(r"<word[^>]*>(.*?)</word>", re.S)
 
 
 def _texte_pdf_colonnes(octets):
-    """Lecture d'un PDF en colonnes (CV avec une barre latérale) : chaque colonne est lue
-    entièrement, de haut en bas, au lieu d'entrecroiser leurs lignes. None si le PDF n'a pas
-    de colonnes. Les lignes alignées à la même hauteur dans une colonne (intitulé à gauche,
-    dates à droite) sont réunies, séparées par de grands espaces."""
+    """Lecture d'un PDF d'après la position de chaque ligne : (texte, colonnes_vues), ou None.
+    Les lignes à la même hauteur (intitulé à gauche, dates alignées à droite) sont réunies ;
+    un CV en colonnes (barre latérale) est lu colonne par colonne au lieu d'entrecroiser leurs
+    lignes."""
     if shutil.which("pdftotext") is None:
         return None
     with tempfile.TemporaryDirectory() as tmp:
@@ -127,7 +127,7 @@ def _texte_pdf_colonnes(octets):
                 morceaux.append(ligne_large[4])
             haut = limite
         pages.append("\n".join(morceaux))
-    return "\n".join(pages) if colonnes_vues else None
+    return "\n".join(pages), colonnes_vues
 
 
 def _coupe_colonnes(lignes, largeur):
@@ -147,6 +147,44 @@ def _coupe_colonnes(lignes, largeur):
     return meilleure[1] if meilleure else None
 
 
+def _rubriques_cote_a_cote(rangs):
+    """Deux rubriques côte à côte (« COMPÉTENCES      LANGUES ») : leurs lignes partagent les
+    mêmes rangées. On remet chaque rubrique d'un bloc (la gauche, puis la droite), jusqu'au
+    prochain titre placé contre la marge de gauche. Repère : un titre de rubrique qui ne
+    commence pas contre la marge."""
+    if not rangs:
+        return rangs
+    marge = min(r[0][0] for r in rangs)
+    titre_marge = lambda r: _rubrique(r[0][4]) and r[0][0] <= marge + 15      # noqa: E731
+    sortie, i = [], 0
+    while i < len(rangs):
+        decale = next((l for l in rangs[i] if _rubrique(l[4]) and l[0] > marge + 40), None)
+        if decale is None:
+            sortie.append(rangs[i])
+            i += 1
+            continue
+        coupe = decale[0] - 20             # le texte peut commencer un peu avant son titre
+        # Le bloc commence au titre de gauche (même rangée, ou une ou deux rangées plus haut).
+        debut = i
+        while debut > i - 3 and debut > 0 and not titre_marge(rangs[debut]):
+            debut -= 1
+        if not titre_marge(rangs[debut]):
+            debut = i
+        del sortie[len(sortie) - (i - debut):]
+        gauche, droite, j = [], [], debut
+        while j < len(rangs) and (j <= i or not titre_marge(rangs[j]) or len(rangs[j]) > 1):
+            g = [l for l in rangs[j] if l[0] < coupe]
+            d = [l for l in rangs[j] if l[0] >= coupe]
+            if g:
+                gauche.append(g)
+            if d:
+                droite.append(d)
+            j += 1
+        sortie.extend(gauche + droite)
+        i = j
+    return sortie
+
+
 def _rassembler(lignes, titres_a_part=False):
     """Lignes (x0, y0, x1, y1, texte) -> texte, de haut en bas ; celles qui sont à la même
     hauteur sont réunies de gauche à droite. titres_a_part : un titre de rubrique placé en
@@ -158,9 +196,13 @@ def _rassembler(lignes, titres_a_part=False):
             rangs[-1][1].append(l)
         else:
             rangs.append([milieu, [l]])
-    sortie = []
     for _, rang in rangs:
         rang.sort(key=lambda l: l[0])
+    rangs = [rang for _, rang in rangs]
+    if not titres_a_part:                  # colonne de libellés : ses titres sont tous à gauche
+        rangs = _rubriques_cote_a_cote(rangs)
+    sortie = []
+    for rang in rangs:
         tete = rang[0][4]
         # « Informatique », « Outils »… sont aussi des catégories de compétences : titres seulement en capitales.
         # Un titre en capitales peut tenir sur deux lignes (« INFORMATIONS / PERSONNELLES ») : seul, il
@@ -173,8 +215,7 @@ def _rassembler(lignes, titres_a_part=False):
         for avant, apres in zip(rang, rang[1:]):
             # Libellé et valeur côte à côte (« Français    Courant ») : reliés par « : », comme
             # « Langue : niveau », « Catégorie : compétences », « Adresse : Dakar ».
-            ecart = " : " if titres_a_part else "     "
-            texte += (ecart if apres[0] - avant[2] > 12 else " ") + apres[4]
+            texte += (" : " if apres[0] - avant[2] > 12 else " ") + apres[4]
         sortie.append(texte)
     return "\n".join(sortie)
 
@@ -321,7 +362,11 @@ def _nom_propre(ligne):
 def analyser_cv(texte):
     lignes = []
     for l in (l.strip() for l in texte.replace("\r", "").split("\n")):
-        if l.startswith(":") and lignes:
+        if lignes and re.search(r"\s[|·•]\s", lignes[-1]) and len(re.findall(r"\s:\s", lignes[-1])) >= 2 \
+                and (lignes[-1].endswith(":") or re.search(r"\s:\s", l)) and not _rubrique(l):
+            # État civil sur plusieurs lignes, coupé n'importe où : « … · Situation / matrimoniale : Célibataire · … »
+            lignes[-1] += " " + l
+        elif l.startswith(":") and lignes:
             lignes[-1] += " " + l          # « Situation matrimoniale / : Célibataire » coupé par la mise en page
         elif lignes and l[:1].islower() and re.search(r"[^\W\d_]-$", lignes[-1]):
             lignes[-1] = lignes[-1][:-1] + l   # mot coupé en fin de ligne : « Séné- / galaise »
@@ -357,7 +402,8 @@ def analyser_cv(texte):
     #      ligne ou sur la suivante. Ces lignes sont retirées du reste de l'analyse. ----
     trouves, restantes, i = {}, [], 0
     while i < len(lignes):
-        morceaux = [x.strip() for x in lignes[i].split("|") if x.strip()] if "|" in lignes[i] else [lignes[i]]
+        morceaux = ([x.strip() for x in re.split(r"\s[|·•]\s|\|", lignes[i]) if x.strip()]
+                    if re.search(r"\||\s[·•]\s", lignes[i]) else [lignes[i]])
         paires = [_libelle(x) for x in morceaux]
         if all(champ for champ, _ in paires):
             for champ, valeur in paires:
@@ -586,7 +632,7 @@ def _entrees(lignes):
             ligne = " ".join((ligne[:periode.start()] + " " + ligne[periode.end():]).split()).strip(" -–—|,:;()")
             if not ligne:
                 continue
-            if periode.start() <= 2 and not e["titre"] and "," in ligne and not re.search(r"\s[–—|-]\s", ligne):
+            if periode.start() <= 2 and not e["titre"] and "," in ligne and not re.search(r"\s[–—|·•-]\s", ligne):
                 # « 2020 : Baccalauréat série G, Lycée Exemple »
                 e["titre"], _, e["sous_titre"] = (x.strip() for x in ligne.partition(","))
                 continue
@@ -616,7 +662,7 @@ def _employeur_et_lieu(texte):
 
 def _couper(ligne):
     """« Assistante comptable – Cabinet Exemple » : poste et employeur sur une même ligne."""
-    m = re.search(r"\s+[–—|]\s+|\s+-\s+|\s+(?:chez|at|presso)\s+|\s+@\s+", ligne)
+    m = re.search(r"\s+[–—|·•]\s+|\s+-\s+|\s+(?:chez|at|presso)\s+|\s+@\s+", ligne)
     if m and m.start() >= 3:
         return ligne[:m.start()].strip(), ligne[m.end():].strip()
     return ligne, ""
@@ -738,10 +784,13 @@ def importer(octets, type_document):
     cv = analyser_cv(texte)
     if octets.startswith(b"%PDF-"):
         # CV en colonnes (barre latérale) : chaque colonne lue d'un bloc, sinon tout se mélange.
-        colonnes = _texte_pdf_colonnes(octets)
-        if colonnes:
-            autre = analyser_cv(_nettoyer(colonnes))
-            if _qualite(autre) >= _qualite(cv) - 1:
+        lecture = _texte_pdf_colonnes(octets)
+        if lecture:
+            texte_lu, colonnes = lecture
+            autre = analyser_cv(_nettoyer(texte_lu))
+            # En colonnes, la lecture par position est presque toujours la bonne ; sinon, seulement
+            # si elle fait au moins aussi bien (dates alignées à droite remises sur leur ligne).
+            if _qualite(autre) >= _qualite(cv) - (1 if colonnes else 0):
                 cv = autre
         # Deuxième lecture du PDF, mise en page conservée : on garde la meilleure des deux.
         autre = analyser_cv(extraire_texte(octets, mise_en_page=True))
