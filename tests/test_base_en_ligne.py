@@ -160,3 +160,12 @@ def test_la_production_refuse_une_adresse_de_base_invalide(monkeypatch):
     monkeypatch.setenv("CLE_SECRETE", "k" * 40)
     with pytest.raises(RuntimeError, match="DATABASE_URL"):
         comptes._verifier_configuration()
+
+
+def test_reglages_colles_avec_un_retour_a_la_ligne(monkeypatch):
+    # Valeur copiée-collée dans l'hébergeur avec un retour à la ligne invisible à la fin :
+    # les liens envoyés par e-mail étaient coupés en deux.
+    monkeypatch.setenv("ADRESSE_SITE", "  https://cv-espress.onrender.com/\n")
+    monkeypatch.setenv("BREVO_CLE_API", "xkeysib-abc\r\n")
+    assert comptes._reglage("ADRESSE_SITE").rstrip("/") == "https://cv-espress.onrender.com"
+    assert comptes._reglage("BREVO_CLE_API") == "xkeysib-abc"

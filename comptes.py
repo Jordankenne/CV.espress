@@ -46,11 +46,18 @@ from werkzeug.security import check_password_hash, generate_password_hash
 import requetes
 
 RACINE = Path(__file__).parent
+
+
+def _reglage(nom):
+    """Réglage de l'hébergeur, sans les espaces ni retours à la ligne collés par erreur avec."""
+    return os.environ.get(nom, "").strip()
+
+
 DOSSIER = Path(os.environ.get("DOSSIER_DONNEES") or RACINE / "donnees")
 BASE = DOSSIER / "comptes.sqlite3"
 # Base PostgreSQL en ligne (Neon, Supabase…) : son adresse complète, mot de passe compris,
 # donnée par l'hébergeur de la base (postgresql://utilisateur:motdepasse@hote/base?sslmode=require).
-ADRESSE_BASE = os.environ.get("DATABASE_URL", "")
+ADRESSE_BASE = _reglage("DATABASE_URL")
 POSTGRES = ADRESSE_BASE.startswith(("postgres://", "postgresql://"))
 
 MDP_MIN, MDP_MAX = 8, 200
@@ -68,13 +75,13 @@ INVITATION_HEURES = 24           # durée de validité d'un lien d'inscription
 # Sans SMTP_HOTE (en développement), le lien est écrit dans le journal du serveur au lieu d'être envoyé.
 #   ou, à la place du SMTP, BREVO_CLE_API : envoi par l'API web de Brevo (obligatoire chez les
 #   hébergeurs gratuits qui bloquent le SMTP, comme Render).
-BREVO_CLE_API = os.environ.get("BREVO_CLE_API", "")
-SMTP_HOTE = os.environ.get("SMTP_HOTE", "")
-SMTP_PORT = int(os.environ.get("SMTP_PORT") or 587)
-SMTP_UTILISATEUR = os.environ.get("SMTP_UTILISATEUR", "")
-SMTP_MOT_DE_PASSE = os.environ.get("SMTP_MOT_DE_PASSE", "")
-EMAIL_EXPEDITEUR = os.environ.get("EMAIL_EXPEDITEUR", "") or SMTP_UTILISATEUR
-ADRESSE_SITE = os.environ.get("ADRESSE_SITE", "").rstrip("/")
+BREVO_CLE_API = _reglage("BREVO_CLE_API")
+SMTP_HOTE = _reglage("SMTP_HOTE")
+SMTP_PORT = int(_reglage("SMTP_PORT") or 587)
+SMTP_UTILISATEUR = _reglage("SMTP_UTILISATEUR")
+SMTP_MOT_DE_PASSE = _reglage("SMTP_MOT_DE_PASSE")
+EMAIL_EXPEDITEUR = _reglage("EMAIL_EXPEDITEUR") or SMTP_UTILISATEUR
+ADRESSE_SITE = _reglage("ADRESSE_SITE").rstrip("/")
 # Production = site derrière le proxy de l'hébergeur. Les réglages de sécurité y sont obligatoires.
 PRODUCTION = os.environ.get("DERRIERE_PROXY") == "1"
 _EMAIL_OK = re.compile(r"^[A-Za-z0-9._+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$")
@@ -188,7 +195,7 @@ def _verifier_configuration():
     manquants = []
     if not ADRESSE_SITE.startswith("https://"):
         manquants.append("ADRESSE_SITE (l'adresse du site en https, ex. https://cv.express)")
-    if len(os.environ.get("CLE_SECRETE", "")) < 32:
+    if len(_reglage("CLE_SECRETE")) < 32:
         manquants.append("CLE_SECRETE (au moins 32 caractères aléatoires)")
     if not (SMTP_HOTE or BREVO_CLE_API) or not EMAIL_EXPEDITEUR:
         manquants.append("BREVO_CLE_API (ou SMTP_HOTE) et EMAIL_EXPEDITEUR (envoi des e-mails d'inscription)")
@@ -264,7 +271,7 @@ def _configurer_session(app):
     # Clé qui signe les cookies de session. En production : variable CLE_SECRETE (obligatoire),
     # gardée hors du dossier des données et donc hors des sauvegardes.
     # En développement, on en fabrique une dans donnees/ pour survivre aux redémarrages.
-    cle = os.environ.get("CLE_SECRETE", "")
+    cle = _reglage("CLE_SECRETE")
     if len(cle) < 32:
         fichier = DOSSIER / "cle_secrete"
         _creer_secret(fichier)
