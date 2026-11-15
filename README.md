@@ -83,6 +83,30 @@ plus rapide), sans rien changer d'autre.
 Propre domaine : l'ajouter dans **Settings > Custom Domains** sur Render, puis mettre
 `ADRESSE_SITE` à `https://ce-domaine`.
 
+## Déployer gratuitement sur Hugging Face Spaces
+
+Plus puissant que Render gratuit (2 processeurs, 16 Go), sans carte bancaire. Le site
+s'endort après 48 heures sans visite. Neon et Brevo s'utilisent de la même façon.
+
+1. Créer un compte sur huggingface.co, puis un jeton **Write** dans
+   **Settings > Access Tokens**.
+2. Mettre les réglages dans `production.env` (ignoré par Git) : `CLE_SECRETE`,
+   `DATABASE_URL`, `BREVO_CLE_API`, `EMAIL_EXPEDITEUR`.
+3. Publier (crée le Space, enregistre les réglages comme secrets, envoie le code) :
+
+   ```bash
+   .venv/bin/pip install huggingface_hub
+   HF_TOKEN=hf_… .venv/bin/python publier_hf.py TON_NOM/cv-express production.env
+   ```
+
+   Pour une mise à jour du code ensuite : la même commande sans `production.env`.
+4. Le site est à l'adresse `https://ton-nom-cv-express.hf.space` (affichée par le script).
+   Donner cette adresse-là aux visiteurs : la page huggingface.co/spaces/… affiche le site
+   dans un cadre, que le site refuse par sécurité (protection contre le « clickjacking »).
+
+Si le journal affiche « Base PostgreSQL injoignable », Hugging Face bloque la sortie vers
+le port 5432 de Neon : le signaler sur discuss.huggingface.co, ou héberger ailleurs.
+
 ### Sauvegarder la base en ligne
 
 Neon gratuit ne garde pas de vraies sauvegardes. Depuis ton ordinateur, régulièrement

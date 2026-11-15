@@ -221,9 +221,26 @@ def initialiser(app):
         # pour le contrôle de santé du conteneur).
         noms = [urlsplit(ADRESSE_SITE).hostname, "localhost", "127.0.0.1"]
         # Render donne aussi au service une adresse en .onrender.com (contrôle de santé).
-        if os.environ.get("RENDER_EXTERNAL_HOSTNAME"):
-            noms.append(os.environ["RENDER_EXTERNAL_HOSTNAME"])
+        # Hugging Face Spaces aussi (SPACE_HOST, ex. ton-nom-cv-express.hf.space).
+        for variable in ("RENDER_EXTERNAL_HOSTNAME", "SPACE_HOST"):
+            if os.environ.get(variable):
+                noms.append(os.environ[variable])
         app.config["TRUSTED_HOSTS"] = noms
+    try:
+        _creer_tables()
+    except ERREURS_BASE as e:
+        if not POSTGRES:
+            raise
+        # Message clair dans le journal de l'hébergeur au lieu d'une longue trace.
+        raise RuntimeError(f"Base PostgreSQL injoignable ({type(e).__name__}). Vérifier DATABASE_URL ; "
+                           "si l'hébergeur bloque le port 5432 en sortie, la base ne peut pas être "
+                           "atteinte depuis ce serveur.") from e
+    for fichier in DOSSIER.glob("comptes.sqlite3*"):     # base et ses fichiers -wal / -shm
+        os.chmod(fichier, 0o600)
+    _configurer_session(app)
+
+
+def _creer_tables():
     with _base() as b:
         if not POSTGRES:
             b.execute("PRAGMA journal_mode = WAL")
@@ -241,9 +258,9 @@ def initialiser(app):
             # Base créée avant les numéros de version des documents.
             if "version" not in {colonne[1] for colonne in b.execute("PRAGMA table_info(documents)")}:
                 b.execute("ALTER TABLE documents ADD COLUMN version INTEGER NOT NULL DEFAULT 1")
-    for fichier in DOSSIER.glob("comptes.sqlite3*"):     # base et ses fichiers -wal / -shm
-        os.chmod(fichier, 0o600)
 
+
+def _configurer_session(app):
     # Clé qui signe les cookies de session. En production : variable CLE_SECRETE (obligatoire),
     # gardée hors du dossier des données et donc hors des sauvegardes.
     # En développement, on en fabrique une dans donnees/ pour survivre aux redémarrages.
