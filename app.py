@@ -8,6 +8,7 @@ En production    :   gunicorn -w 1 --threads 16 -b 0.0.0.0:8000 app:app   (voir 
 """
 import base64
 import json
+import logging
 import os
 import re
 import threading
@@ -31,6 +32,9 @@ app = Flask(__name__, static_folder="web", static_url_path="", template_folder="
 app.config["MAX_CONTENT_LENGTH"] = 3 * 1024 * 1024
 # Une page de pages/ modifiée est relue sans redémarrer le serveur (comme les fichiers de web/).
 app.config["TEMPLATES_AUTO_RELOAD"] = True
+# Journal du serveur : les informations aussi (sauvegardes, actions de l'administration,
+# comptes supprimés), pas seulement les avertissements. Rien de personnel n'y est écrit.
+app.logger.setLevel(logging.INFO)
 
 # Comptes utilisateurs (facultatifs) : base de données, cookie de session, routes /api/compte.
 comptes.initialiser(app)

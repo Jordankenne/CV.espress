@@ -7,7 +7,7 @@
   <div class="espace-tete">
     <div>
       <h1>Administration</h1>
-      <p class="note">Le contenu des CV et des lettres n'est jamais affiché ici : seulement des chiffres et la liste des comptes.</p>
+      <p class="note">Chaque consultation d'un compte ou d'un document est enregistrée dans le journal du serveur. Les mots de passe ne sont jamais visibles.</p>
     </div>
   </div>
   <p id="admin-message" class="espace-message" role="status" hidden></p>
@@ -53,6 +53,72 @@
       <button type="button" class="bouton" id="page-suiv">Suivants</button>
     </div>
   </article>
+
+  <!-- Vue brute de la base -->
+  <article class="carte-espace">
+    <div class="docs-tete">
+      <h2>Base de données</h2>
+      <label class="choix-table">Table
+        <select id="table-choix">
+          <option value="comptes">comptes</option>
+          <option value="documents">documents</option>
+          <option value="invitations">invitations (inscriptions en attente)</option>
+          <option value="reinitialisations">reinitialisations (liens de mot de passe)</option>
+        </select></label>
+    </div>
+    <p class="note">Vue brute de chaque table. Les empreintes de mots de passe et les jetons sont masqués ; le contenu des documents est abrégé (ouvre le document depuis la fiche du compte pour le lire en entier).</p>
+    <div class="tableau-defile"><table class="tableau-admin brut"><thead id="table-tete"></thead><tbody id="table-lignes"></tbody></table></div>
+    <div class="pagination">
+      <button type="button" class="bouton" id="table-prec">Précédents</button>
+      <span id="table-info" class="note"></span>
+      <button type="button" class="bouton" id="table-suiv">Suivants</button>
+    </div>
+  </article>
+
+  <!-- Fiche d'un compte -->
+  <dialog id="fiche" class="dialogue-admin large">
+    <div class="docs-tete">
+      <h2>Fiche du compte n°<span id="fiche-numero"></span></h2>
+      <button type="button" class="bouton petit" data-fermer>Fermer</button>
+    </div>
+    <p id="fiche-message" class="espace-message" role="status" hidden></p>
+    <form id="fiche-email-form" class="ligne-formulaire">
+      <label>Adresse e-mail<input type="email" id="fiche-email" maxlength="120" required></label>
+      <button type="submit" class="bouton">Enregistrer l'adresse</button>
+    </form>
+    <dl class="fiche">
+      <dt>Inscrit le</dt><dd id="fiche-cree"></dd>
+      <dt>Dernière connexion</dt><dd id="fiche-vu"></dd>
+      <dt>Mot de passe</dt><dd>Jamais visible. <button type="button" class="lien" id="fiche-lien">Envoyer au titulaire un lien pour en choisir un nouveau</button></dd>
+    </dl>
+    <h3>Documents</h3>
+    <div class="tableau-defile">
+      <table class="tableau-admin">
+        <thead><tr><th>Nom</th><th>Modifié le</th><th class="nombre">Version</th><th class="nombre">Volume</th><th></th></tr></thead>
+        <tbody id="fiche-documents"></tbody>
+      </table>
+    </div>
+    <p class="note" id="fiche-vide" hidden>Aucun document.</p>
+  </dialog>
+
+  <!-- Lecture et correction d'un document -->
+  <dialog id="editeur" class="dialogue-admin large">
+    <div class="docs-tete">
+      <h2>Document n°<span id="editeur-numero"></span> <small id="editeur-proprio"></small></h2>
+      <button type="button" class="bouton petit" data-fermer>Fermer</button>
+    </div>
+    <p id="editeur-message" class="espace-message" role="status" hidden></p>
+    <label>Nom du document<input id="editeur-nom" maxlength="60"></label>
+    <div id="editeur-champs" class="champs-document"></div>
+    <details class="json-brut"><summary>Modifier le texte brut (JSON)</summary>
+      <textarea id="editeur-json" rows="14" spellcheck="false"></textarea>
+      <button type="button" class="bouton petit" id="editeur-json-appliquer">Appliquer le JSON</button>
+    </details>
+    <div class="doc-actions barre-editeur">
+      <button type="button" class="bouton" id="editeur-supprimer">Supprimer ce document</button>
+      <button type="button" class="bouton principal" id="editeur-enregistrer">Enregistrer les corrections</button>
+    </div>
+  </dialog>
 
   <!-- Confirmation de suppression -->
   <dialog id="suppr-dialogue" class="dialogue-admin">

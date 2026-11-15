@@ -741,3 +741,21 @@ body:has(#admin) .article { max-width: 1040px; }
 .puce-choix:hover { border-color: var(--primaire); }
 .puce-choix[aria-pressed="true"] { background: var(--primaire); border-color: var(--primaire); color: var(--carte); }
 .puce-choix[aria-pressed="true"]::before { content: "✓ "; }
+.dialogue-admin.large { max-width: 900px; max-height: calc(100vh - 32px); overflow: auto; }
+.dialogue-admin h3 { margin: 18px 0 6px; font-size: 16px; }
+.dialogue-admin small { color: var(--doux); font-weight: 400; font-size: 14px; }
+.ligne-formulaire { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; margin-bottom: 14px; }
+.ligne-formulaire label { flex: 1 1 260px; margin: 0; }
+.tableau-admin td.actions { display: flex; gap: 6px; }
+.tableau-admin.brut td { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+.tableau-admin.brut td.contenu { white-space: normal; font-family: ui-monospace, monospace; font-size: 12px; min-width: 260px; }
+.choix-table { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; }
+.champs-document fieldset { margin: 10px 0; padding: 10px 14px; border: 1px solid var(--bord); border-radius: 12px; }
+.champs-document legend { padding: 0 6px; font-weight: 700; }
+.champs-document label { display: block; margin: 8px 0; font-size: 13px; color: var(--doux); }
+.champs-document label.case { display: flex; gap: 8px; align-items: center; color: var(--texte); }
+.champs-document input:not([type="checkbox"]), .champs-document textarea { display: block; width: 100%; margin-top: 3px; color: var(--texte); }
+.photo-admin { display: block; width: 90px; height: 90px; object-fit: cover; border-radius: 10px; margin: 6px 0; }
+.json-brut textarea { width: 100%; font-family: ui-monospace, monospace; font-size: 12px; }
+.barre-editeur { justify-content: space-between; margin-top: 16px; position: sticky; bottom: -22px; padding: 12px 0; background: var(--carte); }
+.dialogue-admin form.ligne-formulaire { padding: 0; margin: 0 0 14px; border: 0; box-shadow: none; background: none; }
