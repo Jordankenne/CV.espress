@@ -270,3 +270,55 @@ def test_ancienne_base_sans_colonne_version_migree(tmp_path, monkeypatch):
     comptes.initialiser(Flask("essai2"))               # un second démarrage ne change rien
     with comptes._base() as b:
         assert b.execute("SELECT version FROM documents").fetchall() == [(1,)]
+
+
+# ---------------------------------------------------------------------------
+# Documents administratifs (demande, attestation, procuration) : mis en page comme une lettre
+# ---------------------------------------------------------------------------
+PROCURATION = {"titre": "PROCURATION", "lieu": "Dakar", "date": "16 novembre 2026",
+               "corps": "Je soussignée, Awa Exemple, donne procuration à Moussa Exemple.\nFait pour servir et valoir ce que de droit.",
+               "signataires": [{"role": "Le mandant", "nom": "Awa Exemple", "mention": "« Bon pour pouvoir »"},
+                               {"role": "Le mandataire", "nom": "Moussa Exemple", "mention": "« Bon pour acceptation »"}]}
+
+
+def _texte_pdf(pdf, tmp_path):
+    import subprocess
+    (tmp_path / "d.pdf").write_bytes(pdf)
+    return subprocess.run(["pdftotext", "-layout", str(tmp_path / "d.pdf"), "-"], capture_output=True, text=True).stdout
+
+
+def test_document_administratif_titre_date_en_bas_deux_signatures(client, tmp_path):
+    r = client.post("/api/pdf", json={"type": "admin", "cv": CV, "admin": PROCURATION})
+    assert r.status_code == 200 and r.data[:5] == b"%PDF-"
+    assert "Document_Awa_Exemple.pdf" in r.headers["Content-Disposition"]
+    texte = _texte_pdf(r.data, tmp_path)
+    assert "PROCURATION" in texte and "Fait à Dakar, le 16 novembre 2026" in texte
+    assert "Le mandant" in texte and "Le mandataire" in texte and "Moussa Exemple" in texte
+    assert CV["titre"] not in texte                       # pas de « poste visé » sous le nom
+    assert texte.index("PROCURATION") < texte.index("Je soussignée") < texte.index("Fait à Dakar") < texte.index("Le mandant")
+
+
+def test_demande_a_une_autorite_garde_la_presentation_d_une_lettre(client, tmp_path):
+    demande = {"destinataire": {"nom": "À Monsieur le Maire de Thiès"}, "lieu": "Thiès", "date": "16 novembre 2026",
+               "objet": "Demande de stage", "corps": "Monsieur le Maire,\nJ'ai l'honneur de solliciter un stage."}
+    r = client.post("/api/pdf", json={"type": "admin", "cv": CV, "admin": demande})
+    texte = _texte_pdf(r.data, tmp_path)
+    assert r.status_code == 200 and "Demande de stage" in texte and "Thiès, le 16 novembre 2026" in texte
+    assert "Fait à" not in texte
+
+
+@pytest.mark.parametrize("admin", [
+    None, "x", [], {}, {"corps": ""}, {"corps": "x", "signataires": "abc"}, {"corps": "x", "signataires": [1, None, "a"]},
+    {"corps": "x", "titre": ["a"], "signataires": [{"role": {"a": 1}, "nom": 3}]},
+    {"corps": "x", "titre": "\\input{/etc/passwd} & % $ # _ { }", "signataires": [{"role": "\\write18{id}", "nom": "~^"}] * 5},
+])
+def test_document_administratif_hostile_jamais_d_erreur_500(client, admin):
+    r = client.post("/api/pdf", json={"type": "admin", "cv": CV, "admin": admin})
+    assert r.status_code in (200, 400), r.get_json()
+    r = client.post("/api/pdf", json={"type": "admin", "cv": "pas un dictionnaire", "admin": admin})
+    assert r.status_code == 400
+
+
+def test_une_lettre_de_motivation_ordinaire_ne_change_pas(tmp_path):
+    texte = _texte_pdf(moteur.generer_lettre(CV, LETTRE, {}), tmp_path)
+    assert "Fait à" not in texte and texte.count(CV["nom"]) == 2      # en-tête et signature

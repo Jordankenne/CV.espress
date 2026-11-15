@@ -13,6 +13,7 @@
   <nav class="onglets" role="tablist" aria-label="Type de document">
     <button role="tab" data-type="cv" aria-selected="true">CV</button>
     <button role="tab" data-type="lettre" aria-selected="false">Lettre de motivation</button>
+    <button role="tab" data-type="admin" aria-selected="false">Documents administratifs</button>
   </nav>
   <div class="outils">
     <button type="button" id="btn-exemple" class="mini">Voir un exemple</button>
@@ -66,7 +67,7 @@
           <img src="/img/modele_compact.png" alt="" loading="lazy"><span>Compact</span></label>
       </fieldset>
       <p class="conseil pour-cv" id="conseil-modele"></p>
-      <fieldset class="choix-modele pour-lettre" hidden>
+      <fieldset class="choix-modele pour-lettre pour-admin" hidden>
         <legend>Modèle de lettre</legend>
         <label><input type="radio" name="modele_lettre" value="classique" data-k="options.modele_lettre">
           <img src="/img/lettre_classique.png" alt="" loading="lazy"><span>Classique</span></label>
@@ -208,6 +209,116 @@
       <details open>
         <summary>Pièces jointes <small>facultatif</small></summary>
         <label>Documents joints à la lettre<input data-k="lettre.pj" maxlength="300" placeholder="Curriculum vitae" data-suggere="pieces"></label>
+      </details>
+    </div>
+
+    <!-- ===================== Documents administratifs ===================== -->
+    <div class="pour-admin" hidden>
+      <details open>
+        <summary>Quel document ?</summary>
+        <div class="grille">
+          <label class="large">Type de document
+            <select data-k="admin.genre">
+              <option value="demande">Demande adressée à une autorité (emploi, stage, bourse, terrain…)</option>
+              <option value="attestation">Attestation sur l'honneur</option>
+              <option value="procuration">Procuration</option>
+            </select></label>
+          <label class="admin-demande">Objet de la demande
+            <select data-k="admin.nature">
+              <option value="emploi">Emploi</option>
+              <option value="stage">Stage</option>
+              <option value="bourse">Bourse</option>
+              <option value="inscription">Inscription</option>
+              <option value="autorisation">Autorisation</option>
+              <option value="mutation">Mutation</option>
+              <option value="terrain">Terrain</option>
+              <option value="autre">Autre demande</option>
+            </select></label>
+          <label>Tu es
+            <select data-k="admin.sexe">
+              <option value="">Ne pas préciser</option>
+              <option value="f">Une femme</option>
+              <option value="m">Un homme</option>
+            </select></label>
+        </div>
+        <p class="conseil" id="admin-note"></p>
+        <p class="conseil">Ton nom et tes coordonnées viennent de la rubrique « Identité ». CV.express fournit des modèles de documents : ce n'est pas un conseil juridique.</p>
+      </details>
+
+      <details open class="admin-demande">
+        <summary>Destinataire <small>l'autorité à qui tu écris</small></summary>
+        <div class="grille">
+          <label class="large">Autorité<input data-k="admin.destinataire.nom" maxlength="120" placeholder="À Monsieur le Maire de la commune de…" list="choix-autorites" autocomplete="off"></label>
+          <label>Organisme ou service<input data-k="admin.destinataire.entreprise" maxlength="160"></label>
+          <label>Ville ou adresse<input data-k="admin.destinataire.adresse" maxlength="160"></label>
+        </div>
+        <datalist id="choix-autorites" translate="no">
+          <option>À Monsieur le Maire</option><option>À Madame la Maire</option><option>À Monsieur le Préfet</option>
+          <option>À Monsieur le Sous-Préfet</option><option>À Monsieur le Gouverneur</option><option>À Monsieur le Ministre</option>
+          <option>À Madame la Ministre</option><option>À Monsieur le Directeur</option><option>À Madame la Directrice</option>
+          <option>À Monsieur le Directeur général</option><option>À Monsieur le Recteur</option><option>À Monsieur le Proviseur</option>
+          <option>À Monsieur le Délégué</option><option>À Monsieur le Chef de service</option>
+        </datalist>
+      </details>
+
+      <details open class="admin-demande">
+        <summary>Ta demande</summary>
+        <label>Ce que tu demandes <small>en quelques mots</small>
+          <input data-k="admin.precision" id="admin-precision" maxlength="300"></label>
+        <label>Ta situation et tes raisons <small>qui tu es, pourquoi tu fais cette demande</small>
+          <textarea data-k="admin.motif" rows="4" maxlength="1500"></textarea></label>
+      </details>
+
+      <details open class="admin-identite">
+        <summary>Ton identité complète</summary>
+        <div class="grille">
+          <label>Date de naissance<input data-k="cv.etat_civil.date_naissance" maxlength="120"></label>
+          <label>Lieu de naissance<input data-k="cv.etat_civil.lieu_naissance" maxlength="120"></label>
+          <label>Nationalité<input data-k="cv.etat_civil.nationalite" maxlength="120" data-suggere="nationalites"></label>
+          <label>Domicile <small>adresse complète</small><input data-k="admin.domicile" maxlength="200"></label>
+          <label>Pièce d'identité
+            <select data-k="admin.piece_type">
+              <option value="la carte nationale d'identité">Carte nationale d'identité</option>
+              <option value="le passeport">Passeport</option>
+              <option value="le titre de séjour">Titre de séjour</option>
+              <option value="la carte consulaire">Carte consulaire</option>
+              <option value="le permis de conduire">Permis de conduire</option>
+            </select></label>
+          <label>Numéro de la pièce<input data-k="admin.piece_numero" maxlength="60"></label>
+        </div>
+      </details>
+
+      <details open class="admin-attestation">
+        <summary>Ce que tu déclares</summary>
+        <label>J'atteste sur l'honneur que…
+          <textarea data-k="admin.declaration" rows="3" maxlength="1500" placeholder="je ne perçois aucune autre bourse d'études"></textarea></label>
+      </details>
+
+      <details open class="admin-procuration">
+        <summary>La personne qui agira à ta place <small>le mandataire</small></summary>
+        <div class="grille">
+          <label>Nom et prénom<input data-k="admin.mandataire.nom" maxlength="120"></label>
+          <label>Date et lieu de naissance<input data-k="admin.mandataire.naissance" maxlength="160" placeholder="le 3 mai 1990 à Thiès"></label>
+          <label>Pièce d'identité et numéro<input data-k="admin.mandataire.piece" maxlength="160" placeholder="carte nationale d'identité n° …"></label>
+          <label>Domicile<input data-k="admin.mandataire.domicile" maxlength="200"></label>
+          <label class="large">La démarche que tu l'autorises à faire
+            <textarea data-k="admin.demarche" rows="2" maxlength="800" placeholder="retirer mon diplôme de baccalauréat auprès de l'Office du baccalauréat"></textarea></label>
+          <label>Valable jusqu'au <small>facultatif</small><input data-k="admin.validite" maxlength="80" placeholder="31 décembre 2026"></label>
+        </div>
+      </details>
+
+      <details open>
+        <summary>Lieu, date et texte</summary>
+        <div class="grille">
+          <label>Fait à<input data-k="admin.lieu" maxlength="80" placeholder="Dakar"></label>
+          <label>Date<input data-k="admin.date" maxlength="60"></label>
+          <label class="large">Texte du document <small>rédigé d'après tes réponses ; tu peux le corriger</small>
+            <textarea data-k="admin.corps" id="admin-corps" rows="12" maxlength="6000"></textarea></label>
+          <label class="large admin-demande">Pièces jointes <small>facultatif</small>
+            <input data-k="admin.pj" maxlength="300" placeholder="Curriculum vitae, copie des diplômes, copie de la carte d'identité"></label>
+        </div>
+        <p class="conseil" id="admin-etat" role="status"></p>
+        <button type="button" id="admin-rediger" class="ajouter" hidden>Rédiger à nouveau le texte d'après mes réponses</button>
       </details>
     </div>
   </form>

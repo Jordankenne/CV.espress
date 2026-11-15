@@ -9,11 +9,19 @@
 \end{minipage}
 
 \BLOCK{endif}
-\BLOCK{if l.lieu_date}
+\BLOCK{if l.lieu_date and not l.titre}
 \vspace{6pt}
 \hfill\begin{minipage}[t]{0.45\textwidth}
 \VAR{l.lieu_date}
 \end{minipage}
+
+\BLOCK{endif}
+\BLOCK{if l.titre}
+\vspace{14pt}
+\begin{center}
+{\Large\bfseries\color{accent} \VAR{l.titre}}
+\end{center}
+\vspace{6pt}
 
 \BLOCK{endif}
 \BLOCK{if l.objet}
@@ -32,10 +40,35 @@
 \VAR{l.formule}
 
 \BLOCK{endif}
-\vspace{18pt}
+\BLOCK{if l.titre and l.lieu_date}
+\vspace{10pt}
 \hfill\begin{minipage}[t]{0.45\textwidth}
+\VAR{l.lieu_date}
+\end{minipage}
+
+\BLOCK{endif}
+\vspace{18pt}
+\BLOCK{if l.signataires|length == 2}
+\noindent\begin{minipage}[t]{0.45\textwidth}\raggedright
+\BLOCK{if l.signataires[0].role}\VAR{l.signataires[0].role}\par\BLOCK{endif}
+\BLOCK{if l.signataires[0].mention}{\small\itshape \VAR{l.signataires[0].mention}}\par\BLOCK{endif}
+\vspace{1.6cm}
+\textbf{\VAR{l.signataires[0].nom}}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.45\textwidth}\raggedright
+\BLOCK{if l.signataires[1].role}\VAR{l.signataires[1].role}\par\BLOCK{endif}
+\BLOCK{if l.signataires[1].mention}{\small\itshape \VAR{l.signataires[1].mention}}\par\BLOCK{endif}
+\vspace{1.6cm}
+\textbf{\VAR{l.signataires[1].nom}}
+\end{minipage}
+\BLOCK{else}
+\hfill\begin{minipage}[t]{0.45\textwidth}
+\BLOCK{if l.titre}
+\vspace{1.2cm}
+\BLOCK{endif}
 \textbf{\VAR{l.exp.nom}}
 \end{minipage}
+\BLOCK{endif}
 
 \BLOCK{if l.pj}
 \vfill

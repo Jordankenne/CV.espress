@@ -294,6 +294,12 @@ def fabriquer_pdf():
     if corps.get("type") == "lettre":
         pdf = moteur.generer_lettre(corps.get("cv"), corps.get("lettre"), corps.get("options"))
         prefixe = "Lettre"
+    elif corps.get("type") == "admin":
+        # Document administratif (demande, attestation, procuration) : une lettre, sans le
+        # poste visé du CV sous le nom, avec le texte rédigé dans l'éditeur.
+        identite = corps.get("cv") if isinstance(corps.get("cv"), dict) else {}
+        pdf = moteur.generer_lettre({**identite, "titre": ""}, corps.get("admin"), corps.get("options"))
+        prefixe = "Document"
     else:
         pdf = moteur.generer_cv(corps.get("cv"), corps.get("options"))
         prefixe = "CV"

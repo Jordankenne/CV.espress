@@ -132,6 +132,7 @@ LIBELLES = {
         "objet": "Objet :",
         "pj": "P.J. :",
         "date_lettre": "{lieu}, le {date}",
+        "fait_a": "Fait à {lieu}, le {date}",
     },
     "en": {
         "cv": "Curriculum Vitae",
@@ -162,6 +163,7 @@ LIBELLES = {
         "objet": "Subject:",
         "pj": "Encl.:",
         "date_lettre": "{lieu}, {date}",
+        "fait_a": "Done at {lieu}, on {date}",
     },
     "it": {
         "cv": "Curriculum Vitae",
@@ -192,6 +194,7 @@ LIBELLES = {
         "objet": "Oggetto:",
         "pj": "Allegati:",
         "date_lettre": "{lieu}, {date}",
+        "fait_a": "Fatto a {lieu}, il {date}",
     },
 }
 
@@ -509,11 +512,21 @@ def preparer_lettre(brut, lettre, options=None):
     if not corps:
         raise ErreurDonnees("Le texte de la lettre est vide.")
 
+    # Documents administratifs (attestation, procuration…) : un titre centré remplace l'objet,
+    # « Fait à …, le … » passe en bas, et il peut y avoir deux signataires.
+    titre = echapper(_texte(l.get("titre"), 80))
     lieu, date = echapper(_texte(l.get("lieu"), 80)), echapper(_texte(l.get("date"), 60))
     if lieu and date:
-        lieu_date = t["date_lettre"].format(lieu=lieu, date=date)
+        lieu_date = t["fait_a" if titre else "date_lettre"].format(lieu=lieu, date=date)
     else:
         lieu_date = lieu or date
+    signataires = []
+    for s in _liste(l.get("signataires"), 2):
+        s = _dico(s)
+        signataire = {"role": echapper(_texte(s.get("role"), 60)), "nom": echapper(_texte(s.get("nom"), 120)),
+                      "mention": echapper(_texte(s.get("mention"), 120))}
+        if signataire["role"] or signataire["nom"]:
+            signataires.append(signataire)
 
     exp = echapper(exp)
     ctx = {
@@ -532,6 +545,8 @@ def preparer_lettre(brut, lettre, options=None):
         "corps": _paragraphes(corps),
         "formule": _paragraphes(_lignes(l.get("formule"), 4, 600)),
         "pj": echapper(_texte(l.get("pj"), 300)),
+        "titre": titre,
+        "signataires": signataires,
     }
     return {"l": ctx, "o": o, "t": t}, {}
 

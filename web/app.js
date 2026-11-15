@@ -261,6 +261,8 @@ const TEXTES_LETTRE = {
           conclusion: "Resto a disposizione per un colloquio conoscitivo." } },
 };
 
+const GENRES_ADMIN = ["demande", "attestation", "procuration"];
+
 function etatVide() {
   return {
     type: "cv",
@@ -273,6 +275,13 @@ function etatVide() {
               parties: { accroche: "", parcours: "", entreprise: "", conclusion: "" },
               date: new Date().toLocaleDateString(window.LOCALE_SITE || "fr-FR", { day: "numeric", month: "long", year: "numeric" }),
               salutation: TEXTES_LETTRE[LANGUE_SITE].salutation, formule: TEXTES_LETTRE[LANGUE_SITE].formule },
+    // Documents administratifs : les réponses au formulaire, et le texte rédigé d'après elles.
+    // « auto » : le texte suit les réponses tant qu'il n'a pas été corrigé à la main.
+    admin: { genre: "demande", nature: "emploi", sexe: "", destinataire: {}, precision: "", motif: "",
+             domicile: "", piece_type: "la carte nationale d'identité", piece_numero: "",
+             declaration: "", mandataire: {}, demarche: "", validite: "", lieu: "", pj: "",
+             date: new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }),
+             corps: "", objet: "", titre: "", signataires: [], auto: true },
   };
 }
 
@@ -282,13 +291,13 @@ function fusionner(source) {
   if (!source || typeof source !== "object") return e;
   // Un cv.json « nu » (sans enveloppe cv/lettre/options) est accepté aussi.
   const s = source.cv || source.lettre || source.options ? source : { cv: source };
-  if (s.type === "lettre") e.type = "lettre";
-  for (const bloc of ["options", "cv", "lettre"]) {
+  if (s.type === "lettre" || s.type === "admin") e.type = s.type;
+  for (const bloc of ["options", "cv", "lettre", "admin"]) {
     if (s[bloc] && typeof s[bloc] === "object") Object.assign(e[bloc], s[bloc]);
   }
   // Un champ texte doit rester une chaîne, quoi que contienne le fichier importé.
   const modele = etatVide();
-  for (const bloc of ["cv", "lettre", "options"]) {
+  for (const bloc of ["cv", "lettre", "options", "admin"]) {
     for (const [cle, defaut] of Object.entries(modele[bloc])) {
       if (typeof defaut === "string" && typeof e[bloc][cle] !== "string") e[bloc][cle] = defaut;
     }
@@ -303,7 +312,10 @@ function fusionner(source) {
   for (const exp of e.cv.experiences) {
     if (Array.isArray(exp.points)) exp.points = exp.points.join("\n");
   }
-  for (const [bloc, cle] of [["cv", "etat_civil"], ["lettre", "destinataire"]]) {
+  if (!GENRES_ADMIN.includes(e.admin.genre)) e.admin.genre = "demande";
+  if (!Array.isArray(e.admin.signataires)) e.admin.signataires = [];
+  e.admin.auto = e.admin.auto !== false;
+  for (const [bloc, cle] of [["cv", "etat_civil"], ["lettre", "destinataire"], ["admin", "destinataire"], ["admin", "mandataire"]]) {
     const v = e[bloc][cle];
     e[bloc][cle] = v && typeof v === "object" && !Array.isArray(v) ? { ...v } : {};
   }
@@ -672,17 +684,113 @@ $("#photo-recadrer").addEventListener("click", async () => {
 });
 $("#photo-retirer").addEventListener("click", () => { etat.cv.photo = ""; afficherPhoto(); modifie(); });
 
+// ---------- Documents administratifs : demande à une autorité, attestation, procuration ----------
+// Le texte est rédigé ici, d'après les réponses, dans les formules en usage en Afrique francophone.
+// Il reste modifiable : dès qu'on le corrige à la main, il n'est plus réécrit automatiquement.
+// Ce qui manque apparaît entre [crochets]. Le serveur met le texte en page comme une lettre.
+const DEMANDES = {
+  emploi: ["Demande d'emploi", "un emploi au sein de votre structure"],
+  stage: ["Demande de stage", "un stage au sein de votre structure"],
+  bourse: ["Demande de bourse", "l'octroi d'une bourse d'études"],
+  inscription: ["Demande d'inscription", "mon inscription dans votre établissement"],
+  autorisation: ["Demande d'autorisation", "une autorisation de [préciser]"],
+  mutation: ["Demande de mutation", "ma mutation à [lieu ou service souhaité]"],
+  terrain: ["Demande d'attribution de terrain", "l'attribution d'un terrain à usage d'habitation"],
+  autre: ["Demande de [préciser]", "[ce que tu demandes]"],
+};
+const NOTES_ADMIN = {
+  demande: "Certaines administrations exigent une demande écrite à la main : dans ce cas, recopie ce texte sur une feuille en gardant la même présentation. Pense au timbre fiscal s'il est demandé, et signe.",
+  attestation: "Signe l'attestation à la main. Une fausse déclaration sur l'honneur est punie par la loi.",
+  procuration: "Les deux personnes signent à la main, en recopiant la mention placée au-dessus de leur nom. Joins une copie de ta pièce d'identité. Beaucoup d'administrations demandent une signature légalisée (mairie, commissariat ou consulat) : renseigne-toi avant.",
+};
+const sansPoint = t => t.trim().replace(/[.\s]+$/, "");
+/** Suite d'une phrase (« … atteste que je ne perçois… ») : sans le mot d'introduction répété, sans majuscule. */
+const suite = (t, mot) => { const s = sansPoint(t).replace(new RegExp(`^${mot}\\s+`, "i"), ""); return s.startsWith("[") ? s : s.charAt(0).toLowerCase() + s.slice(1); };
+/** « À Monsieur le Maire de la commune de … » -> « Monsieur le Maire » (formule d'appel). */
+function civiliteAutorite(nom) {
+  const m = (nom || "").trim().replace(/^[àa]\s+/i, "")
+    .match(/^(Monsieur|Madame)(\s+(?:le|la)\s+[^\s,]+(?:\s+g[ée]n[ée]rale?)?(?:\s+de\s+(?:service|division|bureau|cabinet|centre|district))?|\s+l['’][^\s,]+)?/i);
+  return m ? m[0] : "";
+}
+function redigerAdmin() {
+  const a = etat.admin, cv = etat.cv, ec = cv.etat_civil || {};
+  if (!a.auto) return;
+  const e = a.sexe === "f" ? "e" : a.sexe === "m" ? "" : "(e)";
+  const ou = (valeur, manque) => (valeur || "").trim() || `[${manque}]`;
+  const piece = a.piece_type.replace(/^le /, "du ").replace(/^la /, "de la ");
+  const identite = `Je soussigné${e}, ${ou(cv.nom, "nom et prénom")}, né${e} le ${ou(ec.date_naissance, "date de naissance")} à `
+    + `${ou(ec.lieu_naissance, "lieu de naissance")}`
+    + ((ec.nationalite || "").trim() ? `, de nationalité ${ec.nationalite.trim().toLowerCase()}` : "")
+    + `, titulaire ${piece} n° ${ou(a.piece_numero, "numéro de la pièce")}, demeurant à ${ou(a.domicile || cv.ville, "adresse")}`;
+  Object.assign(a, { titre: "", objet: "", signataires: [] });
+  let paragraphes;
+  if (a.genre === "attestation") {
+    a.titre = "ATTESTATION SUR L'HONNEUR";
+    paragraphes = [
+      `${identite}, atteste sur l'honneur que ${suite(ou(a.declaration, "ce que tu déclares"), "que")}.`,
+      "J'ai connaissance des sanctions prévues par la loi en cas de fausse déclaration.",
+      "En foi de quoi, la présente attestation est établie pour servir et valoir ce que de droit.",
+    ];
+  } else if (a.genre === "procuration") {
+    const m = a.mandataire || {};
+    a.titre = "PROCURATION";
+    paragraphes = [
+      `${identite}, donne par la présente procuration à ${ou(m.nom, "nom et prénom du mandataire")}`
+        + `, né(e) ${ou(m.naissance, "date et lieu de naissance du mandataire")}`
+        + `, titulaire de la pièce suivante : ${ou(m.piece, "pièce d'identité du mandataire et son numéro")}`
+        + ((m.domicile || "").trim() ? `, demeurant à ${m.domicile.trim()}` : "")
+        + `, pour ${suite(ou(a.demarche, "la démarche autorisée"), "pour")}, en mon nom et pour mon compte.`,
+      "À cet effet, le mandataire pourra signer tout document, retirer toute pièce et, plus généralement, accomplir toute formalité nécessaire.",
+      (a.validite || "").trim() ? `La présente procuration est valable jusqu'au ${sansPoint(a.validite)}.`
+                                : "La présente procuration est valable pour cette seule démarche.",
+      "Fait pour servir et valoir ce que de droit.",
+    ];
+    a.signataires = [{ role: "Le mandant", nom: cv.nom.trim(), mention: "« Bon pour pouvoir »" },
+                     { role: "Le mandataire", nom: (m.nom || "").trim(), mention: "« Bon pour acceptation de pouvoir »" }];
+  } else {
+    const [objet, defaut] = DEMANDES[a.nature] || DEMANDES.autre;
+    const civilite = civiliteAutorite(a.destinataire.nom) || "[Monsieur le…]";
+    a.objet = objet;
+    paragraphes = [
+      `${civilite},`,
+      `J'ai l'honneur de venir très respectueusement auprès de votre haute bienveillance solliciter ${sansPoint(a.precision) || defaut}.`,
+      (a.motif || "").trim() || "[Explique ta situation : qui tu es, et pourquoi tu fais cette demande.]",
+      `Dans l'attente d'une suite favorable, je vous prie d'agréer, ${civilite}, l'expression de mon profond respect.`,
+    ];
+  }
+  a.corps = paragraphes.join("\n");
+  const zone = $("#admin-corps");
+  if (zone) zone.value = a.corps;
+}
+function afficherAdmin() {
+  const a = etat.admin, t = window.tr || (x => x);
+  for (const g of GENRES_ADMIN) for (const el of $$(".admin-" + g)) el.hidden = a.genre !== g;
+  for (const el of $$(".admin-identite")) el.hidden = a.genre === "demande";
+  $("#admin-note").textContent = t(NOTES_ADMIN[a.genre]);
+  $("#admin-precision").placeholder = (DEMANDES[a.nature] || DEMANDES.autre)[1];
+  $("#admin-rediger").hidden = a.auto;
+  const manques = (a.corps.match(/\[[^\]]*\]/g) || []).length;
+  $("#admin-etat").textContent = !a.auto ? t("Tu as corrigé le texte : il ne change plus quand tu modifies tes réponses.")
+    : manques ? t("Complète tes réponses : les passages entre [crochets] restent à remplir.")
+      : t("Le texte est complet. Relis-le avant de télécharger.");
+}
+$("#admin-rediger").addEventListener("click", () => {
+  if (!confirm((window.tr || (x => x))("Remplacer le texte actuel par un texte rédigé d'après tes réponses ?"))) return;
+  etat.admin.auto = true; redigerAdmin(); afficherAdmin(); modifie(0);
+});
+
 // ---------- Onglets CV / Lettre, conseil, jauge ----------
 function afficherType() {
   for (const b of $$(".onglets button")) b.setAttribute("aria-selected", String(b.dataset.type === etat.type));
-  for (const el of $$(".pour-cv")) el.hidden = etat.type !== "cv";
-  for (const el of $$(".pour-lettre")) el.hidden = etat.type !== "lettre";
+  for (const el of $$(".pour-cv, .pour-lettre, .pour-admin")) el.hidden = !el.classList.contains("pour-" + etat.type);
+  $("#import").hidden = etat.type === "admin";
+  afficherAdmin();
   $("#conseil-modele").textContent = CONSEILS[etat.options.modele] || "";
   afficherImport();
   afficherProgres();
 }
 for (const b of $$(".onglets button")) {
-  b.addEventListener("click", () => { etat.type = b.dataset.type; afficherType(); modifie(0); });
+  b.addEventListener("click", () => { etat.type = b.dataset.type; redigerAdmin(); remplirChamps(); afficherType(); modifie(0); });
 }
 
 /** Sous le texte de la lettre : sa longueur, et ce qu'il reste à écrire. */
@@ -797,6 +905,7 @@ function montrerErreur(message) {
 function pret() {
   if (!etat.cv.nom.trim()) return "Renseigne ton nom pour voir l'aperçu.";
   if (etat.type === "lettre" && !texteLettre(etat.lettre)) return "Écris le texte de la lettre pour voir l'aperçu.";
+  if (etat.type === "admin" && !etat.admin.corps.trim()) return "Écris le texte du document pour voir l'aperçu.";
   return "";
 }
 
@@ -806,7 +915,7 @@ async function appeler(chemin, signal) {
     reponse = await fetch(chemin, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: etat.type, cv: etat.cv, lettre: etat.lettre, options: etat.options }),
+      body: JSON.stringify({ type: etat.type, cv: etat.cv, lettre: etat.lettre, admin: etat.admin, options: etat.options }),
       signal,
     });
   } catch (e) {
@@ -864,7 +973,7 @@ async function telecharger(bouton) {
     const nom = etat.cv.nom.trim().normalize("NFD").replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "");
     const lien = document.createElement("a");
     lien.href = URL.createObjectURL(pdf);
-    lien.download = `${etat.type === "lettre" ? "Lettre" : "CV"}_${nom || "document"}.pdf`;
+    lien.download = `${{ lettre: "Lettre", admin: "Document" }[etat.type] || "CV"}_${nom || "document"}.pdf`;
     document.body.append(lien);
     lien.click();
     lien.remove();
@@ -879,7 +988,7 @@ async function telecharger(bouton) {
 }
 function nomFichier() {
   const nom = etat.cv.nom.trim().normalize("NFD").replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "");
-  return `${etat.type === "lettre" ? "Lettre" : "CV"}_${nom || "document"}.pdf`;
+  return `${{ lettre: "Lettre", admin: "Document" }[etat.type] || "CV"}_${nom || "document"}.pdf`;
 }
 
 /** Partage le PDF vers une autre application (WhatsApp, e-mail…), surtout utile sur téléphone. */
@@ -947,6 +1056,11 @@ $("#formulaire").addEventListener("input", e => {
   ecrire(el.dataset.k, el.type === "checkbox" ? el.checked : el.value);
   if (el.dataset.k === "options.modele") afficherType();
   if (el.dataset.k === "cv.interets") dessinerInterets();
+  if (etat.type === "admin") {
+    if (el.dataset.k === "admin.corps") etat.admin.auto = false;      // corrigé à la main : on n'y touche plus
+    else redigerAdmin();
+    afficherAdmin();
+  }
   if (el.dataset.k === "options.langue") {
     // Les listes de choix suivent la langue du document, et les choix déjà faits sont convertis.
     convertirChoix(langueDocument, el.value);
@@ -1039,6 +1153,7 @@ let langueDocument = etat.options.langue;     // pour convertir les choix quand 
 
 function toutDessiner() {
   langueDocument = etat.options.langue;
+  redigerAdmin();       // le texte du document administratif suit les réponses (nom, date de naissance…)
   remplirChoix();       // avant remplirChamps : un menu doit contenir la valeur à afficher
   remplirChamps();
   Object.keys(LISTES).forEach(dessinerListe);
