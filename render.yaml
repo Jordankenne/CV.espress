@@ -24,6 +24,8 @@ services:
         sync: false
       - key: BREVO_CLE_API   # Brevo > SMTP & API > API Keys
         sync: false
+      - key: ADMINS          # adresse(s) des comptes administrateurs (page /admin), séparées par des virgules
+        sync: false
       - key: EMAIL_EXPEDITEUR  # adresse validée dans Brevo, ex. CV.express <ton.adresse@gmail.com>
         sync: false
       # Petite machine (0,1 processeur, 512 Mo) : une compilation à la fois, plus de temps.

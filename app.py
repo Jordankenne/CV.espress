@@ -17,6 +17,7 @@ from collections import defaultdict, deque
 from flask import Flask, Response, jsonify, render_template, request
 from markupsafe import Markup, escape
 
+import admin
 import comptes
 import importer
 import moteur
@@ -33,6 +34,8 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Comptes utilisateurs (facultatifs) : base de données, cookie de session, routes /api/compte.
 comptes.initialiser(app)
+# Tableau de bord de l'administrateur (réglage ADMINS) : /admin et /api/admin.
+app.register_blueprint(admin.admin)
 
 # Chez un hébergeur, le site est derrière un proxy : sans ceci, tous les visiteurs
 # auraient la même adresse IP (celle du proxy) et partageraient la même limite.
@@ -184,6 +187,14 @@ def espace():
     return page("compte")
 
 
+@app.get("/admin")
+def administration():
+    """Tableau de bord de l'administrateur. Pour tous les autres visiteurs, la page n'existe pas."""
+    if not admin.admin_connecte():
+        return "Page introuvable.", 404
+    return page("admin")
+
+
 @app.get("/<any(en,it):langue>/")
 def accueil_traduit(langue):
     return page("accueil", langue)
@@ -210,7 +221,7 @@ def page_texte(nom):
 
 @app.get("/robots.txt")
 def robots():
-    return Response(f"User-agent: *\nDisallow: /api/\nSitemap: {comptes.racine_site()}/sitemap.xml\n",
+    return Response(f"User-agent: *\nDisallow: /api/\nDisallow: /admin\nSitemap: {comptes.racine_site()}/sitemap.xml\n",
                     mimetype="text/plain")
 
 

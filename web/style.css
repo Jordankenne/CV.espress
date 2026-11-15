@@ -698,3 +698,35 @@ body:has(#espace:not([hidden])) .article { max-width: 900px; }
 
 .entete-page .langues a { color: var(--texte); }
 .entete-page .langues a[aria-current] { color: var(--primaire); }
+
+/* ---------- Administration (/admin) ---------- */
+body:has(#admin) .article { max-width: 1040px; }
+.admin .carte-espace { margin-bottom: 18px; }
+.tuiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.tuile { display: flex; flex-direction: column; gap: 4px; padding: 16px; border: 1px solid var(--bord); border-radius: 14px; background: var(--carte); }
+.tuile-nom { color: var(--doux); font-size: 13px; }
+.tuile strong { font: 700 24px var(--titres); color: var(--texte); font-variant-numeric: tabular-nums; }
+.tuile progress { width: 100%; height: 6px; accent-color: var(--primaire); }
+/* Histogramme : une seule série, barres fines arrondies en haut, 2px d'écart, quadrillage discret. */
+.histogramme { display: flex; align-items: stretch; gap: 2px; height: 140px; padding-bottom: 1px; border-bottom: 1px solid var(--bord); }
+.histo-colonne { flex: 1; display: flex; align-items: flex-end; cursor: default; outline: none; }
+.histo-barre { width: 100%; border-radius: 4px 4px 0 0; background: var(--primaire); opacity: .85; }
+.histo-colonne.actif .histo-barre, .histo-colonne:focus-visible .histo-barre { opacity: 1; box-shadow: 0 0 0 2px var(--carte), 0 0 0 4px var(--primaire); }
+.histogramme-axe { display: flex; justify-content: space-between; margin-top: 6px; color: var(--doux); font-size: 12px; }
+.infobulle { margin: 8px 0 0; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.admin input[type="search"] { width: min(100%, 300px); }
+.tableau-defile { overflow-x: auto; margin: 10px 0; }
+.tableau-admin { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tableau-admin th { text-align: left; color: var(--doux); font-weight: 600; font-size: 13px; padding: 8px 10px; border-bottom: 1px solid var(--bord); white-space: nowrap; }
+.tableau-admin td { padding: 10px; border-bottom: 1px solid var(--bord); white-space: nowrap; }
+.tableau-admin td.email { white-space: normal; overflow-wrap: anywhere; min-width: 180px; }
+.tableau-admin .nombre { text-align: right; font-variant-numeric: tabular-nums; }
+.bouton.petit { padding: 5px 12px; font-size: 13px; }
+.pagination { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.pagination .note { margin: 0; }
+.dialogue-admin { max-width: 440px; width: calc(100% - 32px); padding: 22px; border: 1px solid var(--bord); border-radius: 16px; background: var(--carte); color: var(--texte); }
+.dialogue-admin::backdrop { background: rgba(0, 0, 0, .45); }
+.dialogue-admin h2 { margin: 0 0 10px; font-size: 19px; }
+.dialogue-admin label { display: block; margin: 12px 0; }
+.dialogue-admin input { width: 100%; }
+.bouton.danger-bouton { background: var(--erreur); border-color: var(--erreur); color: var(--carte); }

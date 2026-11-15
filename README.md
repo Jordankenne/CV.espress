@@ -107,6 +107,16 @@ s'endort après 48 heures sans visite. Neon et Brevo s'utilisent de la même fa�
 Si le journal affiche « Base PostgreSQL injoignable », Hugging Face bloque la sortie vers
 le port 5432 de Neon : le signaler sur discuss.huggingface.co, ou héberger ailleurs.
 
+### Tableau de bord de l'administrateur
+
+Page `/admin` : nombre de comptes, inscriptions et activité, stockage utilisé, liste des
+comptes avec recherche, et suppression d'un compte (mot de passe de l'administrateur
+redemandé). Le contenu des CV et des lettres n'y est jamais affiché.
+
+Pour y accéder : créer un compte normal sur le site, puis mettre son adresse dans le réglage
+`ADMINS` chez l'hébergeur (plusieurs adresses : séparées par des virgules). Pour tous les
+autres visiteurs, la page n'existe pas (erreur 404).
+
 ### Sauvegarder la base en ligne
 
 Neon gratuit ne garde pas de vraies sauvegardes. Depuis ton ordinateur, régulièrement

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block titre %}Administration{% endblock %}
+{% block description %}Tableau de bord de l'administrateur.{% endblock %}
+{% block tete %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block contenu %}
+<section id="admin" class="admin" translate="no">
+  <div class="espace-tete">
+    <div>
+      <h1>Administration</h1>
+      <p class="note">Le contenu des CV et des lettres n'est jamais affiché ici : seulement des chiffres et la liste des comptes.</p>
+    </div>
+  </div>
+  <p id="admin-message" class="espace-message" role="status" hidden></p>
+
+  <!-- Chiffres clés -->
+  <div class="tuiles" id="tuiles" aria-live="polite">
+    <div class="tuile"><span class="tuile-nom">Comptes</span><strong id="t-comptes">—</strong></div>
+    <div class="tuile"><span class="tuile-nom">Nouveaux (7 j / 30 j)</span><strong id="t-inscrits">—</strong></div>
+    <div class="tuile"><span class="tuile-nom">Actifs (7 j / 30 j)</span><strong id="t-actifs">—</strong></div>
+    <div class="tuile"><span class="tuile-nom">Documents</span><strong id="t-documents">—</strong></div>
+    <div class="tuile"><span class="tuile-nom">Inscriptions en attente</span><strong id="t-attente">—</strong></div>
+    <div class="tuile">
+      <span class="tuile-nom">Stockage (<span id="t-base"></span>)</span><strong id="t-stockage">—</strong>
+      <span class="tuile-nom" id="t-stockage-max"></span>
+      <progress id="t-jauge" max="100" value="0"></progress>
+    </div>
+  </div>
+
+  <!-- Inscriptions des 30 derniers jours -->
+  <article class="carte-espace">
+    <h2>Inscriptions des 30 derniers jours</h2>
+    <div class="histogramme" id="histogramme" role="img" aria-label="Inscriptions par jour"></div>
+    <div class="histogramme-axe"><span id="axe-debut"></span><span id="axe-fin"></span></div>
+    <p id="infobulle" class="infobulle" hidden></p>
+  </article>
+
+  <!-- Comptes -->
+  <article class="carte-espace">
+    <div class="docs-tete">
+      <h2>Comptes</h2>
+      <input type="search" id="recherche" placeholder="Rechercher une adresse e-mail" maxlength="120" aria-label="Rechercher une adresse e-mail">
+    </div>
+    <div class="tableau-defile">
+      <table class="tableau-admin">
+        <thead><tr><th>Adresse e-mail</th><th>Inscrit le</th><th>Dernière connexion</th><th class="nombre">Documents</th><th class="nombre">Volume</th><th></th></tr></thead>
+        <tbody id="comptes"></tbody>
+      </table>
+    </div>
+    <p class="note" id="comptes-vide" hidden>Aucun compte.</p>
+    <div class="pagination">
+      <button type="button" class="bouton" id="page-prec">Précédents</button>
+      <span id="page-info" class="note"></span>
+      <button type="button" class="bouton" id="page-suiv">Suivants</button>
+    </div>
+  </article>
+
+  <!-- Confirmation de suppression -->
+  <dialog id="suppr-dialogue" class="dialogue-admin">
+    <form method="dialog" id="suppr-form">
+      <h2>Supprimer ce compte ?</h2>
+      <p>Le compte <strong id="suppr-email"></strong> et tous ses documents seront effacés définitivement. Son titulaire ne pourra plus s'y connecter.</p>
+      <label>Ton mot de passe (administrateur)<input type="password" id="suppr-mdp" maxlength="200" autocomplete="current-password" required></label>
+      <p id="suppr-erreur" class="erreur-compte" role="alert" hidden></p>
+      <div class="doc-actions">
+        <button type="button" class="bouton" id="suppr-annuler">Annuler</button>
+        <button type="submit" class="bouton danger-bouton" id="suppr-valider">Supprimer définitivement</button>
+      </div>
+    </form>
+  </dialog>
+</section>
+{% endblock %}
+{% block scripts %}<script src="/admin.js"></script>{% endblock %}
