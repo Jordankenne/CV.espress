@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block titre %}CV compatibile ATS: superare i software di selezione{% endblock %}
+{% block description %}Molte aziende filtrano i CV con un software (ATS) prima di leggerli. Ecco come fare un CV che legge correttamente: impaginazione, parole chiave, formato PDF.{% endblock %}
+{% block contenu %}
+<h1>Fare un CV leggibile dai software di selezione (ATS)</h1>
+<p class="chapeau">Nelle grandi aziende e sui siti di lavoro, il tuo CV viene spesso letto prima da un software di gestione delle candidature, detto ATS. Ne estrae il testo, lo divide in campi e lo confronta con l'annuncio. Se il CV viene letto male, può essere scartato prima che una persona lo veda.</p>
+
+<h2>1. Un'impaginazione semplice</h2>
+<p>Una sola colonna si legge meglio. Evita tabelle, caselle di testo e testo dentro le immagini: molti software li leggono in disordine o li ignorano. I modelli Classico ed Elegante di CV.express sono pensati per questo: tutto il testo è vero testo, nell'ordine giusto.</p>
+
+<h2>2. Titoli delle sezioni standard</h2>
+<p>Il software riconosce le sezioni dal titolo. Usa i nomi attesi: «Esperienze professionali», «Istruzione e formazione», «Competenze», «Lingue». Un titolo originale come «Il mio percorso» rischia di non essere capito.</p>
+
+<h2>3. Le parole chiave dell'annuncio</h2>
+<p>Rileggi l'annuncio e individua le parole importanti: nome della posizione, software, tecniche, titoli richiesti. Riprendi quelle che corrispondono davvero al tuo profilo, con le stesse parole. Se l'annuncio parla di «contabilità fornitori», scrivi «contabilità fornitori», non solo «contabilità».</p>
+
+<h2>4. Date chiare</h2>
+<p>Indica mese e anno per ogni esperienza («mar 2022 – oggi»). Il software calcola così i tuoi anni di esperienza, spesso usati per filtrare.</p>
+
+<h2>5. Un PDF fatto di vero testo</h2>
+<p>Invia un PDF creato da un testo, non una foto o una scansione del CV: il software non ne ricaverebbe nulla. Per verificarlo, apri il PDF e prova a selezionare una frase: se puoi copiarla, il software può leggerla. I PDF di CV.express sono sempre fatti di vero testo.</p>
+
+<aside class="appel">
+  <p>Il modello Classico è il più sicuro per i software di selezione. Puoi anche importare il tuo vecchio CV per vedere come viene letto.</p>
+  <a href="{{ p }}/creer?modele=classique&amp;exemple=1" class="bouton principal grand">Crea un CV compatibile ATS</a>
+  <a href="/exemple/classique.pdf" target="_blank" rel="noopener" class="bouton grand">Vedi un esempio in PDF</a>
+</aside>
+{% endblock %}

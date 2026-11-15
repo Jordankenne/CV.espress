@@ -165,7 +165,7 @@ button:disabled { opacity: .4; cursor: default; }
 .sous-titre { max-width: 40em; margin: 0 auto 36px; text-align: center; color: var(--doux); font-size: 17px; }
 .centre { text-align: center; margin: 36px 0 0; }
 
-.vitrine { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px; max-width: 1180px; margin: 0 auto; }
+.vitrine { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 26px; max-width: 980px; margin: 0 auto; }
 .vitrine-carte {
   display: block;
   padding: 14px 14px 16px;

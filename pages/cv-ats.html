@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block titre %}CV compatible ATS : passer les logiciels de tri des candidatures{% endblock %}
+{% block description %}Beaucoup d'entreprises trient les CV avec un logiciel (ATS) avant de les lire. Voici comment faire un CV qu'il lit correctement : mise en page, mots-clés, format PDF.{% endblock %}
+{% block contenu %}
+<h1>Faire un CV lisible par les logiciels de tri (ATS)</h1>
+<p class="chapeau">Dans les grandes entreprises et sur les sites d'emploi, ton CV est souvent lu d'abord par un logiciel de suivi des candidatures, appelé ATS. Il en extrait le texte, le range dans des cases et le compare à l'offre. Si ton CV est mal lu, il peut être écarté avant qu'un humain ne le voie.</p>
+
+<h2>1. Une mise en page simple</h2>
+<p>Une seule colonne se lit le mieux. Évite les tableaux, les zones de texte et le texte dans les images : beaucoup de logiciels les lisent dans le désordre ou les ignorent. Les modèles Classique et Élégant de CV.express sont pensés pour cela : tout le texte est un vrai texte, dans le bon ordre.</p>
+
+<h2>2. Des titres de rubriques standard</h2>
+<p>Le logiciel reconnaît les rubriques à leur titre. Utilise les noms attendus : « Expériences professionnelles », « Formation », « Compétences », « Langues ». Un titre original comme « Mon parcours » risque de ne pas être compris.</p>
+
+<h2>3. Les mots-clés de l'offre</h2>
+<p>Relis l'offre d'emploi et repère les mots importants : intitulé du poste, logiciels, techniques, diplômes demandés. Reprends ceux qui correspondent vraiment à ton profil, avec les mêmes mots. Si l'offre parle de « comptabilité fournisseurs », écris « comptabilité fournisseurs », pas seulement « comptabilité ».</p>
+
+<h2>4. Des dates claires</h2>
+<p>Indique un mois et une année pour chaque expérience (« mars 2022 – aujourd'hui »). Le logiciel calcule ainsi ton nombre d'années d'expérience, souvent utilisé pour trier.</p>
+
+<h2>5. Un PDF avec du vrai texte</h2>
+<p>Envoie un PDF créé à partir d'un texte, pas une photo ou un scan de ton CV : le logiciel n'en tirerait rien. Pour vérifier, ouvre ton PDF et essaie de sélectionner une phrase : si tu peux la copier, le logiciel peut la lire. Les PDF de CV.express sont toujours faits de vrai texte.</p>
+
+<aside class="appel">
+  <p>Le modèle Classique est le plus sûr pour les logiciels de tri. Tu peux aussi importer ton ancien CV pour vérifier comment il est lu.</p>
+  <a href="{{ p }}/creer?modele=classique&amp;exemple=1" class="bouton principal grand">Créer un CV compatible ATS</a>
+  <a href="/exemple/classique.pdf" target="_blank" rel="noopener" class="bouton grand">Voir un exemple en PDF</a>
+</aside>
+{% endblock %}
