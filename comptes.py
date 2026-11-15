@@ -569,7 +569,8 @@ def connexion():
     if not ligne or not correct:
         # Même message dans les deux cas : on ne dit pas si l'adresse a un compte.
         _noter(*cles)
-        return jsonify(erreur="Adresse e-mail ou mot de passe incorrect."), 401
+        return jsonify(erreur="Adresse e-mail ou mot de passe incorrect. Si tu viens de t'inscrire, "
+                              "ouvre d'abord le lien reçu par e-mail pour choisir ton mot de passe."), 401
     _oublier(cles[0])                # les échecs de CETTE adresse IP sur ce compte sont effacés
     with _base() as b:
         b.execute("UPDATE comptes SET vu_le = ? WHERE id = ?", (int(time.time()), ligne[0]))

@@ -302,7 +302,9 @@ async function supprimer(d) {
 async function charger() {
   const r = await api("GET", "");
   $("#espace-attente").hidden = true;
-  const connecte = r.ok && r.corps.connecte;
+  // Lien reçu par e-mail : on l'utilise, même si un compte est déjà connecté sur cet appareil
+  // (sinon le lien serait ignoré et le mot de passe ne pourrait pas être changé).
+  const connecte = r.ok && r.corps.connecte && !jetonRecu;
   $("#espace-porte").hidden = connecte;
   $("#espace").hidden = !connecte;
   if (!connecte) { afficherPorte(); return; }
@@ -362,6 +364,17 @@ $("#mdp-form").addEventListener("submit", async e => {
   if (!r.ok) return erreur("#mdp-erreur", r.corps.erreur || "Changement impossible. Réessaie.");
   $("#mdp-form").reset(); erreur("#mdp-erreur", "");
   message("Ton mot de passe a été changé. Tes autres appareils ont été déconnectés.");
+});
+
+// Mot de passe actuel inconnu : un lien pour en choisir un nouveau, envoyé à l'adresse du compte
+// (celui qui a seulement accès à l'appareil, sans la boîte e-mail, ne peut donc pas le changer).
+$("#mdp-par-email").addEventListener("click", async () => {
+  $("#mdp-par-email").disabled = true;
+  const r = await api("POST", "/mot-de-passe-oublie", { email: $("#profil-email").textContent, langue: window.LANGUE_SITE || "fr" });
+  $("#mdp-par-email").disabled = false;
+  if (!r.ok) return erreur("#mdp-erreur", r.corps.erreur || "Envoi impossible. Réessaie.");
+  erreur("#mdp-erreur", "");
+  message("Nous venons de t'envoyer un e-mail. Ouvre le lien qu'il contient pour choisir un nouveau mot de passe (valable 30 minutes). Pense à regarder dans les courriers indésirables.");
 });
 
 $("#espace-deconnexion").addEventListener("click", async () => {
