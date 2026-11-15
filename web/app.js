@@ -20,10 +20,10 @@ const MODELES = ["moderne", "classique", "europeen", "africain"];
 const LISTES = {
   experiences: { nom: "Expérience", champs: [
     ["poste", "Poste"], ["entreprise", "Entreprise"], ["lieu", "Lieu"],
-    ["dates", "Dates (ex. 08/2026 – 10/2026)"],
+    ["dates", "Dates", "periode"],
     ["points", "Missions et résultats (un par ligne)", "textarea"]] },
   formations: { nom: "Formation", champs: [
-    ["diplome", "Diplôme", "suggere:diplomes"], ["ecole", "Établissement"], ["dates", "Dates"],
+    ["diplome", "Diplôme", "suggere:diplomes"], ["ecole", "Établissement"], ["dates", "Dates", "periode"],
     ["details", "Détails (mention, matières…)"]] },
   competences: { nom: "Compétence", champs: [
     ["categorie", "Catégorie (ex. Informatique)", "suggere:categories"], ["liste", "Compétences"]] },
@@ -32,7 +32,7 @@ const LISTES = {
   certifications: { nom: "Certification", champs: [
     ["titre", "Intitulé (ex. TOEIC 750, permis cariste)"], ["organisme", "Organisme"], ["date", "Année"]] },
   projets: { nom: "Projet", champs: [
-    ["titre", "Nom du projet"], ["dates", "Dates"],
+    ["titre", "Nom du projet"], ["dates", "Dates", "periode"],
     ["details", "Ce que tu as fait, et le résultat", "textarea"]] },
   liens: { nom: "Lien", champs: [["label", "Texte affiché", "suggere:liens"], ["url", "Adresse (URL)"]] },
   references: { nom: "Référence", champs: [
@@ -183,6 +183,14 @@ function convertirChoix(ancienne, nouvelle) {
   for (const c of etat.cv.competences) c.categorie = convertir("categories", c.categorie);
   for (const l of etat.cv.liens) l.label = convertir("liens", l.label);
   etat.cv.interets = separerInterets(etat.cv.interets).map(i => convertir("interets", i)).join(", ");
+  if (MOIS[nouvelle]) {
+    for (const liste of [etat.cv.experiences, etat.cv.formations, etat.cv.projets]) {
+      for (const e of liste) {
+        const p = lirePeriode(e.dates);
+        if (p && (e.dates || "").trim()) e.dates = ecrirePeriode(p, nouvelle);
+      }
+    }
+  }
   const ec = etat.cv.etat_civil;
   ec.situation = convertir("situations", ec.situation);
   ec.nationalite = convertir("nationalites", ec.nationalite);
@@ -404,6 +412,12 @@ function dessinerListe(nom) {
       const label = document.createElement("label");
       label.textContent = texte;
       const [genre, liste] = (type || "").split(":");
+      if (genre === "periode") {
+        label.className = "large";
+        label.append(champPeriode(element, champ));
+        grille.append(label);
+        continue;
+      }
       const saisie = document.createElement(genre === "textarea" ? "textarea" : genre === "choix" ? "select" : "input");
       if (genre === "textarea") { saisie.rows = 4; label.className = "large"; }
       if (genre === "choix") {
@@ -430,6 +444,138 @@ function dessinerListe(nom) {
     conteneur.querySelector(".element:last-of-type input")?.focus();
   });
   conteneur.append(ajouter);
+}
+
+// ---------- Dates : mois et année choisis dans des listes ----------
+// Le texte enregistré reste une simple chaîne (« janv. 2024 – aujourd'hui »), dans la langue du
+// document : les modèles l'impriment tel quel. Un texte non reconnu (importé, ou écrit à la main)
+// est gardé et reste modifiable en saisie libre.
+const MOIS = {
+  fr: ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."],
+  en: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+  it: ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"],
+};
+const AUJOURDHUI = { fr: "aujourd'hui", en: "Present", it: "oggi" };
+const simplifier = t => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\./g, "");
+// Noms de mois reconnus (abrégés et complets, trois langues) -> numéro du mois.
+const NUMERO_MOIS = (() => {
+  const complets = {
+    fr: ["janvier", "fevrier", "mars", "avril", "mai", "juin", "juillet", "aout", "septembre", "octobre", "novembre", "decembre"],
+    en: ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"],
+    it: ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"],
+  };
+  const table = {};
+  for (const l of ["fr", "en", "it"]) {
+    MOIS[l].forEach((m, i) => { table[simplifier(m)] = i + 1; });
+    complets[l].forEach((m, i) => { table[m] = i + 1; });
+  }
+  Object.assign(table, { janv: 1, fevr: 2, juil: 7, sept: 9, sep: 9 });
+  return table;
+})();
+const MOT_AUJOURDHUI = /^(aujourd'?hui|present|en cours|actuel(lement)?|ce jour|now|today|current|oggi|in corso|attuale|presente)$/;
+
+/** « 03/2021 », « mars 2021 », « 2021 » -> { mois, annee } ; null si non reconnu. */
+function lireDate(texte) {
+  let m = texte.trim().match(/^(\d{1,2})[/.-](\d{4})$/);      // avant simplifier(), qui retire les points
+  const t = simplifier(texte.trim());
+  if (m && +m[1] >= 1 && +m[1] <= 12) return { mois: +m[1], annee: +m[2] };
+  m = t.match(/^([a-z]+)\s+(\d{4})$/);
+  if (m && NUMERO_MOIS[m[1]]) return { mois: NUMERO_MOIS[m[1]], annee: +m[2] };
+  m = t.match(/^(\d{4})$/);
+  return m ? { mois: 0, annee: +m[1] } : null;
+}
+/** Texte d'une période -> { debut, fin, enCours } ; null si non reconnu. Vide -> période vide. */
+function lirePeriode(texte) {
+  const vide = { debut: { mois: 0, annee: 0 }, fin: { mois: 0, annee: 0 }, enCours: false };
+  if (!(texte || "").trim()) return vide;
+  const t = texte.trim().replace(/^(depuis|since|dal|da)\s+/i, "");
+  // Séparateurs : tiret long, tiret entouré d'espaces ou placé juste après une année, « à », « au », « to », « al ».
+  const morceaux = t.split(/\s*[–—]\s*|\s+-\s+|(?<=\d{4})\s*-\s*|\s+(?:à|au|a|to|al|until)\s+/i).filter(Boolean);
+  if (morceaux.length === 0 || morceaux.length > 2) return null;
+  const debut = lireDate(morceaux[0]);
+  if (!debut) return null;
+  if (morceaux.length === 1) return { ...vide, debut, enCours: /^(depuis|since|dal|da)\s/i.test(texte.trim()) };
+  if (MOT_AUJOURDHUI.test(simplifier(morceaux[1]))) return { ...vide, debut, enCours: true };
+  const fin = lireDate(morceaux[1]);
+  return fin ? { debut, fin, enCours: false } : null;
+}
+function ecrireDate(d, langue) {
+  if (!d.annee) return "";
+  return d.mois ? `${MOIS[langue][d.mois - 1]} ${d.annee}` : String(d.annee);
+}
+function ecrirePeriode(p, langue) {
+  const debut = ecrireDate(p.debut, langue);
+  const fin = p.enCours ? AUJOURDHUI[langue] : ecrireDate(p.fin, langue);
+  if (!debut) return fin && !p.enCours ? fin : "";
+  return fin && fin !== debut ? `${debut} – ${fin}` : debut;
+}
+
+function champPeriode(element, champ) {
+  const langue = () => (MOIS[etat.options.langue] ? etat.options.langue : "fr");
+  const t = window.tr || (x => x);
+  const zone = document.createElement("div");
+  zone.className = "periode";
+  const libre = document.createElement("input");
+  libre.maxLength = 120; libre.value = element[champ] ?? ""; libre.className = "periode-libre";
+  libre.placeholder = t("Ex. : de 2019 à 2021, été 2023…");
+  const menu = (options, valeur, aide) => {
+    const s = document.createElement("select");
+    s.setAttribute("aria-label", aide); s.setAttribute("translate", "no");
+    s.replaceChildren(...options.map(([v, texte]) => new Option(texte, v)));
+    s.value = String(valeur);
+    return s;
+  };
+  const maintenant = new Date().getFullYear();
+  const annees = [[0, t("Année")], ...Array.from({ length: maintenant + 6 - 1960 }, (_, i) => [maintenant + 5 - i, String(maintenant + 5 - i)])];
+  const mois = () => [[0, t("Mois")], ...MOIS[langue()].map((m, i) => [i + 1, m])];
+  const p = lirePeriode(element[champ]) || null;
+  const lu = p || lirePeriode("");
+  const dm = menu(mois(), lu.debut.mois, t("Mois de début")), da = menu(annees, lu.debut.annee, t("Année de début"));
+  const fm = menu(mois(), lu.fin.mois, t("Mois de fin")), fa = menu(annees, lu.fin.annee, t("Année de fin"));
+  const encours = document.createElement("input"); encours.type = "checkbox"; encours.checked = lu.enCours;
+  const caseEnCours = document.createElement("label"); caseEnCours.className = "case periode-encours";
+  caseEnCours.append(encours, " " + t("en cours"));
+  const ligne = (texte, ...enfants) => {
+    const span = document.createElement("span"); span.className = "periode-ligne";
+    const mot = document.createElement("span"); mot.className = "periode-mot"; mot.textContent = texte;
+    span.append(mot, ...enfants); return span;
+  };
+  const choisir = document.createElement("div"); choisir.className = "periode-choix";
+  const finLigne = ligne(t("à"), fm, fa, caseEnCours);
+  choisir.append(ligne(t("De"), dm, da), finLigne);
+  const bascule = document.createElement("button");
+  bascule.type = "button"; bascule.className = "lien periode-bascule";
+  let modeLibre = !p;            // texte non reconnu : on ne le transforme pas
+  const afficher = () => {
+    choisir.hidden = modeLibre; libre.hidden = !modeLibre;
+    bascule.textContent = modeLibre ? t("Choisir dans les listes") : t("Écrire librement");
+    fm.disabled = fa.disabled = encours.checked;
+  };
+  const depuisListes = () => {
+    element[champ] = ecrirePeriode({ debut: { mois: +dm.value, annee: +da.value }, fin: { mois: +fm.value, annee: +fa.value },
+                                     enCours: encours.checked }, langue());
+    libre.value = element[champ];
+    fm.disabled = fa.disabled = encours.checked;
+    modifie(0);
+  };
+  for (const s of [dm, da, fm, fa, encours]) s.addEventListener("change", depuisListes);
+  libre.addEventListener("input", () => { element[champ] = libre.value; modifie(1200); });
+  bascule.addEventListener("click", () => {
+    if (modeLibre) {
+      const relu = lirePeriode(libre.value);
+      if (!relu && libre.value.trim() && !confirm(t("Ce texte ne peut pas être converti en mois et années : l'effacer pour choisir dans les listes ?"))) return;
+      const q = relu || lirePeriode("");
+      [dm.value, da.value, fm.value, fa.value] = [q.debut.mois, q.debut.annee, q.fin.mois, q.fin.annee].map(String);
+      encours.checked = q.enCours;
+      modeLibre = false; depuisListes();
+    } else {
+      modeLibre = true;
+    }
+    afficher();
+  });
+  afficher();
+  zone.append(choisir, libre, bascule);
+  return zone;
 }
 
 // ---------- Photo : réduite dans le navigateur avant envoi ----------
