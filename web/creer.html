@@ -38,10 +38,15 @@
       <p id="import-message" class="import-message" role="status" hidden></p>
     </div>
 
-    <div class="jauge pour-cv">
-      <progress id="progres" max="100" value="0" aria-labelledby="progres-texte"></progress>
-      <span id="progres-texte"></span>
-    </div>
+    <details class="score pour-cv" id="score">
+      <summary>
+        <span class="score-note"><strong id="score-valeur">0</strong><small>/100</small></span>
+        <progress id="progres" max="100" value="0" aria-labelledby="progres-texte"></progress>
+        <span id="progres-texte"></span>
+        <span class="score-voir" id="score-voir">Voir les conseils</span>
+      </summary>
+      <ul id="score-conseils" class="score-conseils"></ul>
+    </details>
 
     <details open>
       <summary>Apparence</summary>

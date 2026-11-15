@@ -233,19 +233,6 @@ const CONSEILS = {
 };
 
 // Ce qui compte dans la jauge « CV complété à … % » : [test, conseil si manquant]
-const ETAPES = [
-  [cv => cv.nom.trim(), "ton nom"],
-  [cv => cv.titre.trim(), "le poste visé"],
-  [cv => cv.email.trim(), "ton e-mail"],
-  [cv => cv.telephone.trim(), "ton téléphone"],
-  [cv => cv.ville.trim(), "ta ville"],
-  [cv => cv.experiences.some(e => (e.poste || "").trim()), "une expérience"],
-  [cv => cv.formations.some(f => (f.diplome || "").trim()), "une formation"],
-  [cv => cv.competences.some(c => (c.liste || "").trim()), "tes compétences"],
-  [cv => cv.langues.some(l => (l.langue || "").trim()), "les langues que tu parles"],
-  [cv => cv.profil.trim(), "quelques lignes de profil"],
-];
-
 const PARTIES_LETTRE = ["accroche", "parcours", "entreprise", "conclusion"];
 const MODELES_LETTRE = ["classique", "moderne", "epure"];
 const TEXTES_LETTRE = {
@@ -711,14 +698,88 @@ function afficherLongueurLettre() {
   $("#longueur-lettre").textContent = avis;
 }
 
+// ---------- Score du CV : ce qui manque, et ce qui rendrait le CV plus convaincant ----------
+// Chaque critère rapporte des points (total 100) ; ceux qui ne sont pas remplis donnent un
+// conseil, du plus important au moins important. Clic sur un conseil : on va à la rubrique.
+const rempli = v => typeof v === "string" && v.trim() !== "";
+const nbChiffres = v => (String(v || "").match(/\d/g) || []).length;
+function texteDuCV(cv) {
+  const morceaux = [];
+  const parcourir = v => { if (typeof v === "string") { if (!v.startsWith("data:")) morceaux.push(v); }
+                           else if (v && typeof v === "object") Object.values(v).forEach(parcourir); };
+  parcourir(cv);
+  return morceaux.join(" ");
+}
+function criteresCV(cv) {
+  const exps = cv.experiences.filter(e => rempli(e.poste) || rempli(e.entreprise));
+  const forms = cv.formations.filter(f => rempli(f.diplome));
+  const langues = cv.langues.filter(l => rempli(l.langue));
+  const nbCompetences = cv.competences.flatMap(c => (c.liste || "").split(/[,;\n]/)).filter(rempli).length;
+  const profil = (cv.profil || "").trim().length;
+  const volume = texteDuCV(cv).length;
+  return [
+    // [points, réussi ?, conseil, rubrique où aller]
+    [6, rempli(cv.nom), "Indique ton nom et ton prénom.", "[data-k='cv.nom']"],
+    [6, rempli(cv.titre), "Indique le poste que tu vises : c'est la première chose que lit le recruteur.", "[data-k='cv.titre']"],
+    [6, /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((cv.email || "").trim()), "Ajoute une adresse e-mail valide.", "[data-k='cv.email']"],
+    [5, nbChiffres(cv.telephone) >= 8, "Ajoute ton numéro de téléphone, avec l'indicatif du pays.", "[data-k='cv.telephone']"],
+    [3, rempli(cv.ville), "Indique ta ville : les recruteurs cherchent souvent près de chez eux.", "[data-k='cv.ville']"],
+    [8, exps.length > 0, "Ajoute au moins une expérience : stage, emploi, job d'été, bénévolat…", "[data-liste='experiences']"],
+    [6, forms.length > 0, "Ajoute ta formation (diplôme, école).", "[data-liste='formations']"],
+    [5, nbCompetences > 0, "Liste tes compétences.", "[data-liste='competences']"],
+    [5, langues.length > 0, "Indique les langues que tu parles.", "[data-liste='langues']"],
+    [8, profil >= 150 && profil <= 900,
+      profil === 0 ? "Écris quelques lignes de profil : qui tu es, ce que tu sais faire, ce que tu cherches."
+        : profil < 150 ? "Étoffe ton profil : 3 ou 4 phrases sur ton expérience et ton objectif."
+          : "Raccourcis ton profil : 4 ou 5 phrases suffisent.", "[data-k='cv.profil']"],
+    [6, exps.length > 0 && exps.every(e => rempli(e.dates)), "Ajoute les dates de chaque expérience.", "[data-liste='experiences']"],
+    [4, exps.length > 0 && exps.every(e => rempli(e.entreprise)), "Indique l'entreprise de chaque expérience.", "[data-liste='experiences']"],
+    [7, exps.length > 0 && exps.every(e => (e.points || "").split("\n").filter(rempli).length >= 2),
+      "Décris au moins deux missions par expérience, en commençant par un verbe d'action (« Gérer », « Organiser »…).", "[data-liste='experiences']"],
+    [5, exps.some(e => /\d/.test(e.points || "")),
+      "Chiffre tes résultats (« 300 factures par mois », « +20 % de ventes ») : c'est ce qui convainc le plus.", "[data-liste='experiences']"],
+    [4, forms.length > 0 && forms.every(f => rempli(f.dates)), "Ajoute les dates de chaque formation.", "[data-liste='formations']"],
+    [4, langues.length > 0 && langues.every(l => rempli(l.niveau)), "Précise ton niveau dans chaque langue.", "[data-liste='langues']"],
+    [4, nbCompetences >= 6, "Cite au moins six compétences, regroupées par catégorie (Informatique, Gestion…).", "[data-liste='competences']"],
+    [3, rempli(cv.interets), "Ajoute quelques centres d'intérêt : ils donnent envie de te rencontrer.", "[data-k='cv.interets']"],
+    // Longueur : comptée seulement pour un CV déjà commencé (un CV vide n'est pas « de bonne longueur »).
+    [5, exps.length > 0 && volume <= 5500, volume > 5500
+      ? "Ton CV est très long et risque de dépasser deux pages : garde l'essentiel des expériences les plus récentes." : "",
+      "[data-liste='experiences']"],
+  ];
+}
+function allerA(selecteur) {
+  const cible = $(selecteur);
+  if (!cible) return;
+  for (let d = cible.closest("details"); d; d = d.parentElement?.closest("details")) d.open = true;
+  cible.scrollIntoView({ behavior: "smooth", block: "center" });
+  const champ = cible.matches("input, textarea, select") ? cible
+    : cible.querySelector("input:not(:disabled), textarea, select") || cible.querySelector("button:not(:disabled)");
+  champ?.focus({ preventScroll: true });
+}
 function afficherProgres() {
   afficherLongueurLettre();
-  const manquants = ETAPES.filter(([test]) => !test(etat.cv)).map(([, conseil]) => conseil);
-  const pourcent = Math.round(100 * (ETAPES.length - manquants.length) / ETAPES.length);
-  $("#progres").value = pourcent;
-  $("#progres-texte").textContent = manquants.length
-    ? `CV complété à ${pourcent} % · ajoute ${manquants[0]}`
-    : "CV complet, prêt à être envoyé";
+  const t = window.tr || (x => x);
+  const criteres = criteresCV(etat.cv);
+  const score = criteres.reduce((s, [points, ok]) => s + (ok ? points : 0), 0);
+  const conseils = criteres.filter(([, ok, texte]) => !ok && texte).sort((a, b) => b[0] - a[0]);
+  $("#progres").value = score;
+  $("#score-valeur").textContent = score;
+  $("#score").dataset.niveau = score >= 85 ? "bon" : score >= 60 ? "moyen" : "faible";
+  $("#progres-texte").textContent = score >= 85 && !conseils.length ? "Excellent CV, prêt à être envoyé"
+    : score >= 85 ? "Très bon CV" : score >= 60 ? "Bon début, encore quelques améliorations" : "Complète ton CV";
+  $("#score-voir").textContent = conseils.length
+    ? (conseils.length > 1 ? `${conseils.length} conseils` : "1 conseil") : "";
+  $("#score-conseils").replaceChildren(...conseils.map(([points, , texte, cible]) => {
+    const li = document.createElement("li");
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "score-conseil";
+    const gain = document.createElement("span"); gain.className = "score-gain"; gain.textContent = `+${points}`;
+    b.append(gain, " ", t(texte));
+    b.addEventListener("click", () => allerA(cible));
+    li.append(b);
+    return li;
+  }));
 }
 
 // ---------- Aperçu et téléchargement ----------

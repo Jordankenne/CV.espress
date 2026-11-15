@@ -781,3 +781,25 @@ body:has(#admin) .article { max-width: 1040px; }
 #dlg-photo .zoom { display: flex; align-items: center; gap: 10px; }
 #dlg-photo .zoom input { flex: 1; accent-color: var(--primaire); }
 #dlg-photo .actions-dialogue { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
+
+/* ---------- Score du CV ---------- */
+.score { margin: 0 2px 14px; padding: 0; border: 1px solid var(--bord); border-radius: 14px; background: var(--carte); }
+.score > summary { display: flex; align-items: center; gap: 12px; padding: 10px 14px; font-size: 13px; color: var(--doux); cursor: pointer; list-style: none; }
+.score > summary::-webkit-details-marker { display: none; }
+.score-note { flex: none; font-variant-numeric: tabular-nums; color: var(--texte); }
+.score-note strong { font: 800 22px var(--titres); }
+.score-note small { margin-left: 1px; color: var(--doux); }
+.score progress { flex: none; width: 110px; height: 9px; border: 0; border-radius: 999px; overflow: hidden; background: var(--bord); }
+.score progress::-webkit-progress-bar { background: var(--bord); }
+.score progress::-webkit-progress-value { background: linear-gradient(90deg, var(--primaire), var(--soleil)); border-radius: 999px; transition: width .4s; }
+.score progress::-moz-progress-bar { background: linear-gradient(90deg, var(--primaire), var(--soleil)); border-radius: 999px; }
+.score-voir { margin-left: auto; color: var(--primaire); font-weight: 600; white-space: nowrap; }
+.score-voir:not(:empty)::after { content: " ▾"; }
+.score[open] .score-voir:not(:empty)::after { content: " ▴"; }
+.score-conseils { margin: 0; padding: 0 10px 10px; list-style: none; }
+.score-conseils:empty { display: none; }
+.score-conseil { display: flex; gap: 10px; align-items: baseline; width: 100%; padding: 8px 6px; border: 0; border-top: 1px solid var(--bord); background: none; color: var(--texte); font: 400 14px/1.4 var(--corps); text-align: left; cursor: pointer; }
+.score-conseil:hover { color: var(--primaire); }
+.score-gain { flex: none; min-width: 34px; padding: 1px 6px; border-radius: 99px; background: var(--primaire-doux); color: var(--primaire); font-size: 12px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; }
+@media (max-width: 520px) { .score progress, #progres-texte { display: none; } }
+.score > summary::before, .score > summary::after { content: none; counter-increment: none; display: none; }
