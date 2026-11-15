@@ -43,6 +43,10 @@ def extraire_texte(octets, mise_en_page=False):
                             "document en .docx ou en PDF, puis réessaie.")
     else:
         raise ErreurDonnees("Format non pris en charge. Envoie un fichier PDF ou Word (.docx).")
+    return _nettoyer(texte)
+
+
+def _nettoyer(texte):
     texte = unicodedata.normalize("NFC", texte)
     # Caractères de contrôle retirés, sauf saut de ligne et tabulation.
     texte = "".join(c for c in texte if c in "\n\t" or unicodedata.category(c)[0] != "C")
@@ -62,6 +66,117 @@ def _texte_pdf(octets, mise_en_page=False):
         if r.returncode != 0:
             raise ErreurDonnees("Ce PDF n'a pas pu être lu (fichier abîmé ou protégé par mot de passe).")
         return r.stdout.decode("utf-8", errors="replace")
+
+
+_LIGNE_BBOX = re.compile(r'<line xMin="([\d.]+)" yMin="([\d.]+)" xMax="([\d.]+)" yMax="([\d.]+)">(.*?)</line>', re.S)
+_MOT_BBOX = re.compile(r"<word[^>]*>(.*?)</word>", re.S)
+
+
+def _texte_pdf_colonnes(octets):
+    """Lecture d'un PDF en colonnes (CV avec une barre latérale) : chaque colonne est lue
+    entièrement, de haut en bas, au lieu d'entrecroiser leurs lignes. None si le PDF n'a pas
+    de colonnes. Les lignes alignées à la même hauteur dans une colonne (intitulé à gauche,
+    dates à droite) sont réunies, séparées par de grands espaces."""
+    if shutil.which("pdftotext") is None:
+        return None
+    with tempfile.TemporaryDirectory() as tmp:
+        (Path(tmp) / "doc.pdf").write_bytes(octets)
+        try:
+            r = executer(["pdftotext", "-enc", "UTF-8", "-l", "6", "-bbox-layout", "doc.pdf", "-"],
+                         15, cwd=tmp, capture_output=True)
+        except subprocess.TimeoutExpired:
+            return None
+    if r.returncode != 0:
+        return None
+    sortie = r.stdout.decode("utf-8", errors="replace")
+    pages, colonnes_vues = [], False
+    for page in re.split(r"<page ", sortie)[1:]:
+        largeur = float(re.match(r'width="([\d.]+)"', page).group(1))
+        lignes = []
+        for x0, y0, x1, y1, contenu in _LIGNE_BBOX.findall(page):
+            texte = html.unescape(" ".join(_MOT_BBOX.findall(contenu)))
+            if texte.strip():
+                lignes.append((float(x0), float(y0), float(x1), float(y1), texte))
+        coupe = _coupe_colonnes(lignes, largeur)
+        if coupe is None:
+            pages.append(_rassembler(lignes))
+            continue
+        colonnes_vues = True
+        gauche = [l for l in lignes if l[2] <= coupe]
+        droite = [l for l in lignes if l[0] >= coupe]
+        # Colonne de libellés (CV européen : titres et dates à gauche, texte à droite, sur la
+        # même ligne) : on lit alors rangée par rangée. Une barre latérale, elle, a ses propres
+        # lignes, rarement à la même hauteur que celles du texte principal.
+        alignees = sum(1 for l in gauche if any(abs((l[1] + l[3]) - (d[1] + d[3])) <= 4 for d in droite))
+        if alignees >= 0.35 * len(gauche):
+            pages.append(_rassembler(lignes, titres_a_part=True))
+            continue
+        larges = sorted((l for l in lignes if l[0] < coupe < l[2]), key=lambda l: l[1])
+        # La colonne qui porte le plus grand texte (le nom) est lue en premier.
+        hauteur = lambda colonne: max((l[3] - l[1] for l in colonne), default=0)  # noqa: E731
+        premiere, seconde = (gauche, droite) if hauteur(gauche) >= hauteur(droite) else (droite, gauche)
+        # Une ligne sur toute la largeur (en-tête, bas de page) sépare des tranches de colonnes.
+        morceaux, haut = [], float("-inf")
+        for limite in [l[1] for l in larges] + [float("inf")]:
+            for colonne in (premiere, seconde):
+                tranche = [l for l in colonne if haut <= l[1] < limite]
+                if tranche:
+                    morceaux.append(_rassembler(tranche))
+            ligne_large = next((l for l in larges if l[1] == limite), None)
+            if ligne_large:
+                morceaux.append(ligne_large[4])
+            haut = limite
+        pages.append("\n".join(morceaux))
+    return "\n".join(pages) if colonnes_vues else None
+
+
+def _coupe_colonnes(lignes, largeur):
+    """Abscisse d'une séparation verticale entre deux colonnes de texte, ou None : une bande
+    vide d'au moins 12 points, entre 15 % et 70 % de la largeur, traversée par très peu de
+    lignes, avec beaucoup de lignes de chaque côté."""
+    if len(lignes) < 12:
+        return None
+    meilleure = None
+    for x in range(int(largeur * 0.15), int(largeur * 0.70), 2):
+        traversent = sum(1 for l in lignes if l[0] < x + 6 and l[2] > x - 6)
+        gauche = sum(1 for l in lignes if l[2] <= x - 6)
+        droite = sum(1 for l in lignes if l[0] >= x + 6)
+        if traversent <= max(2, len(lignes) // 20) and min(gauche, droite) >= max(5, len(lignes) // 6):
+            if meilleure is None or traversent < meilleure[0]:
+                meilleure = (traversent, x)
+    return meilleure[1] if meilleure else None
+
+
+def _rassembler(lignes, titres_a_part=False):
+    """Lignes (x0, y0, x1, y1, texte) -> texte, de haut en bas ; celles qui sont à la même
+    hauteur sont réunies de gauche à droite. titres_a_part : un titre de rubrique placé en
+    tête de rangée garde sa propre ligne."""
+    rangs = []
+    for l in sorted(lignes, key=lambda l: ((l[1] + l[3]) / 2, l[0])):
+        milieu = (l[1] + l[3]) / 2
+        if rangs and abs(rangs[-1][0] - milieu) <= 3:
+            rangs[-1][1].append(l)
+        else:
+            rangs.append([milieu, [l]])
+    sortie = []
+    for _, rang in rangs:
+        rang.sort(key=lambda l: l[0])
+        tete = rang[0][4]
+        # « Informatique », « Outils »… sont aussi des catégories de compétences : titres seulement en capitales.
+        # Un titre en capitales peut tenir sur deux lignes (« INFORMATIONS / PERSONNELLES ») : seul, il
+        # n'est pas reconnu comme titre, mais il reste un titre et garde sa ligne.
+        titre = (_rubrique(tete) and (tete.isupper() or _cle(tete) not in _TITRES_AMBIGUS)) \
+            or (tete.isupper() and len(tete.split()) <= 3 and not re.search(r"\d", tete))
+        if titres_a_part and len(rang) > 1 and titre:
+            sortie.append(rang.pop(0)[4])
+        texte = rang[0][4]
+        for avant, apres in zip(rang, rang[1:]):
+            # Libellé et valeur côte à côte (« Français    Courant ») : reliés par « : », comme
+            # « Langue : niveau », « Catégorie : compétences », « Adresse : Dakar ».
+            ecart = " : " if titres_a_part else "     "
+            texte += (ecart if apres[0] - avant[2] > 12 else " ") + apres[4]
+        sortie.append(texte)
+    return "\n".join(sortie)
 
 
 def _texte_docx(octets):
@@ -144,6 +259,7 @@ _RUBRIQUES = {
                 "progetti", "progetti personali"],
 }
 _TITRES = {titre: rubrique for rubrique, titres in _RUBRIQUES.items() for titre in titres}
+_TITRES_AMBIGUS = {"informatique", "outils", "atouts", "divers", "activites", "passions", "hobby", "studi"}
 
 
 def _rubrique(ligne):
@@ -203,17 +319,32 @@ def _nom_propre(ligne):
 
 
 def analyser_cv(texte):
-    lignes = [l.strip() for l in texte.replace("\r", "").split("\n")]
-    lignes = [l for l in lignes if l]
+    lignes = []
+    for l in (l.strip() for l in texte.replace("\r", "").split("\n")):
+        if l.startswith(":") and lignes:
+            lignes[-1] += " " + l          # « Situation matrimoniale / : Célibataire » coupé par la mise en page
+        elif lignes and l[:1].islower() and re.search(r"[^\W\d_]-$", lignes[-1]):
+            lignes[-1] = lignes[-1][:-1] + l   # mot coupé en fin de ligne : « Séné- / galaise »
+        elif l:
+            lignes.append(l)
     cv = {"nom": "", "titre": "", "email": "", "telephone": "", "ville": "", "profil": "", "interets": "",
           "etat_civil": {}, "experiences": [], "formations": [], "competences": [], "langues": [], "liens": [],
           "certifications": [], "projets": [], "references": []}
 
-    # ---- Coordonnées : reconnaissables où qu'elles soient ----
-    m = _EMAIL.search(texte)
+    # ---- Coordonnées : reconnaissables où qu'elles soient, sauf dans les références
+    #      (le téléphone d'un ancien employeur n'est pas celui du candidat) ----
+    sans_refs, dans_refs = [], False
+    for l in lignes:
+        rubrique = _rubrique(l)
+        if rubrique:
+            dans_refs = rubrique == "references"
+        elif not dans_refs:
+            sans_refs.append(l)
+    coordonnees = "\n".join(sans_refs)
+    m = _EMAIL.search(coordonnees)
     if m:
         cv["email"] = m.group()
-    for m in _TEL.finditer(_PERIODE.sub(" ", texte)):
+    for m in _TEL.finditer(_PERIODE.sub(" ", coordonnees)):
         if 8 <= sum(c.isdigit() for c in m.group()) <= 15:
             cv["telephone"] = " ".join(m.group().split())
             break
@@ -226,7 +357,7 @@ def analyser_cv(texte):
     #      ligne ou sur la suivante. Ces lignes sont retirées du reste de l'analyse. ----
     trouves, restantes, i = {}, [], 0
     while i < len(lignes):
-        morceaux = [x.strip() for x in lignes[i].split("|")] if "|" in lignes[i] else [lignes[i]]
+        morceaux = [x.strip() for x in lignes[i].split("|") if x.strip()] if "|" in lignes[i] else [lignes[i]]
         paires = [_libelle(x) for x in morceaux]
         if all(champ for champ, _ in paires):
             for champ, valeur in paires:
@@ -251,8 +382,11 @@ def analyser_cv(texte):
     # ---- Découpage en rubriques (un titre peut tenir sur deux lignes : « EXPÉRIENCES / PROFESSIONNELLES ») ----
     blocs, courant, i = {"entete": []}, "entete", 0
     while i < len(lignes):
-        deux = _rubrique(lignes[i] + " " + lignes[i + 1]) if i + 1 < len(lignes) and lignes[i].isupper() else None
+        deux = (_rubrique(lignes[i] + " " + lignes[i + 1])
+                if i + 1 < len(lignes) and lignes[i].isupper() and not re.search(r"\d", lignes[i + 1]) else None)
         rubrique = deux or _rubrique(lignes[i])
+        if rubrique and rubrique == courant and not deux and not lignes[i].isupper():
+            rubrique = None      # « Informatique » sous « Compétences » : une catégorie, pas un nouveau titre
         if rubrique:
             courant = rubrique
             blocs.setdefault(courant, [])
@@ -310,7 +444,7 @@ def analyser_cv(texte):
     cv["profil"] = _phrases(blocs.get("profil", []))[:2500]
     cv["interets"] = " ".join(_propre(l) for l in blocs.get("interets", []))[:500]
     cv["experiences"] = [
-        {"poste": e["titre"], "entreprise": e["sous_titre"], "lieu": "", "dates": e["dates"],
+        {"poste": e["titre"], **_employeur_et_lieu(e["sous_titre"]), "dates": e["dates"],
          "points": "\n".join(e["details"])}
         for e in _entrees(blocs.get("experiences", []))][:25]
     cv["formations"] = [
@@ -318,19 +452,33 @@ def analyser_cv(texte):
         for e in _entrees(blocs.get("formations", []))][:20]
 
     # ---- Certifications : « Intitulé, organisme – 2025 » ; projets : comme les expériences ----
-    for ligne in (_propre(l) for l in blocs.get("certifications", [])[:12]):
+    date_avant = ""
+    for ligne in (_propre(l) for l in blocs.get("certifications", [])[:24]):
         periode = _PERIODE.search(ligne)
         if periode:
             ligne = " ".join((ligne[:periode.start()] + " " + ligne[periode.end():]).split()).strip(" -–—|,:;()")
+        precedente = cv["certifications"][-1] if cv["certifications"] else None
+        if not ligne and periode:
+            if precedente and not precedente["date"]:
+                precedente["date"] = periode.group().strip()      # date seule sous l'intitulé
+            else:
+                date_avant = periode.group().strip()              # date seule AVANT l'intitulé
+            continue
+        if precedente and ligne and not periode and not precedente["organisme"] and len(ligne.split()) <= 6:
+            precedente["organisme"] = ligne[:160]                 # organisme sous l'intitulé
+            continue
+        if not ligne:
+            continue
         titre, organisme = _couper(ligne)
         if not organisme and "," in titre:
             titre, _, organisme = (x.strip() for x in titre.partition(","))
         if titre:
             cv["certifications"].append({"titre": titre[:200], "organisme": organisme[:160],
-                                         "date": periode.group().strip() if periode else ""})
+                                         "date": periode.group().strip() if periode else date_avant})
+            date_avant = ""
     cv["projets"] = [
-        {"titre": " – ".join(x for x in (e["titre"], e["sous_titre"]) if x)[:200], "dates": e["dates"],
-         "details": " ".join(e["details"])[:600]}
+        {"titre": e["titre"][:200], "dates": e["dates"],
+         "details": " ".join(x for x in [e["sous_titre"], *e["details"]] if x)[:600]}
         for e in _entrees(blocs.get("projets", []))][:12]
 
     # ---- Compétences : « Catégorie : liste », ou une catégorie seule sur sa ligne suivie de la liste ----
@@ -449,6 +597,21 @@ def _entrees(lignes):
         else:
             e["sous_titre"] = ligne
     return [x for x in entrees if x["titre"] or x["details"]]
+
+
+_FORMES_SOCIETE = re.compile(r"\b(sarl|sa|sas|sasu|eurl|srl|spa|snc|gie|inc|ltd|llc|gmbh|plc|co)\.?$", re.I)
+
+
+def _employeur_et_lieu(texte):
+    """« Cabinet Exemple, Dakar » -> employeur « Cabinet Exemple », lieu « Dakar ».
+    Le dernier morceau après une virgule est un lieu s'il est court et sans chiffres
+    (« Orange, SA » reste entier : SA est une forme de société)."""
+    employeur, virgule, lieu = texte.rpartition(",")
+    lieu = lieu.strip()
+    if virgule and employeur.strip() and 1 <= len(lieu.split()) <= 3 and lieu[:1].isupper() \
+            and not re.search(r"\d", lieu) and not _FORMES_SOCIETE.search(lieu):
+        return {"entreprise": employeur.strip(), "lieu": lieu}
+    return {"entreprise": texte, "lieu": ""}
 
 
 def _couper(ligne):
@@ -574,6 +737,12 @@ def importer(octets, type_document):
         return {"lettre": analyser_lettre(texte)}
     cv = analyser_cv(texte)
     if octets.startswith(b"%PDF-"):
+        # CV en colonnes (barre latérale) : chaque colonne lue d'un bloc, sinon tout se mélange.
+        colonnes = _texte_pdf_colonnes(octets)
+        if colonnes:
+            autre = analyser_cv(_nettoyer(colonnes))
+            if _qualite(autre) >= _qualite(cv) - 1:
+                cv = autre
         # Deuxième lecture du PDF, mise en page conservée : on garde la meilleure des deux.
         autre = analyser_cv(extraire_texte(octets, mise_en_page=True))
         if _qualite(autre) >= _qualite(cv) + 2:       # nettement meilleure seulement
