@@ -3,14 +3,16 @@
 
   "nom": "",
   "adresse": "",
-  "email": "",
+  "email": "cv.express650@gmail.com",
+  "telephone": "+39 351 8645657",
+  "whatsapp": "393518645657",
   "immatriculation": "",
   "directeur_publication": "",
 
-  "hebergeur_nom": "",
+  "hebergeur_nom": "Render Services, Inc.",
   "hebergeur_adresse": "",
-  "hebergeur_site": "",
-  "pays_serveurs": "",
+  "hebergeur_site": "https://render.com",
+  "pays_serveurs": "dans l'Union européenne (Francfort, Allemagne)",
   "serveurs_hors_ue": false,
   "duree_journaux": "",
 

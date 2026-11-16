@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block titre %}Nous contacter{% endblock %}
+{% block description %}Une question, un problème ou une idée pour CV.express ? Écris-nous : nous lisons tous les messages.{% endblock %}
+{% block contenu %}
+<h1>Nous contacter</h1>
+<p class="chapeau">Une question, un problème sur le site, une idée d&#x27;amélioration ? Écris-nous : nous lisons tous les messages et répondons dès que possible.</p>
+
+{% if editeur.email or editeur.whatsapp or editeur.telephone %}
+<section class="carte-espace contact-direct">
+  <h2>Nous joindre directement</h2>
+  <dl class="fiche">
+    {% if editeur.email %}<dt>E-mail</dt><dd><a href="mailto:{{ editeur.email }}" translate="no">{{ editeur.email }}</a></dd>{% endif %}
+    {% if editeur.whatsapp %}<dt>WhatsApp</dt><dd><a href="https://wa.me/{{ editeur.whatsapp }}" target="_blank" rel="noopener" translate="no">{{ editeur.telephone or editeur.whatsapp }}</a> · <a href="https://wa.me/{{ editeur.whatsapp }}" target="_blank" rel="noopener">Écrire sur WhatsApp</a></dd>{% endif %}
+    {% if editeur.telephone %}<dt>Téléphone</dt><dd><a href="tel:{{ editeur.telephone|replace(' ', '') }}" translate="no">{{ editeur.telephone }}</a></dd>{% endif %}
+  </dl>
+</section>
+<p class="contact-ou">Ou envoie-nous un message avec ce formulaire :</p>
+{% endif %}
+
+<form id="contact-form" class="carte-espace formulaire-contact" novalidate>
+  <label>Sujet
+    <select id="contact-sujet">
+      <option value="probleme">Un problème sur le site</option>
+      <option value="idee">Une idée ou une suggestion</option>
+      <option value="compte">Mon compte ou mes données</option>
+      <option value="autre">Autre chose</option>
+    </select>
+  </label>
+  <div class="contact-ligne">
+    <label>Ton nom <small>facultatif</small><input id="contact-nom" maxlength="120" autocomplete="name"></label>
+    <label>Ton adresse e-mail <small>pour qu&#x27;on puisse te répondre</small><input id="contact-email" type="email" maxlength="120" autocomplete="email"></label>
+  </div>
+  <label>Ton message<textarea id="contact-message" rows="7" maxlength="5000" required placeholder="Explique ce qui s&#x27;est passé : sur quelle page, avec quel téléphone ou ordinateur, et ce que tu attendais."></textarea></label>
+  <label class="piege" aria-hidden="true">Site web<input id="contact-site" tabindex="-1" autocomplete="off"></label>
+  <p id="contact-erreur" class="erreur-compte" role="alert" hidden></p>
+  <p id="contact-envoye" class="espace-message" role="status" hidden>Merci ! Ton message est envoyé. Si tu as laissé ton adresse, nous te répondrons dès que possible.</p>
+  <button type="submit" class="bouton principal" id="contact-valider">Envoyer le message</button>
+  <p class="note">Ton message nous est transmis par e-mail ; il n&#x27;est pas conservé sur le site. Ne nous envoie jamais ton mot de passe.</p>
+</form>
+{% endblock %}
+{% block scripts %}<script src="/contact.js"></script>{% endblock %}

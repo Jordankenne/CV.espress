@@ -93,7 +93,7 @@ comptes = Blueprint("comptes", __name__, url_prefix="/api/compte")
 # Base de données
 # --------------------------------------------------------------------------
 TABLES = ("comptes", "documents", "reinitialisations", "invitations",    # ordre des clés étrangères
-          "partages", "candidatures")
+          "partages", "candidatures", "compteurs")
 # Erreurs « base injoignable ou occupée » : réponse 503 (réessayer), jamais une erreur 500.
 ERREURS_BASE = (sqlite3.OperationalError,)
 if POSTGRES:
@@ -203,6 +203,12 @@ def _schema(postgres):
             notes      TEXT NOT NULL,
             modifie_le {entier} NOT NULL)""",
         "CREATE INDEX IF NOT EXISTS candidatures_du_compte ON candidatures (compte_id)",
+        # Compteurs d'usage du site (statistiques.py) : rien de personnel, seulement « quoi, quel jour ».
+        f"""CREATE TABLE IF NOT EXISTS compteurs (
+            jour   TEXT NOT NULL,
+            cle    TEXT NOT NULL,
+            nombre {entier} NOT NULL,
+            PRIMARY KEY (jour, cle))""",
     ]
 
 
@@ -704,14 +710,22 @@ def _envoyer_lien(email, genre, langue, lien, journal):
     minutes, heures = _DUREES[langue]
     duree = heures.format(INVITATION_HEURES) if genre == "invitation" else minutes.format(LIEN_MINUTES)
     texte = corps.format(lien=lien, duree=duree)
+    envoyer_email(email, sujet, texte, genre, journal)
+
+
+def envoyer_email(email, sujet, texte, genre, journal, repondre_a=None):
+    """Envoie un e-mail texte (Brevo, sinon SMTP ; sans réglage : écrit dans le journal).
+    repondre_a : adresse mise en « Répondre à » (message reçu depuis la page Contact)."""
     if BREVO_CLE_API:
-        _envoyer_par_brevo(email, sujet, texte, genre, journal)
+        _envoyer_par_brevo(email, sujet, texte, genre, journal, repondre_a)
         return
     if not SMTP_HOTE:
-        journal.warning("SMTP non configuré : e-mail non envoyé (%s). Lien : %s", genre, lien)
+        journal.warning("SMTP non configuré : e-mail non envoyé (%s).\n%s", genre, texte)
         return
     message = EmailMessage()
     message["Subject"], message["From"], message["To"] = sujet, EMAIL_EXPEDITEUR, email
+    if repondre_a:
+        message["Reply-To"] = repondre_a
     message.set_content(texte)
     try:
         if SMTP_PORT == 465:
@@ -730,13 +744,14 @@ def _envoyer_lien(email, genre, langue, lien, journal):
 BREVO_ADRESSE = "https://api.brevo.com/v3/smtp/email"
 
 
-def _envoyer_par_brevo(email, sujet, texte, genre, journal):
+def _envoyer_par_brevo(email, sujet, texte, genre, journal, repondre_a=None):
     """Envoi par l'API web de Brevo (HTTPS) : fonctionne là où le SMTP est bloqué.
     EMAIL_EXPEDITEUR doit être une adresse validée dans le compte Brevo."""
     nom, adresse = parseaddr(EMAIL_EXPEDITEUR)
     expediteur = {"email": adresse, **({"name": nom} if nom else {})}
     donnees = json.dumps({"sender": expediteur, "to": [{"email": email}],
-                          "subject": sujet, "textContent": texte}).encode("utf-8")
+                          "subject": sujet, "textContent": texte,
+                          **({"replyTo": {"email": repondre_a}} if repondre_a else {})}).encode("utf-8")
     demande = urllib.request.Request(BREVO_ADRESSE, data=donnees, method="POST", headers={
         "api-key": BREVO_CLE_API, "content-type": "application/json", "accept": "application/json"})
     try:

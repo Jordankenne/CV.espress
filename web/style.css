@@ -991,3 +991,30 @@ body:has(#admin) .article { max-width: 1040px; }
 .exemple-image img { width: 100%; max-width: 680px; height: auto; border: 1px solid var(--bord); border-radius: 12px; background: #fff; box-shadow: var(--ombre); }
 .exemple-image.portrait img { max-width: 360px; }
 .exemple-image figcaption { margin-top: 8px; color: var(--doux); font-size: 14px; }
+
+/* ---------- Page d'erreur (404, 500) ---------- */
+.page-erreur { text-align: center; }
+.erreur-code { margin: 10px 0 0; font: 800 clamp(64px, 14vw, 120px)/1 var(--titres); color: var(--primaire); opacity: .25; }
+.erreur-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 28px 0 8px; }
+.erreur-liens { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 18px; padding: 0; list-style: none; font-size: 15px; }
+.erreur-liens li { margin: 0; }
+
+/* ---------- Page Contact ---------- */
+.formulaire-contact { max-width: 640px; }
+.formulaire-contact textarea, .formulaire-contact input, .formulaire-contact select { width: 100%; }
+.contact-ligne { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+.piege { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+@media (max-width: 560px) { .contact-ligne { grid-template-columns: 1fr; } }
+
+/* ---------- Administration : utilisation du site ---------- */
+.tableau-defilant { overflow-x: auto; }
+.table-usage { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+.table-usage th, .table-usage td { padding: 5px 10px; border-bottom: 1px solid var(--bord); text-align: right; }
+.table-usage th:first-child { text-align: left; font-weight: 400; }
+.table-usage thead th { color: var(--doux); font-weight: 600; }
+.table-usage .usage-groupe th { padding-top: 16px; text-align: left; font-weight: 700; border-bottom: 2px solid var(--bord); }
+.table-usage .usage-detail th { padding-left: 24px; color: var(--doux); white-space: pre; }
+.contact-direct { max-width: 640px; margin-bottom: 18px; }
+.contact-direct .fiche { margin: 0; }
+.contact-direct a { overflow-wrap: anywhere; }
+.contact-ou { margin: 6px 0 12px; color: var(--doux); font-size: 15px; }

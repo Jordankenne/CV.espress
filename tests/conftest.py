@@ -40,8 +40,10 @@ class _FilImmediat:
 @pytest.fixture(autouse=True)
 def etat_propre(monkeypatch):
     """Chaque test repart d'une base vide et de compteurs d'échecs à zéro."""
+    import statistiques
+    statistiques._en_attente.clear()           # compteurs d'usage pas encore écrits en base
     with comptes._base() as b:
-        for table in ("candidatures", "partages", "documents", "reinitialisations", "invitations", "comptes"):
+        for table in ("compteurs", "candidatures", "partages", "documents", "reinitialisations", "invitations", "comptes"):
             b.execute(f"DELETE FROM {table}")
     comptes._echecs.clear()
     application._appels.clear()

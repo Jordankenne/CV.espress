@@ -1,0 +1,57 @@
+"""Page d'erreur, cache et compression, page Contact, compteurs d'usage."""
+import gzip
+
+import app as application
+import comptes
+import contact
+import statistiques
+from conftest import _FilImmediat
+
+
+def test_page_404_dans_la_langue_de_l_adresse(client):
+    r = client.get("/it/pagina-che-non-esiste")
+    assert r.status_code == 404 and "Questa pagina non esiste" in r.get_data(as_text=True)
+    r = client.get("/fichier-inconnu.js")
+    assert r.status_code == 404 and "Cette page n&#39;existe pas" in r.get_data(as_text=True)
+    assert client.get("/api/inconnue").get_json() == {"erreur": "Introuvable."}
+
+
+def test_versions_des_fichiers_et_compression(client):
+    html = gzip.decompress(client.get("/", headers={"Accept-Encoding": "gzip"}).data).decode()
+    assert f'/style.css?v={application.VERSION}"' in html
+    r = client.get("/app.js", headers={"Accept-Encoding": "gzip"})
+    assert r.headers["Content-Encoding"] == "gzip" and b"use strict" in gzip.decompress(r.data)
+    assert client.get("/app.js", headers={"If-None-Match": r.headers["ETag"], "Accept-Encoding": "gzip"}).status_code == 304
+    assert "Content-Encoding" not in client.get("/app.js").headers          # navigateur sans gzip
+    assert client.get("/sante").get_data(as_text=True) == "ok"
+    assert client.get("/site.webmanifest").mimetype == "application/manifest+json"
+
+
+def test_contact(client, monkeypatch):
+    envoyes = []
+    monkeypatch.setattr(comptes, "envoyer_email", lambda *a: envoyes.append(a))
+    monkeypatch.setattr(contact.threading, "Thread", _FilImmediat)
+    monkeypatch.setenv("ADMINS", "admin@example.com")
+    assert client.post("/api/contact", json={"message": "court"}).status_code == 400
+    r = client.post("/api/contact", json={"message": "Le PDF ne s'ouvre pas sur mon téléphone.", "email": "awa@example.com",
+                                          "nom": "Awa", "sujet": "probleme"})
+    assert r.get_json() == {"envoye": True}
+    destinataire, sujet, texte, _, _, repondre_a = envoyes[-1]
+    assert destinataire == "admin@example.com" and repondre_a == "awa@example.com" and "Le PDF" in texte
+    # Robot (champ piège rempli) : rien n'est envoyé, mais la réponse est la même.
+    assert client.post("/api/contact", json={"message": "achetez mes produits", "site_web": "x"}).get_json() == {"envoye": True}
+    assert len(envoyes) == 1
+    assert client.post("/api/contact", json={"message": "message depuis un autre site"},
+                       headers={"Origin": "https://pirate.example"}).status_code == 403
+
+
+def test_compteurs_d_usage(client):
+    statistiques.vider()
+    client.get("/")
+    client.get("/en/cv-ats")
+    statistiques.compter("pdf:plan", 2)
+    donnees = statistiques.lire(30)
+    assert donnees["cles"]["page:accueil"][-1] >= 1 and donnees["cles"]["langue_site:en"][-1] >= 1
+    assert donnees["cles"]["pdf:plan"][-1] == 2
+    statistiques.compter("pdf:plan")                       # s'ajoute à ce qui est déjà en base
+    assert statistiques.lire(30)["cles"]["pdf:plan"][-1] == 3

@@ -361,6 +361,46 @@ $("#table-choix").addEventListener("change", () => { tablePage = 1; chargerTable
 $("#table-prec").addEventListener("click", () => { tablePage--; chargerTable(); });
 $("#table-suiv").addEventListener("click", () => { tablePage++; chargerTable(); });
 
+// ---------- Utilisation du site ----------
+// [titre du groupe, [[clé, libellé], …]] ; les clés inconnues (nouvelles pages…) vont dans « Autres ».
+const GROUPES_USAGE = [
+  ["PDF fabriqués", [["pdf:cv", "CV"], ["pdf:cv_avec_qr", "  dont avec QR code"], ["pdf:lettre", "Lettres de motivation"],
+                     ["pdf:admin", "Documents administratifs"], ["pdf:plan", "Plans de localisation"], ["pdf:arbre", "Arbres généalogiques"]]],
+  ["Langue des CV et lettres", [["langue_document:fr", "Français"], ["langue_document:en", "Anglais"], ["langue_document:it", "Italien"]]],
+  ["Autres actions", [["import:cv", "CV importés"], ["import:lettre", "Lettres importées"], ["cv_en_ligne:vue", "CV en ligne consultés"],
+                      ["contact", "Messages de contact"]]],
+  ["Visites par langue du site", [["langue_site:fr", "Français"], ["langue_site:en", "Anglais"], ["langue_site:it", "Italien"]]],
+];
+async function chargerUsage() {
+  const r = await api("GET", "/utilisation");
+  if (!r.ok) return;
+  const { cles } = r.corps;
+  const somme = (serie, n) => (serie || []).slice(-n).reduce((a, b) => a + b, 0);
+  const lignes = [];
+  const ajouter = (libelle, serie, classe) => {
+    const tr = element("tr", undefined, classe);
+    tr.append(element("th", libelle), ...[1, 7, 30].map(n => element("td", entier(somme(serie, n)))));
+    lignes.push(tr);
+  };
+  const connues = new Set();
+  for (const [titre, liste] of GROUPES_USAGE) {
+    const tete = element("tr", undefined, "usage-groupe");
+    tete.append(Object.assign(element("th", titre), { colSpan: 4 }));
+    lignes.push(tete);
+    for (const [cle, libelle] of liste) { connues.add(cle); ajouter(libelle, cles[cle], libelle.startsWith("  ") ? "usage-detail" : ""); }
+  }
+  const pages = Object.keys(cles).filter(c => c.startsWith("page:")).sort((a, b) => somme(cles[b], 30) - somme(cles[a], 30));
+  if (pages.length) {
+    const tete = element("tr", undefined, "usage-groupe");
+    tete.append(Object.assign(element("th", "Pages vues"), { colSpan: 4 }));
+    lignes.push(tete);
+    for (const cle of pages) { connues.add(cle); ajouter(cle.slice(5) === "accueil" ? "Accueil" : cle.slice(5) === "creer" ? "Éditeur" : "/" + cle.slice(5), cles[cle]); }
+  }
+  for (const cle of Object.keys(cles).filter(c => !connues.has(c)).sort()) ajouter(cle, cles[cle]);
+  $("#usage").replaceChildren(...lignes);
+}
+
 chargerResume();
+chargerUsage();
 chargerComptes();
 chargerTable();

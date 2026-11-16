@@ -83,6 +83,13 @@ def resume():
                    inscriptions=[{"jour": j, "nombre": par_jour.get(j, 0)} for j in jours])
 
 
+@admin.get("/utilisation")
+def utilisation():
+    """Compteurs d'usage des 30 derniers jours (statistiques.py), jour par jour."""
+    import statistiques
+    return jsonify(statistiques.lire(30))
+
+
 @admin.get("/comptes")
 def liste_comptes():
     """Comptes, du plus récent au plus ancien ; ?q= filtre sur l'adresse, ?page= (à partir de 1)."""

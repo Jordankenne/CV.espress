@@ -18,6 +18,11 @@
   <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
     {%- for question, reponse in a.faq %}{"@type": "Question", "name": {{ question|tojson }}, "acceptedAnswer": {"@type": "Answer", "text": {{ reponse|tojson }}}}{% if not loop.last %}, {% endif %}{% endfor -%}
   ]}</script>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="/img/icone-180.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#2d22a0">
   <link rel="stylesheet" href="/style.css">
 </head>
 <body class="page-accueil">

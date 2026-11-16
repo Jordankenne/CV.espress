@@ -102,6 +102,7 @@ $("#jeton-form").addEventListener("submit", async e => {
   try { localStorage.removeItem(CLE_SYNCHRO); } catch { /* stockage indisponible */ }
   if (r.corps.nouveau_compte) await envoyerLocal();   // un CV commencé sur cet appareil rejoint le compte
   await charger();
+  annoncerConnexion();
   message(r.corps.nouveau_compte ? "Ton compte est créé. Ton CV sera enregistré automatiquement."
                                  : "Ton mot de passe a été changé. Tes autres appareils ont été déconnectés.");
 });
@@ -130,6 +131,7 @@ $("#porte-form").addEventListener("submit", async e => {
   try { localStorage.removeItem(CLE_SYNCHRO); } catch { /* stockage indisponible */ }
   await envoyerLocal();        // un CV déjà commencé sur cet appareil rejoint le compte s'il est vide
   await charger();
+  annoncerConnexion();
 });
 
 /** Si le compte n'a encore aucun CV et que cet appareil en contient un, on l'y enregistre. */
@@ -261,7 +263,57 @@ function dessinerDocument(d) {
         el("span", { className: "puce-modele lettre-modele" }, corps ? "Modèle " + (MODELES[options.modele_lettre] || "Classique") : ""),
         resumeLettre),
       el("div", { className: "doc-actions" }, el("a", { className: "bouton principal", href: ouvrir + "&type=lettre" }, "Modifier"), pdfLettre)),
+    ...dessinerAutres(d, donnees, ouvrir),
     dessinerPartage(d, aUnCv));
+}
+
+// Les autres documents du même dossier : document administratif, plan de localisation, arbre
+// généalogique. Une ligne n'apparaît que si ce document a été commencé.
+const CHAMPS_ADMIN = ["declaration", "motif", "precision", "conteste", "arguments", "demarche", "piece_numero"];
+function adminCommence(donnees) {
+  const a = donnees.admin && typeof donnees.admin === "object" ? donnees.admin : null;
+  if (!a) return false;
+  const rempli = v => typeof v === "string" && v.trim() !== "";
+  return donnees.type === "admin" || a.auto === false || CHAMPS_ADMIN.some(c => rempli(a[c]))
+    || ["destinataire", "mandataire", "beneficiaire"].some(c => a[c] && rempli(a[c].nom));
+}
+function compterPersonnes(p, profondeur = 0) {
+  if (!p || typeof p !== "object" || profondeur > 12) return 0;
+  return 1 + liste(p.unions).reduce((n, u) => n + (u.conjoint ? 1 : 0)
+    + liste(u.enfants).reduce((m, e) => m + compterPersonnes(e, profondeur + 1), 0), 0);
+}
+function dessinerAutres(d, donnees, ouvrir) {
+  const lignes = [];
+  // resume : texte saisi par l'utilisateur (jamais traduit) ; detail : texte du site (traduit).
+  const ligne = (titre, resume, type, peutTelecharger, detail) => {
+    const saisi = el("span", null, resume);
+    saisi.setAttribute("translate", "no");
+    const r = el("p", null, saisi, ...(detail ? [resume ? " · " : "", el("span", null, detail)] : []));
+    const pdf = el("button", { type: "button", className: "bouton" }, "Télécharger le PDF");
+    pdf.disabled = !peutTelecharger;
+    pdf.addEventListener("click", () => telechargerPdf(d.doc, type, pdf));
+    lignes.push(el("div", { className: "doc" },
+      el("div", null, el("strong", null, titre), r),
+      el("div", { className: "doc-actions" }, el("a", { className: "bouton principal", href: `${ouvrir}&type=${type}` }, "Modifier"), pdf)));
+  };
+  const a = donnees.admin;
+  if (adminCommence(donnees)) {
+    ligne("Document administratif", texte(a.titre) || texte(a.objet) || "", "admin", !!texte(a.corps) && !!texte((donnees.cv || {}).nom));
+  }
+  const p = donnees.plan && typeof donnees.plan === "object" ? donnees.plan : null;
+  if (p && liste(p.elements).length) ligne("Plan de localisation", texte(p.sous_titre) || texte(p.titre), "plan", true);
+  const racine = donnees.arbre && donnees.arbre.racine;
+  if (racine && texte(racine.nom)) {
+    const n = compterPersonnes(racine);
+    ligne("Arbre généalogique", texte(racine.nom), "arbre", true, n > 1 ? `${n} personnes` : "1 personne");
+  }
+  return lignes;
+}
+
+/** Ce qui part au serveur pour un document administratif (comme documentAdmin() dans l'éditeur). */
+function documentAdmin(a) {
+  if (!a || typeof a !== "object") return {};
+  return ["demande", "reclamation"].includes(a.genre) ? a : { ...a, destinataire: {}, pj: "" };
 }
 
 /** Ligne « CV en ligne » d'un document : lien public, QR code, nombre de visites. */
@@ -560,10 +612,13 @@ async function telechargerPdf(numero, type, bouton) {
     const donnees = d.corps.donnees;
     const r = await fetch("/api/pdf", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type, cv: donnees.cv, lettre: donnees.lettre, options: donnees.options }),
+      body: JSON.stringify({ type, cv: donnees.cv, lettre: donnees.lettre, admin: documentAdmin(donnees.admin),
+                             plan: donnees.plan, arbre: donnees.arbre, options: donnees.options }),
     });
     if (!r.ok) throw new Error((await r.json().catch(() => ({}))).erreur || "La génération du document a échoué.");
-    enregistrer(await r.blob(), `${type === "lettre" ? "Lettre" : "CV"}_${texte(donnees.cv.nom).replace(/[^A-Za-z0-9]+/g, "_") || "document"}.pdf`);
+    const nom = texte((donnees.cv || {}).nom).normalize("NFD").replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "") || "document";
+    enregistrer(await r.blob(), { plan: "Plan_de_localisation.pdf", arbre: "Arbre_genealogique.pdf" }[type]
+      || `${{ lettre: "Lettre", admin: "Document" }[type] || "CV"}_${nom}.pdf`);
   } catch (e) { message(e.message); }
   bouton.disabled = false;
 }
@@ -632,5 +687,30 @@ $("#suppr-valider").addEventListener("click", async () => {
   alert("Ton compte et les documents enregistrés sur nos serveurs ont été supprimés.");
   location.href = (window.PREFIXE_SITE || "") + "/";
 });
+
+// ---------- Plusieurs onglets ----------
+// Sur ordinateur, le lien reçu par e-mail s'ouvre dans un NOUVEL onglet : c'est lui qui crée le
+// compte. Il prévient alors les autres onglets du site (même navigateur), qui se mettent à jour
+// au lieu de rester sur « C'est presque fini ». On revérifie aussi quand on revient sur l'onglet.
+const CLE_CONNEXION = "cv-saas-connexion";
+const canalCompte = "BroadcastChannel" in window ? new BroadcastChannel("cv-express-compte") : null;
+function annoncerConnexion() {
+  canalCompte?.postMessage("connecte");
+  try { localStorage.setItem(CLE_CONNEXION, String(Date.now())); } catch { /* stockage indisponible */ }
+}
+let verificationEnCours = false;
+async function verifierConnexion() {
+  if (!$("#espace").hidden || jetonRecu || verificationEnCours) return;
+  verificationEnCours = true;
+  const r = await api("GET", "");
+  if (r.ok && r.corps.connecte && $("#espace").hidden) {
+    await charger();
+    message("Ton compte est prêt : tu es connecté.");
+  }
+  verificationEnCours = false;
+}
+canalCompte?.addEventListener("message", e => { if (e.data === "connecte") verifierConnexion(); });
+window.addEventListener("storage", e => { if (e.key === CLE_CONNEXION) verifierConnexion(); });
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") verifierConnexion(); });
 
 charger();

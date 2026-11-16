@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block titre %}{{ c.erreur_404_titre if code == 404 else c.erreur_500_titre }}{% endblock %}
+{% block description %}{{ c.erreur_404_texte if code == 404 else c.erreur_500_texte }}{% endblock %}
+{% block tete %}<meta name="robots" content="noindex">{% endblock %}
+{% block contenu %}
+<div class="page-erreur">
+  <p class="erreur-code" aria-hidden="true">{{ code }}</p>
+  <h1>{{ c.erreur_404_titre if code == 404 else c.erreur_500_titre }}</h1>
+  <p class="chapeau">{{ c.erreur_404_texte if code == 404 else c.erreur_500_texte }}</p>
+  <p class="erreur-actions">
+    <a href="{{ p }}/" class="bouton principal grand">{{ c.erreur_accueil }}</a>
+    <a href="{{ p }}/creer" class="bouton grand">{{ c.creer }}</a>
+  </p>
+  <h2>{{ c.pied_nav }}</h2>
+  <ul class="erreur-liens">
+    {%- for adresse, titre in c.liens %}
+    <li><a href="{{ p }}/{{ adresse }}">{{ titre }}</a></li>
+    {%- endfor %}
+  </ul>
+</div>
+{% endblock %}

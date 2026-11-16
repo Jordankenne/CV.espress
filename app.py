@@ -7,7 +7,10 @@ En production    :   gunicorn -w 1 --threads 16 -b 0.0.0.0:8000 app:app   (voir 
                      Un seul processus (-w 1) : la limite de débit est comptée en mémoire.
 """
 import base64
+import gzip
+import hashlib
 import json
+import mimetypes
 import logging
 import os
 import re
@@ -16,16 +19,18 @@ import time
 import unicodedata
 from collections import defaultdict, deque
 
-from flask import Flask, Response, jsonify, render_template, request
+from flask import Flask, Response, abort, jsonify, render_template, request
 from markupsafe import Markup, escape
 
 import admin
 import arbre
 import comptes
+import contact
 import importer
 import moteur
 import plan
 import requetes
+import statistiques
 import textes
 
 # web/ : fichiers servis tels quels (CSS, JS, images, éditeur) ; pages/ : pages HTML
@@ -43,6 +48,11 @@ app.logger.setLevel(logging.INFO)
 comptes.initialiser(app)
 # Tableau de bord de l'administrateur (réglage ADMINS) : /admin et /api/admin.
 app.register_blueprint(admin.admin)
+# Formulaire de la page Contact : /api/contact.
+app.register_blueprint(contact.contact)
+
+# Manifeste de l'application (icône sur l'écran d'accueil du téléphone).
+mimetypes.add_type("application/manifest+json", ".webmanifest")
 
 # Chez un hébergeur, le site est derrière un proxy : sans ceci, tous les visiteurs
 # auraient la même adresse IP (celle du proxy) et partageraient la même limite.
@@ -123,12 +133,83 @@ def entetes_securite(reponse):
     # partagé), ni un proxy intermédiaire ne doivent en garder de copie.
     if request.path.startswith("/api/"):
         reponse.headers["Cache-Control"] = "no-store"
+    else:
+        cache_et_versions(reponse)
+    compresser(reponse)
     if reponse.mimetype == "application/pdf":
         return reponse   # un PDF n'exécute rien ; certains lecteurs intégrés supportent mal la CSP
     reponse.headers["Content-Security-Policy"] = (
         "default-src 'self'; img-src 'self' data: blob:; object-src 'none'; "
         "base-uri 'self'; form-action 'self'; frame-ancestors 'none'")
     return reponse
+
+
+# --------------------------------------------------------------------------
+# Cache des fichiers et compression
+# --------------------------------------------------------------------------
+# Chaque page appelle style.css, app.js… avec « ?v=<version> ». La version change à chaque mise
+# en ligne d'un nouveau code (empreinte des fichiers) : le navigateur peut donc garder ces fichiers
+# un an sans jamais utiliser une version périmée. Les pages elles-mêmes sont toujours revérifiées.
+# En développement, rien n'est gardé : une modification se voit au rechargement.
+PRODUCTION = os.environ.get("DERRIERE_PROXY") == "1"
+_WEB = moteur.RACINE / "web"
+VERSION = hashlib.sha1(b"".join(f.read_bytes() for f in sorted(_WEB.glob("*.js")) + sorted(_WEB.glob("*.css")))).hexdigest()[:10]
+_LIEN_VERSIONNE = re.compile(r'((?:src|href)="/[\w.-]+\.(?:js|css))"')
+_IMAGES = (".png", ".jpg", ".svg", ".ico", ".webmanifest")
+
+
+def cache_et_versions(reponse):
+    chemin = request.path
+    if reponse.mimetype == "text/html" and reponse.status_code == 200:
+        # Les adresses des scripts et des styles reçoivent la version du code.
+        reponse.direct_passthrough = False
+        reponse.set_data(_LIEN_VERSIONNE.sub(rf'\1?v={VERSION}"', reponse.get_data(as_text=True)))
+        for entete in ("ETag", "Last-Modified"):        # le contenu a changé : plus de 304 sur l'ancien
+            reponse.headers.pop(entete, None)
+        reponse.headers.setdefault("Cache-Control", "no-cache")
+    elif chemin.endswith((".js", ".css")):
+        versionne = PRODUCTION and request.args.get("v") == VERSION
+        reponse.headers["Cache-Control"] = "public, max-age=31536000, immutable" if versionne else "no-cache"
+    elif chemin.endswith(_IMAGES) and "Cache-Control" not in reponse.headers:
+        reponse.headers["Cache-Control"] = "public, max-age=604800" if PRODUCTION else "no-cache"
+
+
+# Compression gzip des textes (pages, scripts, styles, réponses JSON) : 3 à 5 fois moins à
+# télécharger, ce qui compte beaucoup sur une connexion mobile lente.
+_COMPRESSIBLES = {"text/html", "text/css", "text/javascript", "application/javascript", "application/json",
+                  "image/svg+xml", "application/manifest+json", "text/plain", "application/xml"}
+_compresses = {}         # fichiers du site déjà compressés : (chemin, version, taille) -> octets
+
+
+def compresser(reponse):
+    if (reponse.status_code != 200 or reponse.mimetype not in _COMPRESSIBLES
+            or "gzip" not in request.headers.get("Accept-Encoding", "")
+            or "Content-Encoding" in reponse.headers or request.method == "HEAD"):
+        return
+    reponse.direct_passthrough = False
+    donnees = reponse.get_data()
+    if len(donnees) < 1024:
+        return
+    fichier = request.path.endswith((".js", ".css", ".svg", ".json", ".webmanifest"))
+    cle = (request.path, VERSION, len(donnees))
+    compresse = _compresses.get(cle) if fichier else None
+    if compresse is None:
+        compresse = gzip.compress(donnees, compresslevel=6)
+        if fichier and len(_compresses) < 200:
+            _compresses[cle] = compresse
+    reponse.set_data(compresse)
+    reponse.headers["Content-Encoding"] = "gzip"
+    reponse.vary.add("Accept-Encoding")
+    etag = reponse.headers.get("ETag")
+    if etag and not etag.startswith("W/"):
+        reponse.headers["ETag"] = "W/" + etag     # même contenu, autre encodage : empreinte « faible »
+
+
+@app.get("/sante")
+def sante():
+    """Pour le service qui garde le site éveillé (et le contrôle de santé de l'hébergeur) :
+    une réponse immédiate, sans base de données ni page à fabriquer."""
+    return Response("ok", mimetype="text/plain", headers={"Cache-Control": "no-store"})
 
 
 # --------------------------------------------------------------------------
@@ -139,20 +220,24 @@ GUIDES = ["modele-cv-afrique", "cv-europass", "cv-sans-experience", "lettre-de-m
           "cv-ats", "cv-infirmier", "cv-commercial",
           # Pages des autres services (plan, arbre, documents administratifs), pour les moteurs de recherche.
           "plan-de-localisation", "arbre-genealogique", "demande-administrative", "attestation-sur-l-honneur"]
-LEGALES = ["mentions-legales", "confidentialite", "conditions"]
+LEGALES = ["mentions-legales", "confidentialite", "conditions", "contact"]
 
 
 # Le site existe en trois langues : français à la racine, anglais sous /en/, italien sous /it/.
 PREFIXES = {"fr": "", "en": "/en", "it": "/it"}
 
 
-def page(nom, langue="fr"):
+def page(nom, langue="fr", chemin=None, **extra):
     """Affiche pages/<nom>.html dans la langue demandée. Les pages longues (guides, pages
     légales) ont un fichier par langue : pages/en/<nom>.html, pages/it/<nom>.html."""
+    if nom not in ("admin", "compte", "erreur"):
+        statistiques.compter(f"page:{nom}")
+        statistiques.compter(f"langue_site:{langue}")
     fichier = f"{nom}.html"
     if langue != "fr" and (moteur.RACINE / "pages" / langue / fichier).is_file():
         fichier = f"{langue}/{fichier}"
-    chemin = "/" if nom == "accueil" else f"/{nom}"          # adresse de la page, sans préfixe de langue
+    if chemin is None:
+        chemin = "/" if nom == "accueil" else f"/{nom}"      # adresse de la page, sans préfixe de langue
     # Adresses publiques (canonical, hreflang, aperçus de partage) : celle du site en
     # production (ADRESSE_SITE), jamais celle annoncée par la requête.
     racine = comptes.racine_site()
@@ -161,7 +246,7 @@ def page(nom, langue="fr"):
         langue=langue, p=PREFIXES[langue], c=textes.COMMUN[langue], a=textes.ACCUEIL[langue],
         # La même page dans chaque langue : sélecteur de langue et balises hreflang.
         versions=[(code, textes.LANGUES_SITE[code], PREFIXES[code] + chemin, racine + PREFIXES[code] + chemin)
-                  for code in PREFIXES])
+                  for code in PREFIXES], **extra)
 
 
 # Informations légales (éditeur, hébergeur…) : un seul fichier, editeur.json, lu par les
@@ -202,7 +287,7 @@ def espace():
 def administration():
     """Tableau de bord de l'administrateur. Pour tous les autres visiteurs, la page n'existe pas."""
     if not admin.admin_connecte():
-        return "Page introuvable.", 404
+        abort(404)
     return page("admin")
 
 
@@ -217,8 +302,10 @@ def page_traduite(langue, nom):
     if nom in GUIDES or nom in LEGALES or nom == "compte":
         return page(nom, langue)
     if nom == "creer":
+        statistiques.compter("page:creer")
+        statistiques.compter(f"langue_site:{langue}")
         return app.send_static_file("creer.html")      # traduit dans le navigateur (traductions.js)
-    return "Page introuvable.", 404
+    abort(404)
 
 
 @app.get("/<nom>")
@@ -250,6 +337,8 @@ def plan_du_site():
 
 @app.get("/creer")
 def editeur():
+    statistiques.compter("page:creer")
+    statistiques.compter("langue_site:fr")
     return app.send_static_file("creer.html")
 
 
@@ -375,6 +464,15 @@ def apercu():
 def pdf():
     """Le document final, en PDF."""
     document, nom = fabriquer_pdf()
+    # Statistiques : type de document et langue du document (rien d'autre).
+    corps = requetes.lire_json()
+    corps = corps if isinstance(corps, dict) else {}
+    genre = corps.get("type") if corps.get("type") in ("lettre", "admin", "plan", "arbre") else "cv"
+    statistiques.compter(f"pdf:{genre}")
+    if genre in ("cv", "lettre"):
+        statistiques.compter(f"langue_document:{moteur._options(corps.get('options'))['langue']}")
+        if genre == "cv" and "lien_qr" in options_avec_qr(corps.get("options")):
+            statistiques.compter("pdf:cv_avec_qr")
     return Response(document, mimetype="application/pdf", headers={
         "Content-Disposition": f'attachment; filename="{nom}"',
     })
@@ -389,7 +487,9 @@ def importer_document():
     octets = request.get_data(cache=False)
     if not octets:
         raise moteur.ErreurDonnees("Aucun fichier reçu.")
-    return jsonify(importer.importer(octets, type_document))
+    resultat = importer.importer(octets, type_document)
+    statistiques.compter(f"import:{type_document}")
+    return jsonify(resultat)
 
 
 # --------------------------------------------------------------------------
@@ -464,6 +564,8 @@ def _sans_index(reponse):
 @app.get("/cv/<code>")
 def cv_en_ligne(code):
     donnees = comptes.document_partage(code, compter=True)
+    if donnees:
+        statistiques.compter("cv_en_ligne:vue")
     if not donnees:
         langue = request.accept_languages.best_match(["fr", "en", "it"]) or "fr"
         return _sans_index(Response(render_template("cv_public.html", cv=None, x=TEXTES_PUBLICS[langue],
@@ -517,6 +619,27 @@ def cv_en_ligne_qr(code):
 def trop_imbrique(_):
     # Filet de sécurité : la lecture du JSON (requetes.lire_json) refuse déjà ce cas.
     return jsonify(erreur="Requête invalide."), 400
+
+
+def _page_erreur(code):
+    """Page d'erreur avec l'en-tête et le pied du site, dans la langue de l'adresse demandée."""
+    if request.path.startswith("/api/"):
+        return jsonify(erreur="Introuvable." if code == 404 else "Erreur du serveur. Réessaie dans un instant."), code
+    trouve = re.match(r"^/(en|it)(/|$)", request.path)
+    try:
+        return page("erreur", trouve.group(1) if trouve else "fr", chemin="/", code=code), code
+    except Exception:                                   # dernier recours : jamais d'erreur dans l'erreur
+        return "Erreur.", code
+
+
+@app.errorhandler(404)
+def introuvable(_):
+    return _page_erreur(404)
+
+
+@app.errorhandler(500)
+def erreur_serveur(_):
+    return _page_erreur(500)
 
 
 @app.errorhandler(413)

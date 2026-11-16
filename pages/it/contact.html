@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block titre %}Contattaci{% endblock %}
+{% block description %}Una domanda, un problema o un&#x27;idea per CV.express? Scrivici: leggiamo tutti i messaggi.{% endblock %}
+{% block contenu %}
+<h1>Contattaci</h1>
+<p class="chapeau">Una domanda, un problema sul sito, un&#x27;idea per migliorarlo? Scrivici: leggiamo tutti i messaggi e rispondiamo appena possibile.</p>
+
+{% if editeur.email or editeur.whatsapp or editeur.telephone %}
+<section class="carte-espace contact-direct">
+  <h2>Contattaci direttamente</h2>
+  <dl class="fiche">
+    {% if editeur.email %}<dt>E-mail</dt><dd><a href="mailto:{{ editeur.email }}" translate="no">{{ editeur.email }}</a></dd>{% endif %}
+    {% if editeur.whatsapp %}<dt>WhatsApp</dt><dd><a href="https://wa.me/{{ editeur.whatsapp }}" target="_blank" rel="noopener" translate="no">{{ editeur.telephone or editeur.whatsapp }}</a> · <a href="https://wa.me/{{ editeur.whatsapp }}" target="_blank" rel="noopener">Scrivi su WhatsApp</a></dd>{% endif %}
+    {% if editeur.telephone %}<dt>Telefono</dt><dd><a href="tel:{{ editeur.telephone|replace(' ', '') }}" translate="no">{{ editeur.telephone }}</a></dd>{% endif %}
+  </dl>
+</section>
+<p class="contact-ou">Oppure inviaci un messaggio con questo modulo:</p>
+{% endif %}
+
+<form id="contact-form" class="carte-espace formulaire-contact" novalidate>
+  <label>Argomento
+    <select id="contact-sujet">
+      <option value="probleme">Un problema sul sito</option>
+      <option value="idee">Un&#x27;idea o un suggerimento</option>
+      <option value="compte">Il mio account o i miei dati</option>
+      <option value="autre">Altro</option>
+    </select>
+  </label>
+  <div class="contact-ligne">
+    <label>Il tuo nome <small>facoltativo</small><input id="contact-nom" maxlength="120" autocomplete="name"></label>
+    <label>Il tuo indirizzo e-mail <small>per poterti rispondere</small><input id="contact-email" type="email" maxlength="120" autocomplete="email"></label>
+  </div>
+  <label>Il tuo messaggio<textarea id="contact-message" rows="7" maxlength="5000" required placeholder="Spiega che cosa è successo: in quale pagina, con quale telefono o computer, e che cosa ti aspettavi."></textarea></label>
+  <label class="piege" aria-hidden="true">Site web<input id="contact-site" tabindex="-1" autocomplete="off"></label>
+  <p id="contact-erreur" class="erreur-compte" role="alert" hidden></p>
+  <p id="contact-envoye" class="espace-message" role="status" hidden>Grazie! Il tuo messaggio è stato inviato. Se hai lasciato il tuo indirizzo, ti risponderemo appena possibile.</p>
+  <button type="submit" class="bouton principal" id="contact-valider">Invia il messaggio</button>
+  <p class="note">Il tuo messaggio ci viene inoltrato per e-mail; non viene conservato sul sito. Non inviarci mai la tua password.</p>
+</form>
+{% endblock %}
+{% block scripts %}<script src="/contact.js"></script>{% endblock %}

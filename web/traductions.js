@@ -20,6 +20,13 @@
   document.documentElement.lang = LANGUE;
 
   const DICO = { en: {
+    "Document administratif": "Administrative document",
+    "1 personne": "1 person",
+    "Écris ton message (quelques mots au moins).": "Write your message (a few words at least).",
+    "Trop de messages envoyés. Réessaie dans un quart d'heure.": "Too many messages sent. Try again in a quarter of an hour.",
+    "Adresse e-mail invalide.": "Invalid e-mail address.",
+    "Connexion impossible. Vérifie ta connexion Internet et réessaie.": "Connection failed. Check your Internet connection and try again.",
+    "Une erreur est survenue. Réessaie.": "An error occurred. Try again.",
     "Adapter à une offre d'emploi": "Tailor to a job advert",
     "Colle le texte de l'annonce : on repère ses mots-clés et on vérifie s'ils sont dans ton CV. Les logiciels de tri (ATS) et les recruteurs cherchent ces mots-là.": "Paste the text of the job advert: we pick out its keywords and check whether they are in your CV. Applicant tracking systems (ATS) and recruiters look for those words.",
     "Texte de l'offre": "Job advert text",
@@ -110,8 +117,8 @@
     "Choisis ton mot de passe : au moins 8 caractères, et pas un mot de passe que tu utilises ailleurs. Si tu avais déjà un compte, tes autres appareils seront déconnectés.": "Choose your password: at least 8 characters, and not one you use elsewhere. If you already had an account, your other devices will be logged out.",
     "Choisis ton mot de passe": "Choose your password",
     "Recevoir le lien d'inscription": "Send me the sign-up link",
-    "C'est presque fini : nous venons d'envoyer un e-mail à cette adresse. Ouvre le lien qu'il contient pour choisir ton mot de passe (il est valable 24 heures) : ton compte n'existera qu'à ce moment-là. Pense à regarder dans les courriers indésirables.": "Almost done: we have just sent an e-mail to this address. Open the link it contains to choose your password (it is valid for 24 hours): your account will only exist from then on. Remember to check your spam folder.",
-    "C'est presque fini : nous venons d'envoyer un e-mail à cette adresse. Ouvre le lien qu'il contient pour choisir ton mot de passe (il est valable 24 heures). Ton CV reste sur cet appareil en attendant.": "Almost done: we have just sent an e-mail to this address. Open the link it contains to choose your password (it is valid for 24 hours). Your CV stays on this device in the meantime.",
+    "C'est presque fini : nous venons d'envoyer un e-mail à cette adresse. Ouvre le lien qu'il contient pour choisir ton mot de passe (il est valable 24 heures) : ton compte n'existera qu'à ce moment-là. Pense à regarder dans les courriers indésirables. Si tu ouvres le lien sur un autre appareil, reviens ensuite ici et connecte-toi avec ton adresse et ce mot de passe.": "Almost done: we have just sent an e-mail to this address. Open the link it contains to choose your password (it is valid for 24 hours): your account will only exist from then on. Remember to check your spam folder. If you open the link on another device, come back here afterwards and log in with your address and that password.",
+    "C'est presque fini : nous venons d'envoyer un e-mail à cette adresse. Ouvre le lien qu'il contient pour choisir ton mot de passe (il est valable 24 heures). Ton CV reste sur cet appareil en attendant. Si tu ouvres le lien sur un autre appareil, reviens ensuite ici et connecte-toi avec ton adresse et ce mot de passe.": "Almost done: we have just sent an e-mail to this address. Open the link it contains to choose your password (it is valid for 24 hours). Your CV stays on this device in the meantime. If you open the link on another device, come back here afterwards and log in with your address and that password.",
     "Ton compte est créé. Ton CV sera enregistré automatiquement.": "Your account has been created. Your CV will be saved automatically.",
     "Trop de tentatives. Réessaie dans un quart d'heure, ou choisis un nouveau mot de passe avec « Mot de passe oublié ».": "Too many attempts. Try again in a quarter of an hour, or choose a new password with “Forgot your password?”.",
     "Enregistrer mon mot de passe": "Save my password", "Demander un nouveau lien": "Request a new link",
@@ -685,6 +692,13 @@
     "Aucun texte de lettre n'a été trouvé dans ce fichier.": "No letter text was found in this file.",
     "Le contenu de ce fichier n'a pas pu être reconnu comme un CV. Remplis le formulaire à la main : cela prend quelques minutes.": "The content of this file could not be recognised as a CV. Fill in the form by hand: it takes a few minutes."
   }, it: {
+    "Document administratif": "Documento amministrativo",
+    "1 personne": "1 persona",
+    "Écris ton message (quelques mots au moins).": "Scrivi il tuo messaggio (almeno qualche parola).",
+    "Trop de messages envoyés. Réessaie dans un quart d'heure.": "Troppi messaggi inviati. Riprova tra un quarto d'ora.",
+    "Adresse e-mail invalide.": "Indirizzo e-mail non valido.",
+    "Connexion impossible. Vérifie ta connexion Internet et réessaie.": "Connessione impossibile. Controlla la connessione Internet e riprova.",
+    "Une erreur est survenue. Réessaie.": "Si è verificato un errore. Riprova.",
     "Adapter à une offre d'emploi": "Adatta a un'offerta di lavoro",
     "Colle le texte de l'annonce : on repère ses mots-clés et on vérifie s'ils sont dans ton CV. Les logiciels de tri (ATS) et les recruteurs cherchent ces mots-là.": "Incolla il testo dell'annuncio: individuiamo le parole chiave e controlliamo se sono nel tuo CV. I software di selezione (ATS) e i selezionatori cercano proprio quelle parole.",
     "Texte de l'offre": "Testo dell'offerta",
@@ -775,8 +789,8 @@
     "Choisis ton mot de passe : au moins 8 caractères, et pas un mot de passe que tu utilises ailleurs. Si tu avais déjà un compte, tes autres appareils seront déconnectés.": "Scegli la tua password: almeno 8 caratteri, e non una password che usi altrove. Se avevi già un account, gli altri tuoi dispositivi saranno disconnessi.",
     "Choisis ton mot de passe": "Scegli la tua password",
     "Recevoir le lien d'inscription": "Ricevi il link di registrazione",
-    "C'est presque fini : nous venons d'envoyer un e-mail à cette adresse. Ouvre le lien qu'il contient pour choisir ton mot de passe (il est valable 24 heures) : ton compte n'existera qu'à ce moment-là. Pense à regarder dans les courriers indésirables.": "Ci siamo quasi: abbiamo appena inviato un'e-mail a questo indirizzo. Apri il link che contiene per scegliere la tua password (è valido 24 ore): il tuo account esisterà solo da quel momento. Ricordati di controllare la posta indesiderata.",
-    "C'est presque fini : nous venons d'envoyer un e-mail à cette adresse. Ouvre le lien qu'il contient pour choisir ton mot de passe (il est valable 24 heures). Ton CV reste sur cet appareil en attendant.": "Ci siamo quasi: abbiamo appena inviato un'e-mail a questo indirizzo. Apri il link che contiene per scegliere la tua password (è valido 24 ore). Nel frattempo il tuo CV resta su questo dispositivo.",
+    "C'est presque fini : nous venons d'envoyer un e-mail à cette adresse. Ouvre le lien qu'il contient pour choisir ton mot de passe (il est valable 24 heures) : ton compte n'existera qu'à ce moment-là. Pense à regarder dans les courriers indésirables. Si tu ouvres le lien sur un autre appareil, reviens ensuite ici et connecte-toi avec ton adresse et ce mot de passe.": "Ci siamo quasi: abbiamo appena inviato un'e-mail a questo indirizzo. Apri il link che contiene per scegliere la tua password (è valido 24 ore): il tuo account esisterà solo da quel momento. Ricordati di controllare la posta indesiderata. Se apri il link su un altro dispositivo, torna poi qui e accedi con il tuo indirizzo e quella password.",
+    "C'est presque fini : nous venons d'envoyer un e-mail à cette adresse. Ouvre le lien qu'il contient pour choisir ton mot de passe (il est valable 24 heures). Ton CV reste sur cet appareil en attendant. Si tu ouvres le lien sur un autre appareil, reviens ensuite ici et connecte-toi avec ton adresse et ce mot de passe.": "Ci siamo quasi: abbiamo appena inviato un'e-mail a questo indirizzo. Apri il link che contiene per scegliere la tua password (è valido 24 ore). Nel frattempo il tuo CV resta su questo dispositivo. Se apri il link su un altro dispositivo, torna poi qui e accedi con il tuo indirizzo e quella password.",
     "Ton compte est créé. Ton CV sera enregistré automatiquement.": "Il tuo account è stato creato. Il tuo CV verrà salvato automaticamente.",
     "Trop de tentatives. Réessaie dans un quart d'heure, ou choisis un nouveau mot de passe avec « Mot de passe oublié ».": "Troppi tentativi. Riprova tra un quarto d'ora, oppure scegli una nuova password con «Password dimenticata?».",
     "Enregistrer mon mot de passe": "Salva la mia password", "Demander un nouveau lien": "Richiedi un nuovo link",
@@ -1351,6 +1365,7 @@
     "Le contenu de ce fichier n'a pas pu être reconnu comme un CV. Remplis le formulaire à la main : cela prend quelques minutes.": "Il contenuto di questo file non è stato riconosciuto come un CV. Compila il modulo a mano: bastano pochi minuti."
   } }[LANGUE] || {};
   const MOTIFS = { en: [
+    [/^(\d+) personnes$/, "$1 people"],
     [/^Mots-clés de l'offre absents de ton CV : (.+)$/, "Keywords from the advert missing from your CV: $1"],
     [/^(\d+) % de correspondance$/, "$1% match"],
     [/^Absents de ton CV \((\d+)\)$/, "Missing from your CV ($1)"],
@@ -1390,6 +1405,7 @@
     [/^(Expérience|Formation|Compétence|Langue|Lien|Référence) (\d+)$/, "$t1 $2"],
     [/^\+ Ajouter : (.+)$/, "+ Add: $t1"]
   ], it: [
+    [/^(\d+) personnes$/, "$1 persone"],
     [/^Mots-clés de l'offre absents de ton CV : (.+)$/, "Parole chiave dell'offerta assenti dal tuo CV: $1"],
     [/^(\d+) % de correspondance$/, "Corrispondenza $1%"],
     [/^Absents de ton CV \((\d+)\)$/, "Assenti dal tuo CV ($1)"],

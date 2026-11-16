@@ -1724,7 +1724,38 @@ $("#compte-form").addEventListener("submit", async e => {
   afficherCompte("");
   await synchroniser();
   await verifierPartage();
+  annoncerConnexion();
 });
+
+// ---------- Plusieurs onglets ----------
+// Le lien d'inscription (ou de mot de passe oublié) s'ouvre souvent dans un autre onglet, qui
+// crée le compte et se connecte. Il prévient cet onglet-ci, qui se connecte à son tour au lieu
+// de rester sur « C'est presque fini ». On revérifie aussi quand on revient sur l'onglet.
+const CLE_CONNEXION = "cv-saas-connexion";
+const canalCompte = "BroadcastChannel" in window ? new BroadcastChannel("cv-express-compte") : null;
+function annoncerConnexion() {
+  canalCompte?.postMessage("connecte");
+  try { localStorage.setItem(CLE_CONNEXION, String(Date.now())); } catch { /* stockage indisponible */ }
+}
+let verificationEnCours = false;
+async function verifierConnexion() {
+  if (compte.connecte || verificationEnCours) return;
+  verificationEnCours = true;
+  const r = await api("GET", "");
+  if (r.ok && r.corps.connecte && !compte.connecte) {
+    compte = { connecte: true, email: r.corps.email };
+    // Pas de remise à zéro de la synchronisation : l'autre onglet vient peut-être d'enregistrer
+    // dans le compte le CV de cet appareil (même navigateur, même compte).
+    afficherCompte("");
+    if ($("#dlg-compte").open) $("#dlg-compte").close();
+    await synchroniser();
+    await verifierPartage();
+  }
+  verificationEnCours = false;
+}
+canalCompte?.addEventListener("message", e => { if (e.data === "connecte") verifierConnexion(); });
+window.addEventListener("storage", e => { if (e.key === CLE_CONNEXION) verifierConnexion(); });
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") verifierConnexion(); });
 
 $("#compte-deconnexion").addEventListener("click", async () => {
   // On envoie d'abord les dernières modifications, pour ne rien perdre.

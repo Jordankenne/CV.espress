@@ -12,7 +12,7 @@ services:
     runtime: docker
     plan: free
     region: frankfurt        # choisir la même région pour la base Neon (AWS Europe Central / Frankfurt)
-    healthCheckPath: /
+    healthCheckPath: /sante    # réponse immédiate, sans base de données
     envVars:
       - key: DERRIERE_PROXY
         value: "1"
