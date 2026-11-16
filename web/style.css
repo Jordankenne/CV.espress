@@ -591,6 +591,17 @@ legend { padding: 0; margin-bottom: 6px; font-size: 13px; font-weight: 500; colo
 }
 /* Très petits écrans : on garde « Se connecter » ; « Créer mon CV » est déjà dans la page. */
 @media (max-width: 350px) { .entete-actions .principal { display: none; } }
+/* Téléphone, page d'accueil : « Créer mon CV » est déjà en grand dans le bandeau, juste dessous.
+   L'en-tête garde le logo, la langue et « Mon espace », sur une seule ligne si la place suffit. */
+@media (max-width: 560px) {
+  .entete:not(.entete-page) .entete-actions .principal { display: none; }
+  .entete:not(.entete-page) { flex-wrap: nowrap; }
+  .entete:not(.entete-page) .entete-actions { flex-wrap: nowrap; }
+}
+@media (max-width: 380px) {
+  .entete:not(.entete-page) .logo { font-size: 16px; }
+  .entete:not(.entete-page) .entete-actions .bouton { padding: 6px 7px; }
+}
 
 /* ===================== Mon espace (/compte) ===================== */
 .initiale {
