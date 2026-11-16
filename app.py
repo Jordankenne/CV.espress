@@ -22,6 +22,7 @@ import admin
 import comptes
 import importer
 import moteur
+import plan
 import requetes
 import textes
 
@@ -114,7 +115,8 @@ def entetes_securite(reponse):
     # Le site ne charge que ses propres scripts et styles : une éventuelle
     # injection de HTML ne pourrait pas exécuter de code.
     # Interdit au navigateur de deviner un autre usage de la page (caméra, micro, position).
-    reponse.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    # Position : seulement pour ce site (bouton « Ma position » du plan de localisation).
+    reponse.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(self)"
     # Les réponses de l'API contiennent le CV du visiteur : ni le navigateur (ordinateur
     # partagé), ni un proxy intermédiaire ne doivent en garder de copie.
     if request.path.startswith("/api/"):
@@ -294,6 +296,9 @@ def fabriquer_pdf():
     if corps.get("type") == "lettre":
         pdf = moteur.generer_lettre(corps.get("cv"), corps.get("lettre"), corps.get("options"))
         prefixe = "Lettre"
+    elif corps.get("type") == "plan":
+        # Plan de localisation : le dessin de l'éditeur, mis en page avec titre, contact et GPS.
+        return plan.generer_plan(corps.get("plan"), corps.get("options")), "Plan_de_localisation.pdf"
     elif corps.get("type") == "admin":
         # Document administratif (demande, attestation, procuration) : une lettre, sans le
         # poste visé du CV sous le nom, avec le texte rédigé dans l'éditeur.

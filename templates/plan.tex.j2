@@ -1,0 +1,56 @@
+\#{ Plan de localisation : titre, dessin (TikZ fabrique par plan.py), description, contact,
+    et position GPS avec un code QR qui ouvre la carte sur un telephone. }
+\BLOCK{include "_preambule.tex.j2"}
+\policesans
+\BLOCK{if plan.orientation == "paysage"}
+\geometry{landscape, margin=1.2cm}
+\BLOCK{else}
+\geometry{margin=1.4cm}
+\BLOCK{endif}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta}
+\usepackage{qrcode}
+\hypersetup{pdftitle={\VAR{plan.titre}}}
+
+\begin{document}
+\begin{center}
+  {\Large\bfseries\underline{\VAR{plan.titre}}\par}
+  \BLOCK{if plan.sous_titre}
+  \vspace{3pt}{\large\bfseries \VAR{plan.sous_titre}\par}
+  \BLOCK{endif}
+\end{center}
+\vspace{4pt}
+
+\begin{center}
+\BLOCK{if plan.cadre}
+\fbox{%
+\BLOCK{endif}
+\begin{tikzpicture}
+\VAR{plan.dessin}
+\end{tikzpicture}%
+\BLOCK{if plan.cadre}
+}
+\BLOCK{endif}
+\end{center}
+
+\vfill
+\noindent
+\begin{minipage}[b]{\BLOCK{if plan.gps}0.8\textwidth\BLOCK{else}\textwidth\BLOCK{endif}}
+\BLOCK{if plan.description}
+\VAR{plan.description}\par\vspace{4pt}
+\BLOCK{endif}
+\BLOCK{if plan.contact}
+\textbf{Contact :} \VAR{plan.contact}\par
+\BLOCK{endif}
+\BLOCK{if plan.gps}
+{\small Position GPS : \VAR{plan.gps.texte}\par}
+\BLOCK{endif}
+\end{minipage}%
+\BLOCK{if plan.gps}
+\hfill
+\begin{minipage}[b]{0.18\textwidth}\centering
+  \qrcode[height=2.3cm]{\VAR{plan.gps.lien}}\par
+  {\scriptsize Scanner pour ouvrir la carte}
+\end{minipage}
+\BLOCK{endif}
+\end{document}

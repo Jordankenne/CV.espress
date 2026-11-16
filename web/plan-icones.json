@@ -1,0 +1,61 @@
+{
+  "_": "Pictogrammes du plan de localisation, partagés par l'éditeur (web/plan.js) et le PDF (plan.py). Coordonnées dans une case de 60 × 60, centrée sur la position du bâtiment ; y vers le bas. Couleurs : nom d'une couleur de la palette (plan.py, plan.js) ou « fond » (blanc).",
+  "maison": [
+    ["poly", [[4, 26], [30, 6], [56, 26]], "fond", "noir"],
+    ["rect", 10, 26, 40, 26, "fond", "noir"],
+    ["rect", 25, 36, 10, 16, "fond", "noir"]
+  ],
+  "immeuble": [
+    ["rect", 8, 6, 22, 48, "gris_clair", "noir"],
+    ["rect", 30, 16, 22, 38, "gris_clair", "noir"],
+    ["rect", 12, 11, 5, 5, "fond", "noir"], ["rect", 21, 11, 5, 5, "fond", "noir"],
+    ["rect", 12, 22, 5, 5, "fond", "noir"], ["rect", 21, 22, 5, 5, "fond", "noir"],
+    ["rect", 12, 33, 5, 5, "fond", "noir"], ["rect", 21, 33, 5, 5, "fond", "noir"],
+    ["rect", 35, 22, 5, 5, "fond", "noir"], ["rect", 43, 22, 5, 5, "fond", "noir"],
+    ["rect", 35, 33, 5, 5, "fond", "noir"], ["rect", 43, 33, 5, 5, "fond", "noir"]
+  ],
+  "eglise": [
+    ["poly", [[8, 30], [30, 14], [52, 30]], "fond", "noir"],
+    ["rect", 13, 30, 34, 24, "fond", "noir"],
+    ["rect", 26, 40, 8, 14, "fond", "noir"],
+    ["ligne", 30, 1, 30, 14, "noir"], ["ligne", 25, 6, 35, 6, "noir"]
+  ],
+  "mosquee": [
+    ["rect", 12, 30, 36, 24, "fond", "noir"],
+    ["poly", [[16, 30], [18, 22], [24, 16], [30, 14], [36, 16], [42, 22], [44, 30]], "fond", "noir"],
+    ["rect", 48, 10, 6, 44, "fond", "noir"],
+    ["poly", [[48, 10], [51, 3], [54, 10]], "fond", "noir"],
+    ["rect", 26, 40, 8, 14, "fond", "noir"]
+  ],
+  "ecole": [
+    ["poly", [[4, 28], [30, 12], [56, 28]], "fond", "noir"],
+    ["rect", 9, 28, 42, 26, "fond", "noir"],
+    ["rect", 15, 34, 7, 7, "fond", "noir"], ["rect", 38, 34, 7, 7, "fond", "noir"],
+    ["rect", 26, 38, 8, 16, "fond", "noir"],
+    ["ligne", 30, 2, 30, 13, "noir"], ["poly", [[30, 2], [40, 5], [30, 8]], "rouge", "noir"]
+  ],
+  "hopital": [
+    ["rect", 8, 10, 44, 44, "fond", "noir"],
+    ["rect", 26, 16, 8, 26, "rouge", "rouge"],
+    ["rect", 17, 25, 26, 8, "rouge", "rouge"]
+  ],
+  "station": [
+    ["rect", 14, 10, 24, 44, "fond", "noir"],
+    ["rect", 18, 15, 16, 11, "gris_clair", "noir"],
+    ["poly", [[38, 20], [46, 24], [46, 46], [42, 46]], "aucun", "noir"],
+    ["rect", 10, 52, 32, 4, "noir", "noir"]
+  ],
+  "magasin": [
+    ["rect", 8, 22, 44, 32, "fond", "noir"],
+    ["poly", [[4, 22], [10, 10], [50, 10], [56, 22]], "bleu", "noir"],
+    ["rect", 14, 32, 14, 22, "fond", "noir"], ["rect", 33, 32, 13, 10, "fond", "noir"]
+  ],
+  "bloc": [
+    ["rect", 10, 12, 40, 36, "gris_clair", "gris"]
+  ],
+  "ici": [
+    ["poly", [[2, 26], [30, 4], [58, 26]], "orange", "noir"],
+    ["rect", 8, 26, 44, 30, "jaune_clair", "noir"],
+    ["texte", 30, 46, "ICI", 14, "rouge"]
+  ]
+}

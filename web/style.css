@@ -803,3 +803,37 @@ body:has(#admin) .article { max-width: 1040px; }
 .score-gain { flex: none; min-width: 34px; padding: 1px 6px; border-radius: 99px; background: var(--primaire-doux); color: var(--primaire); font-size: 12px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; }
 @media (max-width: 520px) { .score progress, #progres-texte { display: none; } }
 .score > summary::before, .score > summary::after { content: none; counter-increment: none; display: none; }
+
+/* ---------- Plan de localisation : zone de dessin ---------- */
+.plan-zone { display: flex; flex-direction: column; gap: 8px; min-height: 0; flex: 1; padding-bottom: 16px; }
+.plan-outils { display: flex; flex-wrap: wrap; gap: 6px; }
+.plan-outils button {
+  padding: 6px 10px; border: 1px solid var(--bord); border-radius: 10px; background: var(--carte); color: var(--texte);
+  font: 600 13px var(--corps); cursor: pointer; white-space: nowrap;
+}
+.plan-outils button:hover { border-color: var(--primaire); }
+.plan-outils button[aria-pressed="true"] { background: var(--primaire); border-color: var(--primaire); color: var(--carte); }
+.plan-outils button.principal { background: var(--soleil); border-color: var(--soleil); color: var(--soleil-texte); }
+.plan-outils button:disabled { opacity: .45; cursor: default; }
+.plan-sep { flex: 1; }
+.plan-icone { align-self: flex-start; width: auto; }
+.plan-aide { margin: 0; color: var(--doux); font-size: 13px; min-height: 1.3em; }
+.plan-feuille { flex: 1; min-height: 260px; display: flex; align-items: flex-start; justify-content: center; overflow: auto; }
+#plan-svg { width: auto; height: auto; max-width: 100%; max-height: 100%; background: #fff; border: 1px solid var(--bord); border-radius: 8px;
+            box-shadow: var(--ombre); touch-action: none; user-select: none; -webkit-user-select: none; }
+#plan-svg[data-outil="selection"] { cursor: default; }
+#plan-svg:not([data-outil="selection"]) { cursor: crosshair; }
+#plan-svg .plan-grille line { stroke: #eef0f4; stroke-width: 1; }
+#plan-svg .plan-element { cursor: inherit; }
+#plan-svg[data-outil="selection"] .plan-element { cursor: move; }
+#plan-svg .plan-element.choisi { filter: drop-shadow(0 0 3px #3D6FB6) drop-shadow(0 0 3px #3D6FB6); }
+#plan-svg .plan-poignee { fill: #fff; stroke: #3D6FB6; stroke-width: 2.5; cursor: grab; }
+#plan-svg .plan-etiquette { paint-order: stroke; stroke: #fff; stroke-width: 4px; stroke-linejoin: round; font-family: Helvetica, Arial, sans-serif; }
+#plan-svg text { font-family: Helvetica, Arial, sans-serif; }
+.plan-props-titre { margin: 0 0 6px; font-weight: 700; }
+.apercu.mode-plan #vide, .apercu.mode-plan #pages { display: none; }
+@media (max-width: 860px) { .plan-outils button { padding: 6px 8px; font-size: 12px; } }
+/* Quatre onglets : sur un petit écran, ils défilent sur le côté au lieu d'élargir la page. */
+.onglets { max-width: 100%; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.onglets::-webkit-scrollbar { display: none; }
+.onglets button { flex: none; white-space: nowrap; }

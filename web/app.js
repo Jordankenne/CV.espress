@@ -284,6 +284,9 @@ function etatVide() {
              recours: "reclamation", conteste: "", reference: "", date_fait: "", arguments: "", reparation: "",
              beneficiaire: {}, sejour: "etudes", destination: "", debut: "", fin: "", frais: "", ressources: "",
              corps: "", objet: "", titre: "", signataires: [], auto: true },
+    // Plan de localisation : les éléments dessinés (web/plan.js), et ce qui est écrit autour.
+    plan: { titre: "PLAN DE LOCALISATION", sous_titre: "", orientation: "paysage", cadre: true,
+            description: "", contact: "", gps: null, elements: [] },
   };
 }
 
@@ -293,13 +296,13 @@ function fusionner(source) {
   if (!source || typeof source !== "object") return e;
   // Un cv.json « nu » (sans enveloppe cv/lettre/options) est accepté aussi.
   const s = source.cv || source.lettre || source.options ? source : { cv: source };
-  if (s.type === "lettre" || s.type === "admin") e.type = s.type;
-  for (const bloc of ["options", "cv", "lettre", "admin"]) {
+  if (["lettre", "admin", "plan"].includes(s.type)) e.type = s.type;
+  for (const bloc of ["options", "cv", "lettre", "admin", "plan"]) {
     if (s[bloc] && typeof s[bloc] === "object") Object.assign(e[bloc], s[bloc]);
   }
   // Un champ texte doit rester une chaîne, quoi que contienne le fichier importé.
   const modele = etatVide();
-  for (const bloc of ["cv", "lettre", "options", "admin"]) {
+  for (const bloc of ["cv", "lettre", "options", "admin", "plan"]) {
     for (const [cle, defaut] of Object.entries(modele[bloc])) {
       if (typeof defaut === "string" && typeof e[bloc][cle] !== "string") e[bloc][cle] = defaut;
     }
@@ -315,6 +318,9 @@ function fusionner(source) {
     if (Array.isArray(exp.points)) exp.points = exp.points.join("\n");
   }
   if (!GENRES_ADMIN.includes(e.admin.genre)) e.admin.genre = "demande";
+  e.plan.elements = Array.isArray(e.plan.elements) ? e.plan.elements.filter(x => x && typeof x === "object") : [];
+  if (!["paysage", "portrait"].includes(e.plan.orientation)) e.plan.orientation = "paysage";
+  if (typeof e.plan.cadre !== "boolean") e.plan.cadre = true;
   if (!Array.isArray(e.admin.signataires)) e.admin.signataires = [];
   e.admin.auto = e.admin.auto !== false;
   for (const [bloc, cle] of [["cv", "etat_civil"], ["lettre", "destinataire"], ["admin", "destinataire"], ["admin", "mandataire"], ["admin", "beneficiaire"]]) {
@@ -834,8 +840,9 @@ $("#admin-rediger").addEventListener("click", () => {
 // ---------- Onglets CV / Lettre, conseil, jauge ----------
 function afficherType() {
   for (const b of $$(".onglets button")) b.setAttribute("aria-selected", String(b.dataset.type === etat.type));
-  for (const el of $$(".pour-cv, .pour-lettre, .pour-admin")) el.hidden = !el.classList.contains("pour-" + etat.type);
-  $("#import").hidden = etat.type === "admin";
+  for (const el of $$(".pour-cv, .pour-lettre, .pour-admin, .pour-plan")) el.hidden = !el.classList.contains("pour-" + etat.type);
+  $("#import").hidden = etat.type === "admin" || etat.type === "plan";
+  if (typeof planAfficher === "function") planAfficher();
   afficherAdmin();
   $("#conseil-modele").textContent = CONSEILS[etat.options.modele] || "";
   afficherImport();
@@ -955,6 +962,7 @@ function montrerErreur(message) {
 }
 
 function pret() {
+  if (etat.type === "plan") return etat.plan.elements.length ? "" : "Dessine ton plan, ou utilise l'assistant itinéraire.";
   if (!etat.cv.nom.trim()) return "Renseigne ton nom pour voir l'aperçu.";
   if (etat.type === "lettre" && !texteLettre(etat.lettre)) return "Écris le texte de la lettre pour voir l'aperçu.";
   if (etat.type === "admin" && !etat.admin.corps.trim()) return "Écris le texte du document pour voir l'aperçu.";
@@ -967,7 +975,7 @@ async function appeler(chemin, signal) {
     reponse = await fetch(chemin, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: etat.type, cv: etat.cv, lettre: etat.lettre, admin: documentAdmin(), options: etat.options }),
+      body: JSON.stringify({ type: etat.type, cv: etat.cv, lettre: etat.lettre, admin: documentAdmin(), plan: etat.plan, options: etat.options }),
       signal,
     });
   } catch (e) {
@@ -990,10 +998,12 @@ async function actualiser() {
   $("#btn-telecharger-bas").disabled = !!manque;
   if (manque) {
     $("#etat").textContent = manque;
-    $("#vide").hidden = false;
+    $("#vide").hidden = etat.type === "plan" && !window.planVoirPdf;     // la zone de dessin occupe la place
     $("#pages").replaceChildren();
     return;
   }
+  // Plan de localisation : pendant qu'on dessine, l'aperçu PDF n'est fabriqué qu'à la demande.
+  if (etat.type === "plan" && !window.planVoirPdf) { $("#etat").textContent = ""; return; }
   requete?.abort();
   requete = new AbortController();
   $("#etat").textContent = "Mise à jour…";
@@ -1025,7 +1035,8 @@ async function telecharger(bouton) {
     const nom = etat.cv.nom.trim().normalize("NFD").replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "");
     const lien = document.createElement("a");
     lien.href = URL.createObjectURL(pdf);
-    lien.download = `${{ lettre: "Lettre", admin: "Document" }[etat.type] || "CV"}_${nom || "document"}.pdf`;
+    lien.download = etat.type === "plan" ? "Plan_de_localisation.pdf"
+      : `${{ lettre: "Lettre", admin: "Document" }[etat.type] || "CV"}_${nom || "document"}.pdf`;
     document.body.append(lien);
     lien.click();
     lien.remove();
@@ -1040,7 +1051,8 @@ async function telecharger(bouton) {
 }
 function nomFichier() {
   const nom = etat.cv.nom.trim().normalize("NFD").replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "");
-  return `${{ lettre: "Lettre", admin: "Document" }[etat.type] || "CV"}_${nom || "document"}.pdf`;
+  if (etat.type === "plan") return "Plan_de_localisation.pdf";
+  return `${{ lettre: "Lettre", admin: "Document", plan: "Plan" }[etat.type] || "CV"}_${nom || "document"}.pdf`;
 }
 
 /** Partage le PDF vers une autre application (WhatsApp, e-mail…), surtout utile sur téléphone. */

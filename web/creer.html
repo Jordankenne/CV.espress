@@ -14,6 +14,7 @@
     <button role="tab" data-type="cv" aria-selected="true">CV</button>
     <button role="tab" data-type="lettre" aria-selected="false">Lettre de motivation</button>
     <button role="tab" data-type="admin" aria-selected="false">Documents administratifs</button>
+    <button role="tab" data-type="plan" aria-selected="false">Plan de localisation</button>
   </nav>
   <div class="outils">
     <button type="button" id="btn-exemple" class="mini">Voir un exemple</button>
@@ -212,6 +213,58 @@
       </details>
     </div>
 
+    <!-- ===================== Plan de localisation ===================== -->
+    <div class="pour-plan" hidden>
+      <details open>
+        <summary>Ton plan</summary>
+        <div class="grille">
+          <label class="large">Titre<input data-k="plan.titre" maxlength="120"></label>
+          <label class="large">Sous-titre <small>facultatif</small>
+            <input data-k="plan.sous_titre" maxlength="200" placeholder="Domicile de … situé au quartier …, derrière …"></label>
+          <label>Format
+            <select data-k="plan.orientation"><option value="paysage">Paysage (horizontal)</option><option value="portrait">Portrait (vertical)</option></select></label>
+          <label class="case"><input type="checkbox" data-k="plan.cadre"> Encadrer le dessin</label>
+        </div>
+      </details>
+
+      <details id="plan-assistant">
+        <summary>Assistant itinéraire <small>le plan se dessine tout seul</small></summary>
+        <p class="conseil">Décris le trajet depuis un endroit que tout le monde connaît (carrefour, marché, station…). Le plan est dessiné d'après tes réponses ; tu pourras ensuite tout déplacer et ajouter des repères.</p>
+        <div class="grille">
+          <label>Point de départ<input id="iti-depart" maxlength="80" placeholder="Carrefour Vogt"></label>
+          <label>C'est
+            <select id="iti-depart-genre"><option value="rond">un rond-point / carrefour</option><option value="point">un carrefour simple</option><option value="repere">un bâtiment connu</option></select></label>
+        </div>
+        <div id="iti-etapes"></div>
+        <button type="button" class="ajouter" id="iti-ajouter">+ Ajouter une étape</button>
+        <div class="grille espace-haut">
+          <label>À la fin, la maison est
+            <select id="iti-ici-cote"><option value="droite">à droite</option><option value="gauche">à gauche</option><option value="face">en face</option></select></label>
+          <label>Nom affiché<input id="iti-ici-nom" maxlength="80" value="ICI"></label>
+        </div>
+        <button type="button" class="bouton principal" id="iti-dessiner">Dessiner le plan</button>
+      </details>
+
+      <details open id="plan-proprietes">
+        <summary>Élément sélectionné</summary>
+        <div id="plan-props"><p class="conseil">Choisis un outil au-dessus du dessin, puis clique dans le dessin. Avec l'outil « Sélection », clique sur un élément pour le modifier ou le déplacer.</p></div>
+      </details>
+
+      <details open>
+        <summary>Description, contact et position</summary>
+        <div class="grille">
+          <label class="large">Description <small>sous le dessin</small>
+            <textarea data-k="plan.description" rows="3" maxlength="1200" placeholder="Domicile situé au quartier …, à côté de … Portail bleu."></textarea></label>
+          <label class="large">Contact<input data-k="plan.contact" maxlength="200" placeholder="Nom – téléphone"></label>
+          <label>Latitude<input id="plan-lat" inputmode="decimal" maxlength="20" placeholder="3.866700"></label>
+          <label>Longitude<input id="plan-lon" inputmode="decimal" maxlength="20" placeholder="11.516700"></label>
+          <label class="large">Ou colle un lien Google Maps<input id="plan-lien" maxlength="500" placeholder="https://maps.google.com/…"></label>
+        </div>
+        <button type="button" class="ajouter" id="plan-position">📍 Utiliser ma position actuelle</button>
+        <p class="conseil" id="plan-gps-etat">Avec une position GPS, le PDF porte un code QR : en le scannant, on ouvre la carte sur son téléphone.</p>
+      </details>
+    </div>
+
     <!-- ===================== Documents administratifs ===================== -->
     <div class="pour-admin" hidden>
       <details open>
@@ -379,6 +432,32 @@
       </div>
     </div>
     <p id="erreur" role="alert" hidden></p>
+    <div id="plan-zone" class="plan-zone" hidden>
+      <div class="plan-outils" role="toolbar" aria-label="Outils de dessin">
+        <button type="button" data-outil="selection" title="Sélectionner, déplacer">↖ Sélection</button>
+        <button type="button" data-outil="route" title="Cliquer point par point, puis Terminer">═ Route</button>
+        <button type="button" data-outil="courbe" title="Route en courbe">◠ Route courbe</button>
+        <button type="button" data-outil="carrefour" title="Rond-point ou carrefour">◯ Carrefour</button>
+        <button type="button" data-outil="batiment" title="Bâtiment, repère">⌂ Repère</button>
+        <button type="button" data-outil="ici" title="Ta maison">★ ICI</button>
+        <button type="button" data-outil="fleche" title="Glisser pour tracer">→ Flèche</button>
+        <button type="button" data-outil="interdit" title="Chemin à ne pas prendre">✕ Interdit</button>
+        <button type="button" data-outil="texte" title="Nom de rue, « Venant de… »">T Texte</button>
+        <span class="plan-sep"></span>
+        <button type="button" id="plan-terminer" class="principal" hidden>✓ Terminer la route</button>
+        <button type="button" id="plan-annuler" title="Ctrl+Z">↶ Annuler</button>
+        <button type="button" id="plan-supprimer" title="Suppr" disabled>Supprimer</button>
+        <button type="button" id="plan-vider">Tout effacer</button>
+        <button type="button" id="plan-voir-pdf" class="principal">Voir le PDF</button>
+      </div>
+      <select id="plan-icone" class="plan-icone" aria-label="Type de repère" translate="no">
+        <option value="maison">Maison</option><option value="immeuble">Immeuble</option><option value="eglise">Église</option>
+        <option value="mosquee">Mosquée</option><option value="ecole">École</option><option value="hopital">Hôpital, centre de santé</option>
+        <option value="station">Station-service</option><option value="magasin">Boutique, marché</option><option value="bloc">Bâtiment (bloc gris)</option>
+      </select>
+      <p class="plan-aide" id="plan-aide" role="status"></p>
+      <div class="plan-feuille"><svg id="plan-svg" xmlns="http://www.w3.org/2000/svg" aria-label="Dessin du plan"></svg></div>
+    </div>
     <div id="vide" class="vide">
       <img src="/img/modele_moderne.png" alt="">
       <p>Ton document s'affiche ici au fur et à mesure que tu remplis le formulaire.</p>
@@ -447,5 +526,6 @@
 
 <script src="/traductions.js"></script>
 <script src="/app.js"></script>
+<script src="/plan.js"></script>
 </body>
 </html>
