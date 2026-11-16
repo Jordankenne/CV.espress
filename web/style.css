@@ -852,3 +852,96 @@ body:has(#admin) .article { max-width: 1040px; }
 .enfants { margin-left: 4px; }
 .personne-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 #arbre-editeur > .ajouter { margin-bottom: 4px; }
+
+/* ---------- Adapter le CV à une offre (éditeur) ---------- */
+.offre { margin: 0 2px 14px; padding: 0; border: 1px solid var(--bord); border-radius: 14px; background: var(--carte); }
+.offre > summary { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 10px 14px; font-weight: 600; cursor: pointer; }
+.offre-taux { margin-left: auto; padding: 2px 10px; border-radius: 99px; background: var(--primaire-doux); color: var(--primaire); font-size: 13px; font-weight: 700; }
+.offre-taux:empty { display: none; }
+.offre[data-niveau="bon"] .offre-taux { background: #e3f4e8; color: #1e6b3a; }
+.offre[data-niveau="faible"] .offre-taux { background: #fdecea; color: var(--erreur); }
+.offre-corps { padding: 0 14px 14px; }
+.offre-corps .note { margin: 0 0 10px; font-size: 13px; color: var(--doux); }
+.offre-titre { margin: 12px 0 6px; font-size: 14px; font-weight: 600; }
+.offre-mots { display: flex; flex-wrap: wrap; gap: 6px; }
+.puce-mot { padding: 4px 10px; border: 1px solid var(--bord); border-radius: 99px; font: 500 13px var(--corps); background: var(--carte); color: var(--texte); }
+.puce-mot.manque { border-style: dashed; border-color: var(--primaire); color: var(--primaire); cursor: pointer; }
+.puce-mot.manque:hover { background: var(--primaire-doux); }
+.puce-mot.present { background: var(--fond); color: var(--doux); }
+.note-langue { margin: 0 2px 14px; padding: 12px 14px; border-radius: 12px; background: var(--primaire-doux); color: var(--texte); font-size: 14px; }
+.qr-option { margin-top: 12px; }
+.qr-option .note { margin: 4px 0 0; font-size: 13px; color: var(--doux); overflow-wrap: anywhere; }
+@media (prefers-color-scheme: dark) {
+  .offre[data-niveau="bon"] .offre-taux { background: #173a24; color: #8fe0a8; }
+  .offre[data-niveau="faible"] .offre-taux { background: #3d1a1a; }
+}
+
+/* ---------- Mon espace : CV en ligne, candidatures ---------- */
+.copie-langue { width: auto; }
+.doc-partage .partage-lien { overflow-wrap: anywhere; }
+.puce-modele.partage-actif { background: #e3f4e8; color: #1e6b3a; }
+.partage-qr { display: block; width: 150px; height: 150px; margin-top: 10px; border: 1px solid var(--bord); border-radius: 8px; background: #fff; }
+.partage-qr[hidden] { display: none; }
+.cand-filtres { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-top: 12px; }
+.cand-resume { margin: 0; font-weight: 600; }
+.carte-espace .cand-filtre { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; color: var(--doux); }
+.cand-filtre select { width: auto; }
+.cand-liste { margin-top: 8px; }
+.cand { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 10px 16px; padding: 14px 0; border-top: 1px solid var(--bord); }
+.cand.a-relancer { margin: 0 -10px; padding: 14px 10px; border-radius: 12px; background: #fff6e0; border-top-color: transparent; }
+.cand-infos { flex: 1 1 260px; min-width: 0; }
+.cand-tete { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.cand-entreprise { font-size: 16px; overflow-wrap: anywhere; }
+.cand-poste { color: var(--texte); overflow-wrap: anywhere; }
+.cand-tete a { font-size: 14px; }
+.cand-details { margin-top: 3px; font-size: 14px; color: var(--doux); }
+.cand-relance.urgente { color: #8a4b00; font-weight: 700; }
+.cand-notes { margin: 6px 0 0; font-size: 14px; color: var(--doux); white-space: pre-line; overflow-wrap: anywhere; }
+.cand-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.cand-statut { width: auto; font-weight: 600; }
+.statut-entretien, .statut-acceptee { color: #1e6b3a; }
+.statut-refusee { color: var(--doux); }
+.dialogue-cand { max-width: 620px; }
+.cand-grille { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+.cand-grille .large { grid-column: 1 / -1; }
+.dialogue-cand label { margin: 8px 0; }
+.dialogue-cand input, .dialogue-cand select, .dialogue-cand textarea { width: 100%; }
+.dialogue-cand .actions-dialogue { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.espace-flexible { flex: 1; }
+@media (max-width: 560px) { .cand-grille { grid-template-columns: 1fr; } }
+@media (prefers-color-scheme: dark) {
+  .puce-modele.partage-actif { background: #173a24; color: #8fe0a8; }
+  .cand.a-relancer { background: #3a2c10; }
+  .cand-relance.urgente { color: #ffc96b; }
+  .statut-entretien, .statut-acceptee { color: #8fe0a8; }
+}
+
+/* ---------- CV en ligne (/cv/<code>) ---------- */
+.cv-public { max-width: 820px; }
+.cv-public h2 { margin: 30px 0 10px; padding-bottom: 4px; border-bottom: 2px solid var(--primaire); font-size: 19px; color: var(--primaire); }
+.cv-public h3 { margin: 0; font-size: 17px; }
+.cv-public-tete { display: flex; flex-wrap: wrap; align-items: center; gap: 18px 24px; }
+.cv-public-photo { width: 120px; height: 150px; object-fit: cover; border-radius: 12px; }
+.cv-public-tete h1 { margin-bottom: 4px; }
+.cv-public-titre { margin: 0 0 8px; font-size: 20px; color: var(--doux); }
+.cv-public-contact { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 0; padding: 0; list-style: none; font-size: 15px; }
+.cv-public-contact li { margin: 0; overflow-wrap: anywhere; }
+.cv-public-ligne { display: grid; grid-template-columns: 150px 1fr; gap: 4px 18px; margin-bottom: 16px; }
+.cv-public-quand { color: var(--doux); font-size: 14px; padding-top: 3px; }
+.cv-public-ou { margin: 0; color: var(--primaire); }
+.cv-public-ligne ul { margin: 6px 0 0; padding-left: 1.2em; }
+.cv-public-ligne li { margin-bottom: 3px; }
+.cv-public-ligne p { margin: 4px 0 0; }
+.cv-public-colonnes { display: grid; grid-template-columns: 1fr 1fr; gap: 0 32px; }
+.cv-public-pied { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--bord); }
+@media (max-width: 600px) {
+  .cv-public-ligne, .cv-public-colonnes { grid-template-columns: 1fr; }
+  .cv-public-quand { padding-top: 0; }
+}
+@media print {
+  .entete, .cv-public-pied { display: none; }
+}
+.offre[open] { padding-bottom: 0; }
+.offre > summary { font: 600 15px var(--titres); }
+.offre > summary::before { counter-increment: none; content: "◎"; font-size: 15px; }
+.offre > summary::after { margin-left: 4px; }

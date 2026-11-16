@@ -129,6 +129,7 @@ LIBELLES = {
         "certifications": "Certifications",
         "projets": "Projets",
         "certif": "Je certifie sur l'honneur l'exactitude des informations ci-dessus.",
+        "cv_en_ligne": "Mon CV en ligne",
         "objet": "Objet :",
         "pj": "P.J. :",
         "date_lettre": "{lieu}, le {date}",
@@ -160,6 +161,7 @@ LIBELLES = {
         "certifications": "Certifications",
         "projets": "Projects",
         "certif": "I hereby certify that the above information is true and correct.",
+        "cv_en_ligne": "My online CV",
         "objet": "Subject:",
         "pj": "Encl.:",
         "date_lettre": "{lieu}, {date}",
@@ -191,6 +193,7 @@ LIBELLES = {
         "certifications": "Certificazioni",
         "projets": "Progetti",
         "certif": "Dichiaro sotto la mia responsabilità che le informazioni sopra riportate sono veritiere.",
+        "cv_en_ligne": "Il mio CV online",
         "objet": "Oggetto:",
         "pj": "Allegati:",
         "date_lettre": "{lieu}, {date}",
@@ -380,13 +383,20 @@ def _options(brut):
     couleur = couleur.lstrip("#").upper()
     if not re.fullmatch(r"[0-9A-F]{6}", couleur):
         couleur = COULEUR_DEFAUT
+    # QR code imprimé en bas de la première page : l'adresse du CV en ligne, fabriquée par le
+    # serveur (app.py). Contrôle strict : aucun caractère spécial LaTeX ne peut passer.
+    qr = o.get("lien_qr") if isinstance(o.get("lien_qr"), str) else ""
     return {
         "modele": o.get("modele") if o.get("modele") in MODELES_CV else "classique",
         "modele_lettre": o.get("modele_lettre") if o.get("modele_lettre") in MODELES_LETTRE else "classique",
         "langue": langue,
         "couleur": Tex(couleur),
         "certifier": o.get("certifier") is True,
+        "lien_qr": Tex(qr if len(qr) <= 200 and _QR_OK.match(qr) else ""),
     }
+
+
+_QR_OK = re.compile(r"^https?://[A-Za-z0-9.:-]+(/[A-Za-z0-9.-]+)*$")
 
 
 def _identite(brut):

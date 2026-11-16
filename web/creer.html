@@ -51,6 +51,28 @@
       <ul id="score-conseils" class="score-conseils"></ul>
     </details>
 
+    <!-- Copie d'un document dans une autre langue (Mon espace) : ce qu'il reste à traduire. -->
+    <p id="note-langue" class="note-langue" role="status" hidden></p>
+
+    <!-- Adapter le CV à une offre : les mots-clés de l'annonce, présents ou absents du CV. -->
+    <details class="offre pour-cv" id="offre">
+      <summary>
+        <span>Adapter à une offre d'emploi</span>
+        <span class="offre-taux" id="offre-taux"></span>
+      </summary>
+      <div class="offre-corps">
+        <p class="note">Colle le texte de l'annonce : on repère ses mots-clés et on vérifie s'ils sont dans ton CV. Les logiciels de tri (ATS) et les recruteurs cherchent ces mots-là.</p>
+        <label>Texte de l'offre<textarea data-k="offre" rows="5" maxlength="10000" placeholder="Colle ici l'annonce : missions, profil recherché, compétences…"></textarea></label>
+        <div id="offre-resultat" hidden>
+          <p class="offre-titre" id="offre-titre-manque"></p>
+          <div class="offre-mots" id="offre-manque" translate="no"></div>
+          <p class="note" id="offre-aide">Clique sur un mot pour l'ajouter à tes compétences, seulement si tu as vraiment cette compétence. Mieux encore : glisse-le dans une mission ou dans ton profil.</p>
+          <p class="offre-titre" id="offre-titre-present"></p>
+          <div class="offre-mots" id="offre-present" translate="no"></div>
+        </div>
+      </div>
+    </details>
+
     <details open>
       <summary>Apparence</summary>
       <fieldset class="choix-modele pour-cv">
@@ -98,6 +120,12 @@
             <option value="it">Italiano</option>
           </select>
         </label>
+      </div>
+      <!-- QR code imprimé sur le CV : il mène à la page en ligne du CV (lien activé dans le compte). -->
+      <div class="qr-option pour-cv">
+        <label class="case"><input type="checkbox" data-k="options.qr" id="qr-case">
+          Imprimer un QR code vers mon CV en ligne</label>
+        <p class="note" id="qr-etat"></p>
       </div>
     </details>
 

@@ -232,11 +232,20 @@ function dessinerDocument(d) {
   const pdfLettre = bouton("Télécharger le PDF", b => telechargerPdf(d.doc, "lettre", b), "bouton lettre-pdf");
   pdfLettre.disabled = !corps || !aUnCv;
 
+  // Copie dans une autre langue : la copie s'ouvre dans l'éditeur, déjà convertie.
+  const langueDoc = LANGUES_DOC[options.langue] ? options.langue : "fr";
+  const copieLangue = el("select", { className: "mini copie-langue" },
+    el("option", { value: "" }, "Copier en…"),
+    ...Object.entries(LANGUES_DOC).filter(([code]) => code !== langueDoc).map(([code, nomLangue]) => el("option", { value: code }, nomLangue)));
+  copieLangue.setAttribute("aria-label", "Copier ce document dans une autre langue");
+  copieLangue.addEventListener("change", () => { if (copieLangue.value) copierEnLangue(d, copieLangue.value); copieLangue.value = ""; });
+
   return el("section", { className: "dossier" },
     el("div", { className: "dossier-tete" },
       el("div", null, nom, el("p", { className: "note dossier-date" }, `Dernier enregistrement : ${date(d.modifie_le, true)}`)),
       el("div", { className: "dossier-actions" },
-        bouton("Renommer", () => renommer(d)), bouton("Dupliquer", () => dupliquer(d)), bouton("Supprimer", () => supprimer(d)))),
+        bouton("Renommer", () => renommer(d)), bouton("Dupliquer", () => dupliquer(d)), copieLangue,
+        bouton("Supprimer", () => supprimer(d)))),
     el("div", { className: "doc" },
       el("div", null,
         el("strong", null, "CV"), " ",
@@ -251,7 +260,77 @@ function dessinerDocument(d) {
         el("strong", null, "Lettre de motivation"), " ",
         el("span", { className: "puce-modele lettre-modele" }, corps ? "Modèle " + (MODELES[options.modele_lettre] || "Classique") : ""),
         resumeLettre),
-      el("div", { className: "doc-actions" }, el("a", { className: "bouton principal", href: ouvrir + "&type=lettre" }, "Modifier"), pdfLettre)));
+      el("div", { className: "doc-actions" }, el("a", { className: "bouton principal", href: ouvrir + "&type=lettre" }, "Modifier"), pdfLettre)),
+    dessinerPartage(d, aUnCv));
+}
+
+/** Ligne « CV en ligne » d'un document : lien public, QR code, nombre de visites. */
+function dessinerPartage(d, aUnCv) {
+  const p = d.partage;
+  const bouton = (libelle, action, classe) => {
+    const b = el("button", { type: "button", className: classe || "mini" }, libelle);
+    b.addEventListener("click", () => action(b));
+    return b;
+  };
+  const infos = el("div", null, el("strong", null, "CV en ligne"), " ");
+  const actions = el("div", { className: "doc-actions" });
+  if (!p) {
+    infos.append(el("p", null, "Un lien vers ton CV, à donner à un recruteur ou à imprimer en QR code sur le CV."));
+    const activer = bouton("Activer le lien", () => activerPartage(d), "bouton");
+    activer.disabled = !aUnCv;
+    actions.append(activer);
+  } else {
+    const lien = el("a", { href: p.url, target: "_blank", rel: "noopener" }, p.url);
+    lien.setAttribute("translate", "no");
+    infos.append(el("span", { className: "puce-modele partage-actif" }, "Activé"),
+      el("p", { className: "partage-lien" }, lien),
+      el("p", null, p.vues ? (p.vues > 1 ? `Vu ${p.vues} fois` : "Vu 1 fois") : "Pas encore consulté."));
+    // L'image n'est demandée qu'au premier clic (le serveur la fabrique à ce moment-là).
+    const qr = el("img", { className: "partage-qr", alt: "QR code du CV en ligne", hidden: true });
+    infos.append(qr);
+    actions.append(
+      bouton("Copier le lien", b => copierLien(p.url, b), "bouton"),
+      bouton("QR code", () => { if (!qr.src) qr.src = `/cv/${p.code}/qr`; qr.hidden = !qr.hidden; }, "bouton"),
+      el("a", { className: "bouton", href: `/cv/${p.code}/qr`, download: `QR_CV_${p.code}.jpg` }, "Télécharger le QR code"),
+      bouton("Désactiver", () => desactiverPartage(d), "bouton"));
+  }
+  return el("div", { className: "doc doc-partage" }, infos, actions);
+}
+
+async function activerPartage(d) {
+  if (!confirm("Ton CV sera visible en ligne par toute personne qui a le lien ou scanne le QR code (nom, coordonnées, photo, parcours). Tu pourras désactiver le lien à tout moment. Continuer ?")) return;
+  const r = await api("POST", `/documents/${d.doc}/partage`, {});
+  message(r.ok ? "Le lien est activé. Pour imprimer le QR code sur ton CV, coche la case « Imprimer un QR code » dans l'éditeur (rubrique Apparence)."
+               : r.corps.erreur || "Le lien n'a pas pu être créé. Réessaie.");
+  await chargerDocuments();
+}
+
+async function desactiverPartage(d) {
+  if (!confirm("Désactiver le lien ? La page de ton CV en ligne et le QR code cesseront aussitôt de fonctionner, y compris sur les CV déjà envoyés.")) return;
+  const r = await api("DELETE", `/documents/${d.doc}/partage`, {});
+  message(r.ok ? "Le lien est désactivé." : r.corps.erreur || "Une erreur est survenue. Réessaie.");
+  await chargerDocuments();
+}
+
+async function copierLien(url, bouton) {
+  try {
+    await navigator.clipboard.writeText(url);
+    const texte = bouton.textContent;
+    bouton.textContent = (window.tr || (t => t))("Lien copié");
+    setTimeout(() => { bouton.textContent = texte; }, 2000);
+  } catch {
+    prompt("Copie ce lien :", url);
+  }
+}
+
+const LANGUES_DOC = { fr: "Français", en: "English", it: "Italiano" };
+const SUFFIXES_LANGUE = { fr: "FR", en: "EN", it: "IT" };
+async function copierEnLangue(d, langue) {
+  message("");
+  const nom = `${d.nom.replace(/\s*\((FR|EN|IT)\)$/, "")} (${SUFFIXES_LANGUE[langue]})`.slice(0, 60);
+  const r = await api("POST", "/documents", { copie_de: d.doc, nom });
+  if (!r.ok) return message(r.corps.erreur || "Copie impossible. Réessaie.");
+  location.href = `${window.PREFIXE_SITE || ""}/creer?doc=${r.corps.doc}&langue=${langue}`;
 }
 
 async function chargerDocuments() {
@@ -259,6 +338,7 @@ async function chargerDocuments() {
   documents = r.ok ? r.corps.documents : [];
   if (r.ok) $("#docs-maximum").textContent = r.corps.maximum;
   dessinerDocuments();
+  if (candidatures.length) dessinerCandidatures();     // noms des documents envoyés
 }
 
 // ---------- Gérer ses documents ----------
@@ -311,6 +391,7 @@ async function charger() {
   if (!connecte) { afficherPorte(); return; }
   afficherEspace(r.corps);
   await chargerDocuments();
+  await chargerCandidatures();
   // L'en-tête (entete.js) a pu être dessiné avant la connexion : on le met à jour.
   for (const lien of document.querySelectorAll("a[data-lien-compte]")) {
     const pastille = document.createElement("span");
@@ -319,6 +400,156 @@ async function charger() {
     lien.replaceChildren(pastille, "Mon espace");
   }
 }
+
+// ---------- Suivi des candidatures ----------
+const STATUTS = { a_envoyer: "À envoyer", envoyee: "Envoyée", relancee: "Relancée", entretien: "Entretien",
+                  acceptee: "Acceptée", refusee: "Refusée" };
+const EN_ATTENTE = ["envoyee", "relancee"];            // statuts où une relance a un sens
+let candidatures = [];
+let candidatureOuverte = null;                         // celle du formulaire (null : nouvelle)
+
+/** Date du jour au format des champs date (AAAA-MM-JJ), à l'heure locale. */
+function aujourdhui(decalageJours = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() + decalageJours);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function dateCourte(iso) {
+  if (!iso) return "";
+  const [a, m, j] = iso.split("-").map(Number);
+  return new Date(a, m - 1, j).toLocaleDateString(window.LOCALE_SITE || "fr-FR", { day: "numeric", month: "long", year: "numeric" });
+}
+const aRelancer = c => EN_ATTENTE.includes(c.statut) && c.relance_le && c.relance_le <= aujourdhui();
+
+async function chargerCandidatures() {
+  const r = await api("GET", "/candidatures");
+  candidatures = r.ok ? r.corps.candidatures : [];
+  dessinerCandidatures();
+}
+
+function dessinerCandidatures() {
+  const filtre = $("#cand-filtre").value;
+  const visibles = candidatures.filter(c => !filtre
+    || (filtre === "relancer" && aRelancer(c))
+    || (filtre === "en_cours" && !["acceptee", "refusee"].includes(c.statut))
+    || (filtre === "terminees" && ["acceptee", "refusee"].includes(c.statut)));
+  // À relancer d'abord, puis les plus récentes.
+  visibles.sort((a, b) => aRelancer(b) - aRelancer(a) || (b.envoye_le || "").localeCompare(a.envoye_le || "") || b.id - a.id);
+  $("#cand-vide").hidden = candidatures.length > 0;
+  $("#cand-filtres").hidden = !candidatures.length;
+  const nb = statut => candidatures.filter(c => c.statut === statut).length;
+  const relances = candidatures.filter(aRelancer).length;
+  const morceaux = [candidatures.length > 1 ? `${candidatures.length} candidatures` : "1 candidature"];
+  if (nb("entretien")) morceaux.push(nb("entretien") > 1 ? `${nb("entretien")} entretiens` : "1 entretien");
+  if (relances) morceaux.push(relances > 1 ? `${relances} à relancer` : "1 à relancer");
+  $("#cand-resume").replaceChildren(...morceaux.flatMap((m, i) => (i ? [" · ", el("span", null, m)] : [el("span", null, m)])));
+  $("#cand-liste").replaceChildren(...visibles.map(dessinerCandidature));
+}
+
+function dessinerCandidature(c) {
+  const document_ = documents.find(d => d.doc === c.doc_id);
+  const titre = el("strong", { className: "cand-entreprise" }, c.entreprise || c.poste);
+  titre.setAttribute("translate", "no");
+  const poste = el("span", { className: "cand-poste" }, c.entreprise && c.poste ? c.poste : "");
+  poste.setAttribute("translate", "no");
+  const details = [];
+  if (c.envoye_le) details.push(el("span", null, `Envoyée le ${dateCourte(c.envoye_le)}`));
+  if (c.relance_le && EN_ATTENTE.includes(c.statut)) {
+    details.push(el("span", { className: aRelancer(c) ? "cand-relance urgente" : "cand-relance" },
+      aRelancer(c) ? "À relancer" : `Relance le ${dateCourte(c.relance_le)}`));
+  }
+  if (document_) {
+    const nom = el("span", null, document_.nom);
+    nom.setAttribute("translate", "no");
+    details.push(el("span", null, "Document : ", nom));
+  }
+  const ligne = el("div", { className: "cand-details" });
+  details.forEach((d, i) => ligne.append(...(i ? [" · ", d] : [d])));
+  const tete = el("div", { className: "cand-tete" }, titre, poste);
+  if (c.lien) {
+    const a = el("a", { href: c.lien, target: "_blank", rel: "noopener nofollow" }, "Voir l'offre");
+    tete.append(a);
+  }
+  const modifier = el("button", { type: "button", className: "mini" }, "Modifier");
+  modifier.addEventListener("click", () => ouvrirCandidature(c));
+  // Changer le statut d'un geste, sans ouvrir le formulaire.
+  const statut = el("select", { className: `mini cand-statut statut-${c.statut}` },
+    ...Object.entries(STATUTS).map(([v, libelle]) => el("option", { value: v, selected: v === c.statut }, libelle)));
+  statut.setAttribute("aria-label", "Statut de la candidature");
+  statut.addEventListener("change", () => enregistrerCandidature({ ...c, statut: statut.value }, c.id));
+  const notes = c.notes ? el("p", { className: "cand-notes" }, c.notes) : "";
+  if (notes) notes.setAttribute("translate", "no");
+  return el("div", { className: "cand" + (aRelancer(c) ? " a-relancer" : "") },
+    el("div", { className: "cand-infos" }, tete, ligne, notes),
+    el("div", { className: "cand-actions" }, statut, modifier));
+}
+
+function ouvrirCandidature(c) {
+  candidatureOuverte = c || null;
+  const v = c || { entreprise: "", poste: "", lien: "", envoye_le: aujourdhui(), relance_le: aujourdhui(7),
+                   statut: "envoyee", doc_id: documents[0] ? documents[0].doc : null, notes: "" };
+  $("#cand-titre").textContent = c ? "Modifier la candidature" : "Nouvelle candidature";
+  $("#cand-entreprise").value = v.entreprise; $("#cand-poste").value = v.poste; $("#cand-lien").value = v.lien;
+  $("#cand-envoye").value = v.envoye_le; $("#cand-relance").value = v.relance_le;
+  $("#cand-statut").value = v.statut; $("#cand-notes").value = v.notes;
+  const choixDoc = $("#cand-doc");
+  choixDoc.replaceChildren(el("option", { value: "" }, "Aucun"), ...documents.map(d => {
+    const o = el("option", { value: String(d.doc) }, d.nom);
+    o.setAttribute("translate", "no");
+    return o;
+  }));
+  choixDoc.value = v.doc_id ? String(v.doc_id) : "";
+  $("#cand-supprimer").hidden = !c;
+  erreur("#cand-erreur", "");
+  $("#dlg-cand").showModal();
+  $("#cand-entreprise").focus();
+}
+
+/** Envoie une candidature (nouvelle si « numero » est absent) ; renvoie true si c'est fait. */
+async function enregistrerCandidature(valeurs, numero) {
+  const corps = { entreprise: valeurs.entreprise, poste: valeurs.poste, lien: valeurs.lien, envoye_le: valeurs.envoye_le,
+                  relance_le: valeurs.relance_le, statut: valeurs.statut, notes: valeurs.notes, doc_id: valeurs.doc_id || null };
+  const r = numero ? await api("PUT", `/candidatures/${numero}`, corps) : await api("POST", "/candidatures", corps);
+  if (!r.ok) {
+    if ($("#dlg-cand").open) erreur("#cand-erreur", r.corps.erreur || "Enregistrement impossible. Réessaie.");
+    else message(r.corps.erreur || "Enregistrement impossible. Réessaie.");
+    return false;
+  }
+  await chargerCandidatures();
+  return true;
+}
+
+// Date d'envoi choisie, relance pas encore remplie : on propose 7 jours plus tard.
+$("#cand-envoye").addEventListener("change", () => {
+  const envoi = $("#cand-envoye").value;
+  if (!envoi || $("#cand-relance").value) return;
+  const [a, m, j] = envoi.split("-").map(Number);
+  const d = new Date(a, m - 1, j + 7);
+  $("#cand-relance").value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+});
+$("#cand-nouvelle").addEventListener("click", () => ouvrirCandidature(null));
+$("#cand-annuler").addEventListener("click", () => $("#dlg-cand").close());
+$("#cand-filtre").addEventListener("change", dessinerCandidatures);
+$("#cand-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const valeurs = {
+    entreprise: $("#cand-entreprise").value.trim(), poste: $("#cand-poste").value.trim(), lien: $("#cand-lien").value.trim(),
+    envoye_le: $("#cand-envoye").value, relance_le: $("#cand-relance").value, statut: $("#cand-statut").value,
+    notes: $("#cand-notes").value, doc_id: Number($("#cand-doc").value) || null,
+  };
+  if (!valeurs.entreprise && !valeurs.poste) return erreur("#cand-erreur", "Indique au moins l'entreprise ou le poste.");
+  $("#cand-valider").disabled = true;
+  const fait = await enregistrerCandidature(valeurs, candidatureOuverte && candidatureOuverte.id);
+  $("#cand-valider").disabled = false;
+  if (fait) $("#dlg-cand").close();
+});
+$("#cand-supprimer").addEventListener("click", async () => {
+  if (!candidatureOuverte || !confirm("Supprimer cette candidature de ton suivi ?")) return;
+  const r = await api("DELETE", `/candidatures/${candidatureOuverte.id}`, {});
+  if (!r.ok) return erreur("#cand-erreur", r.corps.erreur || "Suppression impossible. Réessaie.");
+  $("#dlg-cand").close();
+  await chargerCandidatures();
+});
 
 // ---------- Télécharger un PDF directement depuis l'espace ----------
 async function telechargerPdf(numero, type, bouton) {

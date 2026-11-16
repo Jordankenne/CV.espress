@@ -92,7 +92,8 @@ comptes = Blueprint("comptes", __name__, url_prefix="/api/compte")
 # --------------------------------------------------------------------------
 # Base de données
 # --------------------------------------------------------------------------
-TABLES = ("comptes", "documents", "reinitialisations", "invitations")   # ordre des clés étrangères
+TABLES = ("comptes", "documents", "reinitialisations", "invitations",    # ordre des clés étrangères
+          "partages", "candidatures")
 # Erreurs « base injoignable ou occupée » : réponse 503 (réessayer), jamais une erreur 500.
 ERREURS_BASE = (sqlite3.OperationalError,)
 if POSTGRES:
@@ -179,6 +180,29 @@ def _schema(postgres):
             email     TEXT PRIMARY KEY,
             empreinte TEXT NOT NULL,
             expire_le {entier} NOT NULL)""",
+        # Lien public d'un CV (/cv/<code>), créé seulement à la demande de son titulaire.
+        # Un document a au plus un lien ; le supprimer (ou supprimer le document) le désactive.
+        f"""CREATE TABLE IF NOT EXISTS partages (
+            code      TEXT PRIMARY KEY,
+            doc_id    {entier} NOT NULL UNIQUE REFERENCES documents(id) ON DELETE CASCADE,
+            compte_id {entier} NOT NULL REFERENCES comptes(id) ON DELETE CASCADE,
+            cree_le   {entier} NOT NULL,
+            vues      {entier} NOT NULL DEFAULT 0)""",
+        # Suivi des candidatures : une ligne par offre à laquelle on a répondu.
+        # doc_id : le CV et la lettre envoyés (oublié si le document est supprimé).
+        f"""CREATE TABLE IF NOT EXISTS candidatures (
+            id         {numero},
+            compte_id  {entier} NOT NULL REFERENCES comptes(id) ON DELETE CASCADE,
+            doc_id     {entier} REFERENCES documents(id) ON DELETE SET NULL,
+            entreprise TEXT NOT NULL,
+            poste      TEXT NOT NULL,
+            statut     TEXT NOT NULL,
+            envoye_le  TEXT NOT NULL,
+            relance_le TEXT NOT NULL,
+            lien       TEXT NOT NULL,
+            notes      TEXT NOT NULL,
+            modifie_le {entier} NOT NULL)""",
+        "CREATE INDEX IF NOT EXISTS candidatures_du_compte ON candidatures (compte_id)",
     ]
 
 
@@ -380,7 +404,10 @@ def restaurer_base(fichier):
             if b.execute("SELECT COUNT(*) FROM comptes").fetchone()[0]:
                 raise RuntimeError("La base en ligne contient déjà des comptes : restauration refusée.")
             nombres = {}
+            presentes = {ligne[0] for ligne in source.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
             for table in TABLES:
+                if table not in presentes:          # copie faite avant l'arrivée de cette table
+                    continue
                 curseur = source.execute(f"SELECT * FROM {table}")
                 colonnes = [c[0] for c in curseur.description]
                 ordre = (f"INSERT INTO {table} ({', '.join(colonnes)}) "
@@ -390,7 +417,7 @@ def restaurer_base(fichier):
                     with b.brute.cursor() as c:
                         c.executemany(ordre, lignes)
                     nombres[table] += len(lignes)
-            for table in ("comptes", "documents"):         # les prochains numéros suivent les anciens
+            for table in ("comptes", "documents", "candidatures"):   # les prochains numéros suivent les anciens
                 b.execute(f"SELECT setval(pg_get_serial_sequence('{table}', 'id'), "
                           f"(SELECT COALESCE(MAX(id), 0) + 1 FROM {table}), false)")
         return nombres
@@ -951,15 +978,17 @@ def lister_documents():
     if not compte:
         return _non_connecte()
     with _base() as b:
-        lignes = b.execute("""SELECT id, nom, contenu, modifie_le, version FROM documents WHERE compte_id = ?
-                              ORDER BY modifie_le DESC, id DESC""", (compte[0],)).fetchall()
+        lignes = b.execute("""SELECT d.id, d.nom, d.contenu, d.modifie_le, d.version, p.code, p.vues
+                              FROM documents d LEFT JOIN partages p ON p.doc_id = d.id
+                              WHERE d.compte_id = ? ORDER BY d.modifie_le DESC, d.id DESC""", (compte[0],)).fetchall()
     documents = []
-    for numero, nom, contenu, modifie_le, version in lignes:
+    for numero, nom, contenu, modifie_le, version, code, vues in lignes:
         donnees = json.loads(contenu)
         cv = donnees.get("cv")
         if isinstance(cv, dict) and cv.get("photo"):
             donnees["cv"] = {**cv, "photo": "", "a_une_photo": True}
-        documents.append({"doc": numero, "nom": nom, "modifie_le": modifie_le, "version": version, "donnees": donnees})
+        documents.append({"doc": numero, "nom": nom, "modifie_le": modifie_le, "version": version, "donnees": donnees,
+                          "partage": _decrire_partage(code, vues)})
     return jsonify(documents=documents, maximum=DOCUMENTS_MAX)
 
 
@@ -1010,6 +1039,189 @@ def supprimer_document(numero):
                               (_numero(numero), compte[0])).rowcount
     if not supprimes:
         return jsonify(erreur="Ce document n'existe pas ou n'existe plus."), 404
+    return jsonify(supprime=numero)
+
+
+# --------------------------------------------------------------------------
+# Lien de partage d'un CV : une page publique /cv/<code>, à donner à un recruteur ou à
+# imprimer en QR code sur le CV. Créé seulement quand le titulaire le demande ; le code
+# est tiré au hasard (impossible à deviner) et le lien peut être désactivé à tout moment.
+# --------------------------------------------------------------------------
+_ALPHABET_CODE = "abcdefghijkmnpqrstuvwxyz23456789"     # sans 0/o, 1/l : lisible s'il est recopié à la main
+CODE_LONGUEUR = 12
+CODE_OK = re.compile(rf"^[{_ALPHABET_CODE}]{{{CODE_LONGUEUR}}}$")
+
+
+def _decrire_partage(code, vues):
+    if not code:
+        return None
+    return {"code": code, "url": f"{racine_site()}/cv/{code}", "vues": vues}
+
+
+def partage_existe(code):
+    if not isinstance(code, str) or not CODE_OK.match(code):
+        return False
+    with _base() as b:
+        return b.execute("SELECT 1 FROM partages WHERE code = ?", (code,)).fetchone() is not None
+
+
+def document_partage(code, compter=False):
+    """Données (dict) du document partagé sous ce code, ou None. compter : une visite de plus."""
+    if not isinstance(code, str) or not CODE_OK.match(code):
+        return None
+    with _base() as b:
+        ligne = b.execute("""SELECT d.contenu FROM partages p JOIN documents d ON d.id = p.doc_id
+                             WHERE p.code = ?""", (code,)).fetchone()
+        if ligne and compter:
+            b.execute("UPDATE partages SET vues = vues + 1 WHERE code = ?", (code,))
+    return json.loads(ligne[0]) if ligne else None
+
+
+@comptes.get("/documents/<int:numero>/partage")
+def lire_partage(numero):
+    compte = compte_connecte()
+    if not compte:
+        return _non_connecte()
+    with _base() as b:
+        if not b.execute("SELECT 1 FROM documents WHERE id = ? AND compte_id = ?", (_numero(numero), compte[0])).fetchone():
+            return jsonify(erreur="Ce document n'existe pas ou n'existe plus."), 404
+        ligne = b.execute("SELECT code, vues FROM partages WHERE doc_id = ? AND compte_id = ?",
+                          (_numero(numero), compte[0])).fetchone()
+    return jsonify(partage=_decrire_partage(*ligne) if ligne else None)
+
+
+@comptes.post("/documents/<int:numero>/partage")
+def creer_partage(numero):
+    """Active le lien public du document (ou renvoie celui qui existe déjà)."""
+    compte = compte_connecte()
+    if not compte:
+        return _non_connecte()
+    with _base() as b:
+        if not b.execute("SELECT 1 FROM documents WHERE id = ? AND compte_id = ?", (_numero(numero), compte[0])).fetchone():
+            return jsonify(erreur="Ce document n'existe pas ou n'existe plus."), 404
+        ligne = b.execute("SELECT code, vues FROM partages WHERE doc_id = ?", (_numero(numero),)).fetchone()
+        if not ligne:
+            code = "".join(secrets.choice(_ALPHABET_CODE) for _ in range(CODE_LONGUEUR))
+            b.execute("INSERT INTO partages (code, doc_id, compte_id, cree_le, vues) VALUES (?, ?, ?, ?, 0)",
+                      (code, _numero(numero), compte[0], int(time.time())))
+            ligne = (code, 0)
+    return jsonify(partage=_decrire_partage(*ligne)), 201
+
+
+@comptes.delete("/documents/<int:numero>/partage")
+def supprimer_partage(numero):
+    """Désactive le lien : la page publique et le QR code cessent aussitôt de fonctionner."""
+    compte = compte_connecte()
+    if not compte:
+        return _non_connecte()
+    with _base() as b:
+        b.execute("DELETE FROM partages WHERE doc_id = ? AND compte_id = ?", (_numero(numero), compte[0]))
+    return jsonify(partage=None)
+
+
+# --------------------------------------------------------------------------
+# Suivi des candidatures : entreprise, poste, date d'envoi, document envoyé, statut,
+# date de relance. Comme les documents, chaque requête porte « compte_id = la session ».
+# --------------------------------------------------------------------------
+CANDIDATURES_MAX = 300
+STATUTS = ("a_envoyer", "envoyee", "relancee", "entretien", "acceptee", "refusee")
+_DATE_OK = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+_COLONNES_CANDIDATURE = ("id", "doc_id", "entreprise", "poste", "statut", "envoye_le", "relance_le", "lien", "notes", "modifie_le")
+
+
+def _candidature(b, compte_id, corps):
+    """Champs d'une candidature lus et vérifiés ; lève ValueError (message pour le visiteur)."""
+    texte = lambda cle, maxi: " ".join(_sans_nul(corps[cle]).split())[:maxi] if isinstance(corps.get(cle), str) else ""
+    champs = {"entreprise": texte("entreprise", 120), "poste": texte("poste", 160), "lien": texte("lien", 400)}
+    notes = corps.get("notes")
+    champs["notes"] = _sans_nul(notes).strip()[:2000] if isinstance(notes, str) else ""
+    if not champs["entreprise"] and not champs["poste"]:
+        raise ValueError("Indique au moins l'entreprise ou le poste.")
+    if champs["lien"] and not re.match(r"^https?://", champs["lien"], re.I):
+        champs["lien"] = "https://" + champs["lien"]
+    statut = corps.get("statut")
+    champs["statut"] = statut if statut in STATUTS else "envoyee"
+    for cle in ("envoye_le", "relance_le"):
+        valeur = corps.get(cle) if isinstance(corps.get(cle), str) else ""
+        if valeur and not _DATE_OK.match(valeur):
+            raise ValueError("Date invalide.")
+        champs[cle] = valeur
+    doc = corps.get("doc_id")
+    champs["doc_id"] = None
+    if doc not in (None, ""):
+        numero = _numero(doc)
+        if numero is None or not b.execute("SELECT 1 FROM documents WHERE id = ? AND compte_id = ?",
+                                           (numero, compte_id)).fetchone():
+            raise ValueError("Ce document n'existe pas ou n'existe plus.")
+        champs["doc_id"] = numero
+    return champs
+
+
+def _lire_candidature(ligne):
+    return dict(zip(_COLONNES_CANDIDATURE, ligne))
+
+
+@comptes.get("/candidatures")
+def lister_candidatures():
+    compte = compte_connecte()
+    if not compte:
+        return _non_connecte()
+    with _base() as b:
+        lignes = b.execute(f"""SELECT {', '.join(_COLONNES_CANDIDATURE)} FROM candidatures WHERE compte_id = ?
+                               ORDER BY envoye_le DESC, id DESC""", (compte[0],)).fetchall()
+    return jsonify(candidatures=[_lire_candidature(l) for l in lignes], statuts=STATUTS, maximum=CANDIDATURES_MAX)
+
+
+@comptes.post("/candidatures")
+def creer_candidature():
+    compte = compte_connecte()
+    if not compte:
+        return _non_connecte()
+    corps = _corps()
+    with _base() as b:
+        try:
+            champs = _candidature(b, compte[0], corps)
+        except ValueError as e:
+            return jsonify(erreur=str(e)), 400
+        if b.execute("SELECT COUNT(*) FROM candidatures WHERE compte_id = ?", (compte[0],)).fetchone()[0] >= CANDIDATURES_MAX:
+            return jsonify(erreur=f"Tu suis déjà {CANDIDATURES_MAX} candidatures. Supprimes-en pour en ajouter."), 409
+        colonnes = list(champs)
+        ligne = b.execute(f"""INSERT INTO candidatures (compte_id, {', '.join(colonnes)}, modifie_le)
+                              VALUES (?, {', '.join('?' * len(colonnes))}, ?)
+                              RETURNING {', '.join(_COLONNES_CANDIDATURE)}""",
+                          (compte[0], *champs.values(), int(time.time()))).fetchone()
+    return jsonify(candidature=_lire_candidature(ligne)), 201
+
+
+@comptes.put("/candidatures/<int:numero>")
+def modifier_candidature(numero):
+    compte = compte_connecte()
+    if not compte:
+        return _non_connecte()
+    corps = _corps()
+    with _base() as b:
+        try:
+            champs = _candidature(b, compte[0], corps)
+        except ValueError as e:
+            return jsonify(erreur=str(e)), 400
+        ligne = b.execute(f"""UPDATE candidatures SET {', '.join(c + ' = ?' for c in champs)}, modifie_le = ?
+                              WHERE id = ? AND compte_id = ? RETURNING {', '.join(_COLONNES_CANDIDATURE)}""",
+                          (*champs.values(), int(time.time()), _numero(numero), compte[0])).fetchone()
+    if not ligne:
+        return jsonify(erreur="Cette candidature n'existe pas ou n'existe plus."), 404
+    return jsonify(candidature=_lire_candidature(ligne))
+
+
+@comptes.delete("/candidatures/<int:numero>")
+def supprimer_candidature(numero):
+    compte = compte_connecte()
+    if not compte:
+        return _non_connecte()
+    with _base() as b:
+        supprimes = b.execute("DELETE FROM candidatures WHERE id = ? AND compte_id = ?",
+                              (_numero(numero), compte[0])).rowcount
+    if not supprimes:
+        return jsonify(erreur="Cette candidature n'existe pas ou n'existe plus."), 404
     return jsonify(supprime=numero)
 
 

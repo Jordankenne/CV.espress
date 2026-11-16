@@ -266,7 +266,9 @@ const GENRES_ADMIN = ["demande", "attestation", "procuration", "reclamation", "p
 function etatVide() {
   return {
     type: "cv",
-    options: { modele: "moderne", modele_lettre: "classique", langue: LANGUE_SITE, couleur: "1F4E79", certifier: false },
+    options: { modele: "moderne", modele_lettre: "classique", langue: LANGUE_SITE, couleur: "1F4E79", certifier: false,
+               qr: false, partage: "" },
+    offre: "",          // texte de l'annonce visée (« Adapter à une offre d'emploi »)
     cv: { nom: "", titre: "", email: "", telephone: "", ville: "", etat_civil: {}, profil: "",
           experiences: [{}], formations: [{}], competences: [{}], langues: [{}], liens: [],
           certifications: [], projets: [],
@@ -310,6 +312,9 @@ function fusionner(source) {
       if (typeof defaut === "string" && typeof e[bloc][cle] !== "string") e[bloc][cle] = defaut;
     }
   }
+  e.offre = typeof s.offre === "string" ? s.offre.slice(0, 10000) : "";
+  e.options.qr = e.options.qr === true;
+  if (!/^[a-z0-9]{6,40}$/.test(e.options.partage)) e.options.partage = "";
   if (!MODELES.includes(e.options.modele)) e.options.modele = modele.options.modele;
   if (!MODELES_LETTRE.includes(e.options.modele_lettre)) e.options.modele_lettre = modele.options.modele_lettre;
   for (const nom of Object.keys(LISTES)) {
@@ -939,6 +944,13 @@ function afficherProgres() {
   const criteres = criteresCV(etat.cv);
   const score = criteres.reduce((s, [points, ok]) => s + (ok ? points : 0), 0);
   const conseils = criteres.filter(([, ok, texte]) => !ok && texte).sort((a, b) => b[0] - a[0]);
+  // Offre collée dans « Adapter à une offre d'emploi » : les mots-clés absents du CV deviennent
+  // un conseil de plus (il ne change pas la note sur 100, qui mesure le CV lui-même).
+  const offre = afficherOffre();
+  if (offre && offre.manquants.length) {
+    const mots = offre.manquants.slice(0, 6).map(m => m.mot).join(", ") + (offre.manquants.length > 6 ? "…" : "");
+    conseils.push(["offre", false, `Mots-clés de l'offre absents de ton CV : ${mots}`, "#offre"]);
+  }
   $("#progres").value = score;
   $("#score-valeur").textContent = score;
   $("#score").dataset.niveau = score >= 85 ? "bon" : score >= 60 ? "moyen" : "faible";
@@ -950,12 +962,130 @@ function afficherProgres() {
     const li = document.createElement("li");
     const b = document.createElement("button");
     b.type = "button"; b.className = "score-conseil";
-    const gain = document.createElement("span"); gain.className = "score-gain"; gain.textContent = `+${points}`;
+    const gain = document.createElement("span"); gain.className = "score-gain";
+    gain.textContent = points === "offre" ? `${offre.taux} %` : `+${points}`;
+    if (points === "offre") gain.title = t("Correspondance avec l'offre");
     b.append(gain, " ", t(texte));
-    b.addEventListener("click", () => allerA(cible));
+    b.addEventListener("click", () => { if (cible === "#offre") $("#offre").open = true; allerA(cible); });
     li.append(b);
     return li;
   }));
+}
+
+// ---------- Adapter le CV à une offre : mots-clés de l'annonce présents ou absents du CV ----------
+// Tout se fait ici, dans le navigateur : l'annonce n'est envoyée nulle part (sauf, comme le reste
+// du document, dans le compte de la personne si elle en a un).
+// Mots sans intérêt pour un recruteur : mots courants (trois langues), et vocabulaire de toutes les annonces.
+const MOTS_VIDES = new Set((
+  // français
+  "a afin ai aie ainsi alors apres au aucun aupres aussi autre autres aux avant avec avez avoir ayant bien bon bonne ce ceci cela celle celles celui " +
+  "ces cet cette chacun chaque chez ci comme comment dans de des deja depuis donc dont du elle elles en encore entre est et etc ete etre eu " +
+  "fait faire faut il ils je jusqu la le les leur leurs lors lui mais me meme mes moins mon ne ni nos notre nous on ont ou par parmi pas peu " +
+  "peut plus plusieurs pour pourquoi qu que quel quelle quelles quels qui sa sans se selon ser ses si soit son sont sous sur ta te tes ton tous " +
+  "tout toute toutes tres tu un une unes uns vers via vos votre vous y cas lieu sein ainsi celle dès des tant toujours souhaite souhaitez " +
+  // annonces (français)
+  "poste postes profil profils candidat candidate candidats candidature candidatures entreprise entreprises societe groupe mission missions " +
+  "offre offres emploi emplois recherche recherchons recrute recrutons recrutement rejoindre rejoignez rejoins integrer integrez equipe equipes " +
+  "experience experiences annee annees an ans mois minimum maximum niveau souhaite souhaitee souhaitable requis requise exige exigee " +
+  "idealement idealement serait atout plus principales principaux principale principal notamment egalement afin cadre sein " +
+  "salaire remuneration avantages avantage contrat cdi cdd interim temps plein partiel h/f f/h hf fh date debut prise fonction poste " +
+  "lieu travail travailler ville region pays localisation adresse envoyer envoyez merci contact contacter postuler postulez cv lettre motivation " +
+  "vous etes serez aurez avez savez votre vos nous sommes notre nos client clients ensemble assurer assurez participer participez " +
+  "realiser realisez gerer gerez veiller contribuer contribuez accompagner mettre place oeuvre ensemble tache taches activite activites " +
+  "capacite capacites bonne bonnes tres grande grand forte fort sens esprit qualite qualites aptitude aptitudes connaissance connaissances " +
+  "maitrise maitriser maitrisez justifiez justifier disposez disposer possedez posseder dote dotee doit devra devez permettant permettra " +
+  "diplome diplomes formation bac nouveau nouvelle nouveaux interne externe sera seront etc jour jours semaine semaines heures horaires " +
+  // anglais
+  "the and or of to in for on with at by from as is are be been being an a this that these those it its our your you we they their " +
+  "will would can could should may must have has had not no but if then than so such into over under about all any each other more most " +
+  "job jobs role roles position positions company team teams candidate candidates apply application looking seeking join work working " +
+  "experience years year required requirements preferred plus strong good excellent ability skills skill knowledge responsibilities " +
+  "responsible including include etc full time part salary benefits location based within across ensure support help new " +
+  // italien
+  "il lo gli i della delle dello degli del dei al alla alle allo agli ai da dal dalla dai con su per tra fra e ed o un uno una che chi " +
+  "non come anche piu sono essere avere ha hanno nel nella nelle negli nei questo questa questi queste quello quella suo sua loro nostro " +
+  "nostra nostri vostro vostra ruolo posizione azienda candidato candidata candidati offerta lavoro ricerca ricerchiamo cerchiamo " +
+  "esperienza anni anno requisiti richiesti richiesta preferibile buona buone ottima ottime capacita conoscenza conoscenze competenze " +
+  "attivita sede contratto tempo pieno indeterminato determinato inserimento squadra team"
+).split(/\s+/));
+// Lettres accentuées -> sans accent, en minuscules : « Comptabilité » et « comptabilite » sont le même mot.
+const sansAccent = t => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+// Racine grossière : « comptable », « comptabilité » -> « comptab » ; on cherche les mots qui commencent pareil.
+function racineMot(mot) {
+  let m = mot.replace(/(?<=\w{4})[sx]$/, "");
+  if (m.length > 6) m = m.slice(0, Math.max(6, m.length - 2));
+  return m;
+}
+const MOT = /[\p{L}\p{N}][\p{L}\p{N}+#.\-]*[\p{L}\p{N}+#]|[\p{L}\p{N}]/gu;
+function motsDe(texte) {
+  // « l'expérience », « d'Excel » : on garde ce qui suit l'apostrophe.
+  return (texte.replace(/\b[\p{L}]{1,2}['’]/gu, " ").match(MOT) || []).map(m => m.replace(/[.\-]+$/, ""));
+}
+
+/** Les mots-clés de l'annonce (20 au plus), du plus important au moins important. */
+function motsClesOffre(texte) {
+  const trouves = new Map();       // racine -> { mot, poids, rang }
+  motsDe(texte).forEach((brut, rang) => {
+    const simple = sansAccent(brut);
+    if (/^\d+$/.test(simple) || MOTS_VIDES.has(simple)) return;
+    const sigle = /^[A-Z0-9+#]{2,}$/.test(brut) && /[A-Z]/.test(brut);     // SAP, RH, C++, B2B
+    if (simple.length < 3 && !sigle) return;
+    // Nom propre ou outil (Excel, Python) : une majuscule ailleurs qu'en début de phrase.
+    const debutPhrase = rang === 0 || /[.!?:\n•\-]\s*$/.test(texte.slice(0, texte.indexOf(brut)).slice(-3));
+    const special = sigle || /[+#\d]/.test(brut) || (/^\p{Lu}/u.test(brut) && !debutPhrase);
+    const cle = racineMot(simple);
+    const fiche = trouves.get(cle) || { mot: brut, poids: 0, rang, recherche: cle };
+    fiche.poids += 1 + (special ? 1 : 0);
+    if (special && !/^\p{Lu}/u.test(fiche.mot)) fiche.mot = brut;        // garder la forme avec majuscule
+    trouves.set(cle, fiche);
+  });
+  return [...trouves.values()]
+    .sort((a, b) => b.poids - a.poids || a.rang - b.rang)
+    .slice(0, 20);
+}
+
+/** Analyse de l'offre et affichage ; renvoie { taux, presents, manquants } ou null sans offre. */
+function afficherOffre() {
+  const zone = $("#offre-resultat");
+  if (!zone) return null;
+  const mots = (etat.offre || "").trim().length >= 40 ? motsClesOffre(etat.offre) : [];
+  zone.hidden = !mots.length;
+  if (!mots.length) { $("#offre-taux").textContent = ""; return null; }
+  const texteCV = " " + motsDe(texteDuCV({ ...etat.cv, photo: "" })).map(sansAccent).join(" ");
+  const present = m => texteCV.includes(" " + m.recherche);
+  const presents = mots.filter(present), manquants = mots.filter(m => !present(m));
+  const taux = Math.round(100 * presents.length / mots.length);
+  const t = window.tr || (x => x);
+  $("#offre-taux").textContent = t(`${taux} % de correspondance`);
+  $("#offre").dataset.niveau = taux >= 70 ? "bon" : taux >= 40 ? "moyen" : "faible";
+  $("#offre-titre-manque").textContent = manquants.length
+    ? t(`Absents de ton CV (${manquants.length})`) : t("Tous les mots-clés de l'offre sont dans ton CV.");
+  $("#offre-titre-present").textContent = presents.length ? t(`Déjà dans ton CV (${presents.length})`) : "";
+  $("#offre-aide").hidden = !manquants.length;
+  $("#offre-manque").replaceChildren(...manquants.map(m => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "puce-mot manque"; b.textContent = "+ " + m.mot;
+    b.title = t("Ajouter à mes compétences");
+    b.addEventListener("click", () => ajouterCompetence(m.mot));
+    return b;
+  }));
+  $("#offre-present").replaceChildren(...presents.map(m => {
+    const s = document.createElement("span");
+    s.className = "puce-mot present"; s.textContent = "✓ " + m.mot;
+    return s;
+  }));
+  return { taux, presents, manquants };
+}
+
+function ajouterCompetence(mot) {
+  if (!confirm((window.tr || (x => x))("Ajouter ce mot à tes compétences ? Fais-le seulement si tu as vraiment cette compétence.") + `\n\n${mot}`)) return;
+  const liste = etat.cv.competences;
+  // Dans la dernière catégorie qui a de la place, sinon une nouvelle ligne.
+  const cible = [...liste].reverse().find(c => (c.liste || "").length + mot.length < 480);
+  if (cible) cible.liste = (cible.liste || "").trim() ? `${cible.liste.trim().replace(/[,;]$/, "")}, ${mot}` : mot;
+  else liste.push({ categorie: "", liste: mot });
+  dessinerListe("competences");
+  modifie();
 }
 
 // ---------- Aperçu et téléchargement ----------
@@ -1127,6 +1257,9 @@ $("#formulaire").addEventListener("input", e => {
   const el = e.target;
   if (!el.dataset.k) return;   // les champs des listes ont leur propre écouteur
   ecrire(el.dataset.k, el.type === "checkbox" ? el.checked : el.value);
+  // Texte de l'offre : seulement l'analyse des mots-clés, pas de nouvel aperçu du PDF.
+  if (el.dataset.k === "offre") { sauvegarder(); afficherProgres(); return; }
+  if (el.dataset.k === "options.qr") { changerQr(el.checked); return; }
   if (el.dataset.k === "options.modele") afficherType();
   if (el.dataset.k === "cv.interets") dessinerInterets();
   if (etat.type === "admin") {
@@ -1233,6 +1366,94 @@ function toutDessiner() {
   dessinerInterets();
   afficherPhoto();
   afficherType();
+  afficherQr();
+}
+
+// ---------- QR code vers le CV en ligne ----------
+// Le CV en ligne (/cv/<code>) n'existe que pour un document enregistré dans un compte, et
+// seulement si son titulaire active le lien. Le serveur n'imprime le QR code que si le code
+// existe vraiment : un lien désactivé disparaît donc aussi des prochains PDF.
+let partageActuel = null;           // { code, url, vues } du document ouvert, ou null
+function afficherQr() {
+  const etatQr = $("#qr-etat"), caseQr = $("#qr-case");
+  if (!etatQr) return;
+  const t = window.tr || (x => x);
+  caseQr.checked = etat.options.qr && !!partageActuel;
+  caseQr.disabled = !compte.connecte;
+  etatQr.replaceChildren();
+  if (!compte.connecte) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "lien"; b.textContent = t("Connecte-toi");
+    b.addEventListener("click", () => $("#btn-compte").click());
+    etatQr.append(b, " ", t("pour mettre ton CV en ligne : le recruteur scanne le QR code et voit ton CV à jour sur son téléphone."));
+  } else if (partageActuel) {
+    const a = document.createElement("a");
+    a.href = partageActuel.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = partageActuel.url;
+    a.setAttribute("translate", "no");
+    etatQr.append(t("Ton CV en ligne :"), " ", a, ". ", t("Tu peux désactiver ce lien dans « Mon espace »."));
+  } else {
+    etatQr.append(t("En cochant cette case, tu crées un lien vers ton CV en ligne, visible par toute personne qui a le lien ou scanne le QR code."));
+  }
+}
+
+/** Le document ouvert a-t-il un lien de partage ? Met l'option « partage » d'accord avec le compte. */
+async function verifierPartage() {
+  const doc = lireSynchro().doc;
+  partageActuel = null;
+  if (compte.connecte && doc) {
+    const r = await api("GET", `/documents/${doc}/partage`);
+    if (r.ok) partageActuel = r.corps.partage;
+  }
+  const code = partageActuel ? partageActuel.code : "";
+  if (etat.options.partage !== code || (etat.options.qr && !code)) {
+    etat.options.partage = code;
+    if (!code) etat.options.qr = false;
+    modifie(0);
+  }
+  afficherQr();
+}
+
+async function changerQr(coche) {
+  const t = window.tr || (x => x);
+  if (coche && !partageActuel) {
+    if (!confirm(t("Ton CV sera visible en ligne par toute personne qui a le lien ou scanne le QR code (nom, coordonnées, photo, parcours). Tu pourras désactiver le lien à tout moment dans « Mon espace ». Continuer ?"))) {
+      etat.options.qr = false; afficherQr(); return;
+    }
+    if (!lireSynchro().doc) await envoyer();           // le document doit d'abord exister dans le compte
+    const doc = lireSynchro().doc;
+    const r = doc ? await api("POST", `/documents/${doc}/partage`, {}) : { ok: false, corps: {} };
+    if (!r.ok) {
+      etat.options.qr = false; afficherQr();
+      return montrerErreur(r.corps.erreur || "Le lien n'a pas pu être créé. Réessaie.");
+    }
+    partageActuel = r.corps.partage;
+  }
+  etat.options.qr = coche && !!partageActuel;
+  etat.options.partage = partageActuel ? partageActuel.code : "";
+  afficherQr();
+  modifie(0);
+}
+
+// ---------- Copie d'un document dans une autre langue (bouton de « Mon espace ») ----------
+// Le document arrive par /creer?doc=…&langue=en : on le convertit comme quand on change la langue
+// du document (titres des rubriques, listes de choix, mois, formules de la lettre).
+const NOTES_LANGUE = {
+  fr: "Copie en français prête. Les titres des rubriques, les niveaux de langue, les diplômes, les mois et les formules de la lettre sont déjà traduits. Il te reste à traduire ton propre texte : titre, profil, missions et lettre.",
+  en: "Copie en anglais prête. Les titres des rubriques, les niveaux de langue, les diplômes, les mois et les formules de la lettre sont déjà traduits. Il te reste à traduire ton propre texte : titre, profil, missions et lettre.",
+  it: "Copie en italien prête. Les titres des rubriques, les niveaux de langue, les diplômes, les mois et les formules de la lettre sont déjà traduits. Il te reste à traduire ton propre texte : titre, profil, missions et lettre.",
+};
+function traduireDocument(langue) {
+  if (!NOTES_LANGUE[langue]) return;
+  if (etat.options.langue !== langue) {
+    convertirChoix(etat.options.langue, langue);
+    etat.options.langue = langue;
+    adapterLangueLettre(langue);
+    toutDessiner();
+    modifie(0);
+  }
+  const note = $("#note-langue");
+  note.textContent = NOTES_LANGUE[langue];
+  note.hidden = false;
 }
 
 async function chargerExemple() {
@@ -1335,6 +1556,8 @@ function afficherCompte(message) {
   $("#compte-oubli-ligne").hidden = modeInscription;
   $("#compte-envoye").hidden = true;
   $("#compte-valider").hidden = false;
+  if (!compte.connecte) partageActuel = null;
+  afficherQr();
 }
 
 function erreurCompte(sel, message) {
@@ -1412,6 +1635,8 @@ async function synchroniser() {
       const r = await api("GET", "/donnees?doc=" + demande);
       if (r.ok) {
         chargerDocument(r.corps);
+        // « Copier en anglais… » depuis Mon espace : la copie est convertie dans sa nouvelle langue.
+        if (parametres.get("langue")) traduireDocument(parametres.get("langue"));
         return afficherCompte("Ton CV a été chargé depuis ton compte.");
       }
       s = lireSynchro();
@@ -1486,6 +1711,7 @@ $("#compte-form").addEventListener("submit", async e => {
   ecrireSynchro({});              // autre compte possible sur cet appareil : on repart de zéro
   afficherCompte("");
   await synchroniser();
+  await verifierPartage();
 });
 
 $("#compte-deconnexion").addEventListener("click", async () => {
@@ -1497,6 +1723,7 @@ $("#compte-deconnexion").addEventListener("click", async () => {
   clearTimeout(minuterieEnvoi);
   // Ordinateur partagé : après la déconnexion, il ne reste rien sur cet appareil.
   etat = etatVide();
+  partageActuel = null;
   try { localStorage.removeItem(CLE_STOCKAGE); localStorage.removeItem(CLE_SYNCHRO); } catch { /* stockage indisponible */ }
   toutDessiner(); actualiser();
   afficherCompte();
@@ -1525,6 +1752,7 @@ $("#compte-supprimer").addEventListener("click", async () => {
     compte = { connecte: true, email: r.corps.email };
     afficherCompte("");
     await synchroniser();
+    await verifierPartage();
   }
   // Arrivée par le lien « Se connecter » des autres pages (/creer?compte=1) :
   // on ouvre directement la fenêtre du compte.

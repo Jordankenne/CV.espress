@@ -1,0 +1,117 @@
+<!doctype html>
+{#- CV en ligne (/cv/<code>) : la page qu'ouvre un recruteur avec le lien ou le QR code.
+    Rien n'est traduit dans le navigateur : la page est dans la langue du CV. -#}
+<html lang="{{ langue }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>{% if cv %}{{ x.titre.format(cv.nom) }}{% else %}{{ x.absent }}{% endif %} · CV.express</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="page-texte page-cv-public">
+
+<header class="entete entete-page">
+  <a href="{{ racine }}{{ p }}/" class="logo" translate="no">CV<span>.</span>express</a>
+  {% if cv %}<nav class="entete-actions"><a class="bouton principal" href="/cv/{{ code }}/pdf">{{ x.pdf }}</a></nav>{% endif %}
+</header>
+
+<main class="article cv-public" translate="no">
+{% if not cv %}
+  <h1>{{ x.absent }}</h1>
+  <p>{{ x.absent_detail }}</p>
+  <p><a class="bouton principal" href="{{ racine }}{{ p }}/">{{ x.accueil }}</a></p>
+{% else %}
+  <section class="cv-public-tete">
+    {% if cv.photo %}<img class="cv-public-photo" src="{{ cv.photo }}" alt="">{% endif %}
+    <div>
+      <h1>{{ cv.nom }}</h1>
+      {% if cv.titre %}<p class="cv-public-titre">{{ cv.titre }}</p>{% endif %}
+      <ul class="cv-public-contact">
+        {% if cv.ville %}<li>{{ cv.ville }}</li>{% endif %}
+        {% if cv.telephone %}<li><a href="tel:{{ cv.telephone | replace(' ', '') }}">{{ cv.telephone }}</a></li>{% endif %}
+        {% if cv.email %}<li><a href="mailto:{{ cv.email }}">{{ cv.email }}</a></li>{% endif %}
+        {% for lien in cv.liens %}<li><a href="{{ lien.url }}" rel="noopener nofollow ugc" target="_blank">{{ lien.label }}</a></li>{% endfor %}
+      </ul>
+    </div>
+  </section>
+
+  {% if cv.profil %}
+  <section><h2>{{ cv.l.profil }}</h2>{% for p in cv.profil %}<p>{{ p }}</p>{% endfor %}</section>
+  {% endif %}
+
+  {% if cv.experiences %}
+  <section><h2>{{ cv.l.experiences }}</h2>
+    {% for e in cv.experiences %}
+    <article class="cv-public-ligne">
+      <div class="cv-public-quand">{{ e.dates }}</div>
+      <div>
+        <h3>{{ e.poste }}</h3>
+        <p class="cv-public-ou">{{ e.entreprise }}{% if e.entreprise and e.lieu %} · {% endif %}{{ e.lieu }}</p>
+        {% if e.points %}<ul>{% for p in e.points %}<li>{{ p }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {% if cv.formations %}
+  <section><h2>{{ cv.l.formations }}</h2>
+    {% for f in cv.formations %}
+    <article class="cv-public-ligne">
+      <div class="cv-public-quand">{{ f.dates }}</div>
+      <div>
+        <h3>{{ f.diplome }}</h3>
+        <p class="cv-public-ou">{{ f.ecole }}</p>
+        {% if f.details %}<p>{{ f.details }}</p>{% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {% if cv.projets %}
+  <section><h2>{{ cv.l.projets }}</h2>
+    {% for p in cv.projets %}
+    <article class="cv-public-ligne">
+      <div class="cv-public-quand">{{ p.dates }}</div>
+      <div><h3>{{ p.titre }}</h3>{% if p.details %}<p>{{ p.details }}</p>{% endif %}</div>
+    </article>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  <div class="cv-public-colonnes">
+    {% if cv.competences %}
+    <section><h2>{{ cv.l.competences }}</h2>
+      <dl class="fiche">{% for c in cv.competences %}{% if c.categorie %}<dt>{{ c.categorie }}</dt>{% endif %}<dd>{{ c.liste }}</dd>{% endfor %}</dl>
+    </section>
+    {% endif %}
+    {% if cv.langues %}
+    <section><h2>{{ cv.l.langues }}</h2>
+      <dl class="fiche">{% for x2 in cv.langues %}<dt>{{ x2.langue }}</dt><dd>{{ x2.niveau or "—" }}</dd>{% endfor %}</dl>
+    </section>
+    {% endif %}
+    {% if cv.certifications %}
+    <section><h2>{{ cv.l.certifications }}</h2>
+      <ul>{% for c in cv.certifications %}<li>{{ c.titre }}{% if c.organisme %} · {{ c.organisme }}{% endif %}{% if c.date %} ({{ c.date }}){% endif %}</li>{% endfor %}</ul>
+    </section>
+    {% endif %}
+    {% if cv.etat_civil %}
+    <section><h2>{{ cv.l.etat_civil }}</h2>
+      <dl class="fiche">{% for libelle, valeur in cv.etat_civil %}<dt>{{ libelle }}</dt><dd>{{ valeur }}</dd>{% endfor %}</dl>
+    </section>
+    {% endif %}
+    {% if cv.interets %}
+    <section><h2>{{ cv.l.interets }}</h2><p>{{ cv.interets }}</p></section>
+    {% endif %}
+  </div>
+
+  <p class="cv-public-pied">
+    <a class="bouton principal" href="/cv/{{ code }}/pdf">{{ x.pdf }}</a>
+    <span class="note">{{ x.cree }} <a href="{{ racine }}{{ p }}/">CV.express</a> · <a href="{{ racine }}{{ p }}/creer">{{ x.creer }}</a></span>
+  </p>
+{% endif %}
+</main>
+</body>
+</html>

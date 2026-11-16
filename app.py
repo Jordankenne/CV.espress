@@ -13,6 +13,7 @@ import os
 import re
 import threading
 import time
+import unicodedata
 from collections import defaultdict, deque
 
 from flask import Flask, Response, jsonify, render_template, request
@@ -229,7 +230,7 @@ def page_texte(nom):
 
 @app.get("/robots.txt")
 def robots():
-    return Response(f"User-agent: *\nDisallow: /api/\nDisallow: /admin\nSitemap: {comptes.racine_site()}/sitemap.xml\n",
+    return Response(f"User-agent: *\nDisallow: /api/\nDisallow: /admin\nDisallow: /cv/\nSitemap: {comptes.racine_site()}/sitemap.xml\n",
                     mimetype="text/plain")
 
 
@@ -309,16 +310,28 @@ def fabriquer_pdf():
         pdf = moteur.generer_lettre({**identite, "titre": ""}, corps.get("admin"), corps.get("options"))
         prefixe = "Document"
     else:
-        pdf = moteur.generer_cv(corps.get("cv"), corps.get("options"))
+        pdf = moteur.generer_cv(corps.get("cv"), options_avec_qr(corps.get("options")))
         prefixe = "CV"
     nom = (corps.get("cv") or {}).get("nom", "")
     nom = re.sub(r"[^A-Za-z0-9]+", "_", nom if isinstance(nom, str) else "").strip("_")[:40]
     return pdf, f"{prefixe}_{nom or 'document'}.pdf"
 
 
+def options_avec_qr(options):
+    """Options du CV, avec l'adresse à mettre dans le QR code si le visiteur l'a demandé
+    (« qr » coché, « partage » = code du lien de son CV en ligne). L'adresse est toujours
+    fabriquée ici, avec un code qui existe vraiment : jamais une adresse envoyée par le navigateur."""
+    options = dict(options) if isinstance(options, dict) else {}
+    options.pop("lien_qr", None)
+    code = options.get("partage")
+    if options.get("qr") is True and comptes.partage_existe(code):
+        options["lien_qr"] = f"{comptes.racine_site()}/cv/{code}"
+    return options
+
+
 def avec_erreurs(vue):
     """Transforme les erreurs du moteur en réponses JSON propres."""
-    def enveloppe():
+    def enveloppe(*args, **kwargs):
         if trop_de_requetes():
             return jsonify(erreur="Trop de demandes en peu de temps. Patiente une minute."), 429
         fiche = _entrer()
@@ -327,7 +340,7 @@ def avec_erreurs(vue):
                                   "Réessaie dans quelques secondes."), 429
         try:
             with fiche[1]:      # une seule fabrication à la fois par visiteur
-                return vue()
+                return vue(*args, **kwargs)
         except moteur.ErreurDonnees as e:
             return jsonify(erreur=str(e)), 400
         except moteur.ServeurOccupe:
@@ -375,6 +388,127 @@ def importer_document():
     if not octets:
         raise moteur.ErreurDonnees("Aucun fichier reçu.")
     return jsonify(importer.importer(octets, type_document))
+
+
+# --------------------------------------------------------------------------
+# CV en ligne : /cv/<code>, la page publique d'un CV dont le titulaire a activé le lien
+# (Mon espace). Elle suit le document : chaque modification y apparaît aussitôt.
+# Jamais indexée par les moteurs de recherche : seuls ceux qui ont le lien la voient.
+# --------------------------------------------------------------------------
+TEXTES_PUBLICS = {
+    "fr": {"titre": "CV de {}", "pdf": "Télécharger le CV en PDF", "cree": "CV créé avec",
+           "creer": "Crée le tien gratuitement", "absent": "Ce CV n'est pas ou plus en ligne.",
+           "absent_detail": "Son titulaire a peut-être désactivé le lien.", "accueil": "Aller sur CV.express"},
+    "en": {"titre": "CV of {}", "pdf": "Download the CV as PDF", "cree": "CV made with",
+           "creer": "Make yours for free", "absent": "This CV is not online (or no longer).",
+           "absent_detail": "Its owner may have turned the link off.", "accueil": "Go to CV.express"},
+    "it": {"titre": "CV di {}", "pdf": "Scarica il CV in PDF", "cree": "CV creato con",
+           "creer": "Crea il tuo gratis", "absent": "Questo CV non è (più) online.",
+           "absent_detail": "Il titolare potrebbe aver disattivato il link.", "accueil": "Vai su CV.express"},
+}
+
+
+def _cv_public(donnees):
+    """Le CV enregistré -> ce que montre la page publique : du texte seulement, nettoyé et
+    borné comme pour le PDF (l'échappement HTML est fait par le modèle de page)."""
+    cv = moteur._dico(donnees.get("cv"))
+    options = moteur._options(donnees.get("options"))
+    t = lambda v, maxi=300: moteur._texte(v, maxi)
+    liste = lambda cle, maxi: moteur._liste(cv.get(cle), maxi)
+    photo = cv.get("photo") if isinstance(cv.get("photo"), str) else ""
+    if not re.fullmatch(r"data:image/(jpeg|png);base64,[A-Za-z0-9+/=]+", photo) or len(photo) > 2_800_000:
+        photo = ""
+    liens = []
+    for l in liste("liens", 6):
+        url = t(l.get("url"))
+        if url and not re.match(r"^https?://", url, re.I):
+            url = "https://" + url
+        if moteur._URL_OK.match(url):
+            liens.append({"url": url, "label": t(l.get("label"), 120) or re.sub(r"^https?://", "", url)})
+    ec = moteur._dico(cv.get("etat_civil"))
+    libelles = moteur.LIBELLES[options["langue"]]
+    return {
+        "langue": options["langue"], "couleur": str(options["couleur"]), "l": libelles,
+        "nom": t(cv.get("nom"), 120), "titre": t(cv.get("titre"), 160), "ville": t(cv.get("ville"), 200),
+        "telephone": t(cv.get("telephone"), 60), "email": t(cv.get("email"), 120), "photo": photo,
+        "profil": moteur._lignes(cv.get("profil"), 12, 900), "liens": liens,
+        "etat_civil": [(libelles[cle], t(ec.get(cle), 120)) for cle in
+                       ("date_naissance", "lieu_naissance", "nationalite", "situation", "permis") if t(ec.get(cle))],
+        "experiences": [{"poste": t(e.get("poste"), 160), "entreprise": t(e.get("entreprise"), 160),
+                         "lieu": t(e.get("lieu"), 120), "dates": t(e.get("dates"), 60),
+                         "points": moteur._lignes(e.get("points"), 12)}
+                        for e in liste("experiences", 25) if t(e.get("poste")) or t(e.get("entreprise"))],
+        "formations": [{"diplome": t(f.get("diplome"), 200), "ecole": t(f.get("ecole"), 200),
+                        "dates": t(f.get("dates"), 60), "details": t(f.get("details"), 500)}
+                       for f in liste("formations", 20) if t(f.get("diplome")) or t(f.get("ecole"))],
+        "competences": [{"categorie": t(c.get("categorie"), 80), "liste": t(c.get("liste"), 500)}
+                        for c in liste("competences", 15) if t(c.get("liste"))],
+        "langues": [{"langue": t(x.get("langue"), 60), "niveau": t(x.get("niveau"), 80)}
+                    for x in liste("langues", 12) if t(x.get("langue"))],
+        "certifications": [{"titre": t(c.get("titre"), 200), "organisme": t(c.get("organisme"), 160),
+                            "date": t(c.get("date"), 60)} for c in liste("certifications", 12) if t(c.get("titre"))],
+        "projets": [{"titre": t(p.get("titre"), 200), "dates": t(p.get("dates"), 60), "details": t(p.get("details"), 600)}
+                    for p in liste("projets", 12) if t(p.get("titre"))],
+        "interets": t(cv.get("interets"), 500),
+    }
+
+
+def _sans_index(reponse):
+    reponse.headers["X-Robots-Tag"] = "noindex, nofollow"
+    reponse.headers["Cache-Control"] = "no-store"     # un lien désactivé ne doit plus rien montrer
+    return reponse
+
+
+@app.get("/cv/<code>")
+def cv_en_ligne(code):
+    donnees = comptes.document_partage(code, compter=True)
+    if not donnees:
+        langue = request.accept_languages.best_match(["fr", "en", "it"]) or "fr"
+        return _sans_index(Response(render_template("cv_public.html", cv=None, x=TEXTES_PUBLICS[langue],
+                                                    langue=langue, p=PREFIXES[langue], racine=comptes.racine_site()), status=404))
+    cv = _cv_public(donnees)
+    return _sans_index(Response(render_template("cv_public.html", cv=cv, x=TEXTES_PUBLICS[cv["langue"]], code=code,
+                                                langue=cv["langue"], p=PREFIXES[cv["langue"]], racine=comptes.racine_site())))
+
+
+@app.get("/cv/<code>/pdf")
+@avec_erreurs
+def cv_en_ligne_pdf(code):
+    donnees = comptes.document_partage(code)
+    if not donnees:
+        return _sans_index(Response("Ce CV n'est pas ou plus en ligne.", status=404, mimetype="text/plain"))
+    options = moteur._dico(donnees.get("options"))
+    pdf = moteur.generer_cv(donnees.get("cv"), options_avec_qr({**options, "qr": options.get("qr") is True, "partage": code}))
+    nom = moteur._texte(moteur._dico(donnees.get("cv")).get("nom"), 120)
+    nom = unicodedata.normalize("NFKD", nom).encode("ascii", "ignore").decode()
+    nom = re.sub(r"[^A-Za-z0-9]+", "_", nom).strip("_")[:40]
+    return _sans_index(Response(pdf, mimetype="application/pdf", headers={
+        "Content-Disposition": f'inline; filename="CV_{nom or "document"}.pdf"'}))
+
+
+# QR codes déjà fabriqués (une image ne change jamais pour un même code). Bornés en nombre.
+_qr_images = {}
+
+
+@app.get("/cv/<code>/qr")
+@avec_erreurs
+def cv_en_ligne_qr(code):
+    """Le QR code du lien, en image : à afficher dans Mon espace, à imprimer ou à partager."""
+    if not comptes.partage_existe(code):
+        return _sans_index(Response("Ce CV n'est pas ou plus en ligne.", status=404, mimetype="text/plain"))
+    adresse = f"{comptes.racine_site()}/cv/{code}"
+    if adresse not in _qr_images:
+        if not moteur._QR_OK.match(adresse):
+            raise moteur.ErreurDonnees("Adresse du site invalide pour un QR code.")
+        latex = ("\\documentclass{article}\\usepackage[paperwidth=4cm,paperheight=4cm,margin=0.3cm]{geometry}"
+                 "\\usepackage{qrcode}\\pagestyle{empty}\\begin{document}\\noindent"
+                 f"\\qrcode[height=3.4cm,nolink]{{{adresse}}}\\end{{document}}\n")
+        image = moteur.pdf_vers_images(moteur.compiler(latex, {}, "cv"), pages_max=1, resolution=220)[0]
+        if len(_qr_images) > 500:
+            _qr_images.clear()
+        _qr_images[adresse] = image
+    return _sans_index(Response(_qr_images[adresse], mimetype="image/jpeg", headers={
+        "Content-Disposition": f'inline; filename="QR_CV_{code}.jpg"'}))
 
 
 @app.errorhandler(RecursionError)

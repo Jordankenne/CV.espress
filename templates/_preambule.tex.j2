@@ -30,6 +30,16 @@
 \usepackage[hidelinks]{hyperref}
 
 \definecolor{accent}{HTML}{\VAR{o.couleur}}
+\BLOCK{if o.get("lien_qr")}
+\#{ QR code du CV en ligne : en bas a droite de la premiere page, dans la marge du bas
+    (1,25 cm de haut au plus : la plus petite marge des modeles est de 1,3 cm). }
+\usepackage{qrcode}
+\usepackage{eso-pic}
+\AddToShipoutPictureFG*{\AtPageLowerLeft{\put(\LenToUnit{\dimexpr\paperwidth-1.2cm\relax},\LenToUnit{0.15cm}){%
+  \makebox[0pt][r]{\parbox[b]{7cm}{\raggedleft\fontsize{6.5}{8}\selectfont\color[gray]{0.4}%
+    \VAR{t.cv_en_ligne}\\\VAR{o.lien_qr.split("://")[1]}\vspace{0.35cm}}\hspace{0.18cm}%
+  \qrcode[height=1.1cm]{\VAR{o.lien_qr}}}}}}
+\BLOCK{endif}
 \pagestyle{empty}
 \setlength{\parindent}{0pt}
 \setlist[itemize]{leftmargin=1.2em, itemsep=1pt, topsep=2pt}

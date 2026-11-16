@@ -67,6 +67,28 @@
       <a class="bouton principal" id="docs-creer" href="{{ p }}/creer" hidden>Créer mon CV</a>
     </article>
 
+    <!-- Suivi des candidatures. La liste est dessinée par espace.js. -->
+    <article class="carte-espace large" id="candidatures">
+      <div class="docs-tete">
+        <h2>Mes candidatures</h2>
+        <button type="button" class="bouton principal" id="cand-nouvelle">Ajouter une candidature</button>
+      </div>
+      <p class="note">Note chaque offre à laquelle tu réponds : tu sais où tu en es, et quand relancer.</p>
+      <div class="cand-filtres" id="cand-filtres" hidden>
+        <p class="cand-resume" id="cand-resume"></p>
+        <label class="cand-filtre">Afficher
+          <select id="cand-filtre">
+            <option value="">Toutes</option>
+            <option value="en_cours">En cours</option>
+            <option value="relancer">À relancer</option>
+            <option value="terminees">Terminées</option>
+          </select>
+        </label>
+      </div>
+      <p class="note" id="cand-vide" hidden>Aucune candidature pour l'instant. Ajoute la première dès que tu envoies ton CV.</p>
+      <div id="cand-liste" class="cand-liste"></div>
+    </article>
+
     <!-- Profil -->
     <article class="carte-espace">
       <h2>Mon profil</h2>
@@ -108,5 +130,38 @@
     </article>
   </div>
 </section>
+
+<!-- Ajouter ou modifier une candidature -->
+<dialog id="dlg-cand" class="dialogue-admin dialogue-cand" aria-labelledby="cand-titre">
+  <form id="cand-form" method="dialog" novalidate>
+    <h2 id="cand-titre">Nouvelle candidature</h2>
+    <div class="cand-grille">
+      <label>Entreprise<input id="cand-entreprise" maxlength="120" autocomplete="organization"></label>
+      <label>Poste<input id="cand-poste" maxlength="160"></label>
+      <label class="large">Lien de l'offre <small>facultatif</small><input id="cand-lien" type="url" maxlength="400" placeholder="https://"></label>
+      <label>Envoyée le<input id="cand-envoye" type="date"></label>
+      <label>Statut
+        <select id="cand-statut">
+          <option value="a_envoyer">À envoyer</option>
+          <option value="envoyee">Envoyée</option>
+          <option value="relancee">Relancée</option>
+          <option value="entretien">Entretien</option>
+          <option value="acceptee">Acceptée</option>
+          <option value="refusee">Refusée</option>
+        </select>
+      </label>
+      <label>CV et lettre envoyés<select id="cand-doc"></select></label>
+      <label>Relancer le <small>en général 7 à 10 jours après</small><input id="cand-relance" type="date"></label>
+      <label class="large">Notes <small>facultatif</small><textarea id="cand-notes" rows="3" maxlength="2000" placeholder="Nom du recruteur, date de l'entretien, questions posées…"></textarea></label>
+    </div>
+    <p id="cand-erreur" class="erreur-compte" role="alert" hidden></p>
+    <div class="actions-dialogue">
+      <button type="button" class="bouton danger-bouton" id="cand-supprimer" hidden>Supprimer</button>
+      <span class="espace-flexible"></span>
+      <button type="button" class="bouton" id="cand-annuler">Annuler</button>
+      <button type="submit" class="bouton principal" id="cand-valider">Enregistrer</button>
+    </div>
+  </form>
+</dialog>
 {% endblock %}
 {% block scripts %}<script src="/espace.js"></script>{% endblock %}
