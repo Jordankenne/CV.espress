@@ -25,6 +25,7 @@
 <header class="entete">
   <a href="{{ p }}/" class="logo">CV<span>.</span>express</a>
   <nav class="entete-actions" aria-label="{{ c.acces }}">
+    <a href="#services" class="lien-entete">{{ a.nav_services }}</a>
     {% include "_langues.html" %}
     <a href="{{ p }}/compte" class="bouton" data-lien-compte>{{ c.connexion }}</a>
     <a href="{{ p }}/creer" class="bouton principal">{{ c.creer }}</a>
@@ -41,6 +42,8 @@
       <a href="{{ p }}/creer?exemple=1" class="bouton fantome grand">{{ a.exemple }}</a>
     </div>
     <p class="accueil-import"><a href="{{ p }}/creer?importer=1">{{ a.deja }}</a></p>
+    <p class="accueil-aussi">{{ a.aussi }}
+      {%- for type, nom in a.aussi_liens %} <a href="{{ p }}/creer?type={{ type }}">{{ nom }}</a>{% if not loop.last %} ·{% endif %}{% endfor %}</p>
     <ul class="atouts">
       {%- for atout in a.atouts %}
       <li>{{ atout|safe }}</li>
@@ -54,7 +57,45 @@
   </div>
 </section>
 
-<section class="bloc" id="modeles">
+{#- Petites icônes des services (dessinées en traits, couleur du texte). -#}
+{% macro icone(nom) -%}
+<svg class="icone" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+{%- if nom == "cv" %}<rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="9.5" cy="9" r="2.2"/><path d="M6.5 14.5c.6-1.6 1.7-2.4 3-2.4s2.4.8 3 2.4M14 8h3M14 11h3M7 17.5h10"/>
+{%- elif nom == "lettre" %}<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 6.5 8.5 6.5 8.5-6.5"/>
+{%- elif nom == "admin" %}<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h4"/><path d="M4 8v13h3"/>
+{%- elif nom == "plan" %}<path d="M9 4 3 6.5v13.5L9 17.5l6 2.5 6-2.5V4l-6 2.5z"/><path d="M9 4v13.5M15 6.5V20"/>
+{%- elif nom == "arbre" %}<rect x="9" y="3" width="6" height="4" rx="1"/><rect x="3" y="16" width="6" height="4" rx="1"/><rect x="15" y="16" width="6" height="4" rx="1"/><path d="M12 7v4M6 16v-3h12v3"/>
+{%- elif nom == "offre" %}<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/>
+{%- elif nom == "qr" %}<rect x="3.5" y="3.5" width="6.5" height="6.5" rx="1"/><rect x="14" y="3.5" width="6.5" height="6.5" rx="1"/><rect x="3.5" y="14" width="6.5" height="6.5" rx="1"/><path d="M14 14h3v3h-3zM20.5 14v.01M17 20.5h3.5V17"/>
+{%- else %}<path d="M4 6h16M4 12h16M4 18h10"/><path d="m16 17 2 2 3.5-4"/>
+{%- endif %}</svg>
+{%- endmacro %}
+
+<section class="bloc" id="services">
+  <h2>{{ a.services_titre }}</h2>
+  <p class="sous-titre">{{ a.services_texte }}</p>
+  <div class="services">
+    {%- for type, titre, texte, bouton in a.services %}
+    <a class="service" href="{{ p }}/creer?type={{ type }}">
+      <span class="service-icone">{{ icone(type) }}</span>
+      <h3>{{ titre }}</h3>
+      <p>{{ texte }}</p>
+      <span class="service-action">{{ bouton }} →</span>
+    </a>
+    {%- endfor %}
+  </div>
+  <h3 class="outils-titre">{{ a.outils_titre }}</h3>
+  <div class="outils">
+    {%- for nom, titre, texte, bouton, lien in a.outils %}
+    <a class="outil" href="{{ p }}{{ lien }}">
+      <span class="service-icone">{{ icone(nom) }}</span>
+      <span><strong>{{ titre }}</strong><span class="outil-texte">{{ texte }}</span><span class="service-action">{{ bouton }} →</span></span>
+    </a>
+    {%- endfor %}
+  </div>
+</section>
+
+<section class="bloc bloc-teinte" id="modeles">
   <h2>{{ a.style_titre }}</h2>
   <p class="sous-titre">{{ a.style_texte }}</p>
   <div class="vitrine">
@@ -72,7 +113,7 @@
   </div>
 </section>
 
-<section class="bloc bloc-teinte">
+<section class="bloc">
   <h2>{{ a.etapes_titre }}</h2>
   <ol class="etapes">
     {%- for titre, texte in a.etapes %}
@@ -82,7 +123,7 @@
   <p class="centre"><a href="{{ p }}/creer" class="bouton principal grand">{{ a.commencer }}</a></p>
 </section>
 
-<section class="bloc" id="guides">
+<section class="bloc bloc-teinte" id="guides">
   <h2>{{ a.guides_titre }}</h2>
   <p class="sous-titre">{{ a.guides_texte }}</p>
   <div class="guides">
@@ -92,7 +133,7 @@
   </div>
 </section>
 
-<section class="bloc bloc-teinte" id="questions">
+<section class="bloc" id="questions">
   <h2>{{ a.faq_titre }}</h2>
   <div class="faq">
     {%- for question, reponse in a.faq %}

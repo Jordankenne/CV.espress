@@ -945,3 +945,31 @@ body:has(#admin) .article { max-width: 1040px; }
 .offre > summary { font: 600 15px var(--titres); }
 .offre > summary::before { counter-increment: none; content: "◎"; font-size: 15px; }
 .offre > summary::after { margin-left: 4px; }
+
+/* ---------- Accueil : tous les services ---------- */
+.lien-entete { color: #fff; font-weight: 600; text-decoration: none; padding: 6px 4px; }
+.lien-entete:hover { text-decoration: underline; }
+.accueil-aussi { margin: 10px 0 0; font-size: 15px; color: rgba(255, 255, 255, .92); }
+.accueil-aussi a { color: #fff; font-weight: 600; text-underline-offset: 3px; }
+.atouts { color: rgba(255, 255, 255, .92); }
+.services { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; max-width: 1180px; margin: 0 auto; }
+.service, .outil {
+  display: flex; flex-direction: column; gap: 6px; padding: 20px; border-radius: 16px;
+  background: var(--carte); border: 1px solid var(--bord); box-shadow: var(--ombre);
+  color: var(--texte); text-decoration: none; transition: transform .18s, border-color .18s;
+}
+.service:hover, .outil:hover { transform: translateY(-4px); border-color: var(--primaire); }
+.service h3 { margin: 4px 0 0; font: 700 18px var(--titres); }
+.service p { margin: 0; flex: 1; color: var(--doux); font-size: 14px; }
+.service-icone { display: grid; place-items: center; flex: none; width: 48px; height: 48px; border-radius: 14px; background: var(--primaire-doux); color: var(--primaire); }
+.service-action { margin-top: 6px; color: var(--primaire); font-weight: 700; font-size: 14px; }
+.outils-titre { max-width: 1180px; margin: 40px auto 14px; font: 700 20px var(--titres); text-align: center; }
+.outils { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; max-width: 1180px; margin: 0 auto; }
+.outil { flex-direction: row; align-items: flex-start; gap: 14px; }
+.outil strong { display: block; font: 700 16px var(--titres); }
+.outil-texte { display: block; margin-top: 3px; color: var(--doux); font-size: 14px; }
+.outil .service-action { display: block; }
+@media (max-width: 1100px) { .services { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 800px) { .outils { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .services { grid-template-columns: repeat(2, minmax(0, 1fr)); } .lien-entete { display: none; } }
+@media (max-width: 420px) { .services { grid-template-columns: 1fr; } }

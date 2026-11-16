@@ -367,7 +367,10 @@ try { etat = fusionner(JSON.parse(localStorage.getItem(CLE_STOCKAGE))); } catch 
 // Arrivée depuis la page d'accueil : /creer?modele=africain ou /creer?type=lettre
 const parametres = new URLSearchParams(location.search);
 if (MODELES.includes(parametres.get("modele"))) { etat.options.modele = parametres.get("modele"); etat.type = "cv"; }
-if (parametres.get("type") === "lettre") etat.type = "lettre";
+// Arrivée depuis une carte « Tous nos services » : /creer?type=admin, type=plan, type=arbre…
+const TYPES_DOCUMENT = ["cv", "lettre", "admin", "plan", "arbre"];
+const typeDemande = TYPES_DOCUMENT.includes(parametres.get("type")) ? parametres.get("type") : null;
+if (typeDemande) etat.type = typeDemande;
 
 const $ = sel => document.querySelector(sel);
 const $$ = sel => [...document.querySelectorAll(sel)];
@@ -1509,6 +1512,12 @@ if (parametres.get("importer") === "1") {
   $("#import-bouton").focus();
 }
 else actualiser();
+// Arrivée par « Adapter mon CV à une offre » (/creer?offre=1) : la carte s'ouvre, prête à recevoir l'annonce.
+if (parametres.get("offre") === "1" && etat.type === "cv") {
+  $("#offre").open = true;
+  $("#offre").scrollIntoView({ block: "start" });
+  $("[data-k='offre']").focus({ preventScroll: true });
+}
 
 // =====================================================================
 // Compte (facultatif) : connexion, et copie du CV sur le serveur pour le
@@ -1614,7 +1623,7 @@ async function envoyer() {
 
 /** Remplace le contenu de l'éditeur par un document du compte. */
 function chargerDocument(reponse) {
-  etat = fusionner({ ...reponse.donnees, type: parametres.get("type") === "lettre" ? "lettre" : etat.type });
+  etat = fusionner({ ...reponse.donnees, type: typeDemande || etat.type });
   try { localStorage.setItem(CLE_STOCKAGE, JSON.stringify(etat)); } catch { /* stockage indisponible */ }
   ecrireSynchro({ doc: reponse.doc, vu: reponse.modifie_le, version: reponse.version, sale: false });
   toutDessiner(); actualiser();
