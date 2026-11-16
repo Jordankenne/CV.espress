@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block titre %}Attestation sur l'honneur : modèle gratuit à remplir en PDF{% endblock %}
+{% block description %}Rédige une attestation sur l'honneur, une procuration ou une attestation de prise en charge : le texte se rédige d'après tes réponses, avec les mentions habituelles. Gratuit, en PDF à signer.{% endblock %}
+{% block contenu %}
+<h1>Faire une attestation sur l'honneur</h1>
+<p class="chapeau">Une attestation sur l'honneur est une déclaration écrite par laquelle tu affirmes qu'un fait est vrai : que tu ne perçois pas de bourse, que tu habites à telle adresse, que tu n'as pas de casier judiciaire, que tu es célibataire… On te la demande souvent dans un dossier, quand tu ne peux pas fournir d'autre justificatif.</p>
+
+<figure class="exemple-image portrait">
+  <img src="/img/exemple_attestation.png" alt="Exemple d'attestation sur l'honneur" width="480" height="679" loading="lazy">
+  <figcaption>Une attestation sur l'honneur faite avec CV.express.</figcaption>
+</figure>
+
+<h2>Ce que doit contenir l'attestation</h2>
+<ul>
+  <li>Le titre « Attestation sur l'honneur ».</li>
+  <li>Ton identité complète : nom, date et lieu de naissance, nationalité, numéro de ta pièce d'identité, adresse.</li>
+  <li>La déclaration elle-même, précise et sans ambiguïté : « atteste sur l'honneur que je ne perçois aucune bourse d'études ».</li>
+  <li>La mention que tu connais les sanctions en cas de fausse déclaration.</li>
+  <li>La formule « pour servir et valoir ce que de droit », le lieu, la date et ta signature manuscrite.</li>
+</ul>
+
+<h2>Attention</h2>
+<p>Une fausse déclaration sur l'honneur est punie par la loi. N'atteste que ce qui est exact. Selon l'administration, la signature doit parfois être légalisée (à la mairie, au commissariat ou au consulat) : renseigne-toi avant de déposer ton dossier.</p>
+
+<h2>Les autres documents du même type</h2>
+<p><strong>Procuration</strong> : tu autorises une autre personne à faire une démarche à ta place (retirer un document, signer, encaisser). Les deux personnes signent, avec les mentions « Bon pour pouvoir » et « Bon pour acceptation de pouvoir ».</p>
+<p><strong>Attestation de prise en charge</strong> : tu t'engages à couvrir les frais d'une personne pendant un séjour (études, visite, soins), souvent pour une demande de visa. Joins les justificatifs de tes ressources.</p>
+
+<h2>Comment faire avec CV.express</h2>
+<ol>
+  <li>Ouvre l'onglet « Documents administratifs » et choisis « Attestation sur l'honneur » (ou « Procuration », « Attestation de prise en charge »).</li>
+  <li>Complète ton identité et écris ce que tu déclares.</li>
+  <li>Le texte se rédige tout seul avec les mentions habituelles. Relis-le, corrige-le si besoin.</li>
+  <li>Télécharge le PDF, imprime-le et signe à la main.</li>
+</ol>
+
+<aside class="appel">
+  <p>Le texte se rédige d'après tes réponses. Gratuit, sans inscription.</p>
+  <a href="{{ p }}/creer?type=admin&amp;genre=attestation" class="bouton principal grand">Rédiger mon attestation</a>
+  <a href="{{ p }}/creer?type=admin&amp;genre=procuration" class="bouton grand">Faire une procuration</a>
+</aside>
+{% endblock %}

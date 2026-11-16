@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block titre %}Piantina di localizzazione: creala gratis in PDF{% endblock %}
+{% block description %}Disegna online la piantina di localizzazione di casa tua o del tuo negozio: strade, incroci, punti di riferimento, coordinate GPS e codice QR. Gratis, in PDF pronto da stampare.{% endblock %}
+{% block contenu %}
+<h1>Fare una piantina di localizzazione, gratis</h1>
+<p class="chapeau">In molte città le strade non hanno nome né numero. Per una pratica amministrativa, una banca, un datore di lavoro o una consegna ti chiedono allora una piantina di localizzazione: un semplice schizzo che mostra come arrivare a casa tua partendo da un luogo che tutti conoscono.</p>
+
+<figure class="exemple-image">
+  <img src="/img/exemple_plan.png" alt="Esempio di piantina di localizzazione: strade, incroci, chiesa, abitazione, coordinate GPS e codice QR" width="680" height="481" loading="lazy">
+  <figcaption>Una piantina fatta con CV.express: punti di riferimento, percorso, contatto, posizione GPS e codice QR.</figcaption>
+</figure>
+
+<h2>Quando serve una piantina?</h2>
+<ul>
+  <li>Pratiche per borse di studio, concorsi o iscrizioni scolastiche.</li>
+  <li>Apertura di un conto bancario o richiesta di prestito.</li>
+  <li>Domande di lavoro, allacciamento all'acqua o all'elettricità.</li>
+  <li>Registrazione di un'impresa o di un negozio.</li>
+  <li>Perché un ospite, un corriere o un taxi trovino il tuo indirizzo.</li>
+</ul>
+
+<h2>Che cosa deve contenere</h2>
+<p><strong>Un punto di partenza che tutti conoscono</strong>: un grande incrocio, una rotonda, un distributore, una chiesa, una moschea, un mercato, una scuola.</p>
+<p><strong>Le strade da seguire</strong>, con le svolte nel verso giusto e delle frecce che indicano la direzione.</p>
+<p><strong>Punti di riferimento lungo il percorso</strong>: un edificio facile da riconoscere a ogni cambio di direzione.</p>
+<p><strong>La tua abitazione ben segnata</strong>, con una breve descrizione: «cancello blu, seconda casa a sinistra dopo il negozio».</p>
+<p><strong>Il tuo nome e il tuo numero di telefono</strong>, per poterti chiamare in caso di dubbio.</p>
+<p><strong>La posizione GPS</strong>, se possibile. Con CV.express, un codice QR stampato sulla piantina apre subito la mappa sul telefono di chi lo scansiona.</p>
+
+<h2>Come fare la piantina con CV.express</h2>
+<ol>
+  <li>Apri la scheda «Piantina di localizzazione». Rispondi alle domande dell'assistente percorso (partenza, svolte, punti di riferimento): disegna una prima piantina per te.</li>
+  <li>Correggila con il mouse o con il dito: sposta una strada, aggiungi un edificio, scrivi un nome.</li>
+  <li>Quando sei a casa, tocca «Usa la mia posizione attuale» per aggiungere le coordinate GPS.</li>
+  <li>Scarica il PDF e stampalo. Sta in una pagina, orizzontale o verticale. Il titolo si può cambiare.</li>
+</ol>
+
+<aside class="appel">
+  <p>L'assistente percorso disegna la piantina per te con poche domande. Gratis, senza registrazione.</p>
+  <a href="{{ p }}/creer?type=plan" class="bouton principal grand">Disegna la mia piantina</a>
+</aside>
+{% endblock %}

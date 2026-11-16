@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block titre %}Family tree: create yours for free as a PDF{% endblock %}
+{% block description %}Create your family tree online: the descendants of an ancestor over several generations, several spouses, dates and places. Free, as a PDF ready to print.{% endblock %}
+{% block contenu %}
+<h1>Create a family tree, for free</h1>
+<p class="chapeau">A family tree shows a family over several generations: an ancestor, their children, their grandchildren. People make one to keep the family's memory alive, for a reunion or a funeral, or because a file requires it, for an inheritance for example.</p>
+
+<figure class="exemple-image">
+  <img src="/img/exemple_arbre.png" alt="Example of a family tree: an ancestor, three unions and their descendants over three generations" width="680" height="481" loading="lazy">
+  <figcaption>A tree made with CV.express: an ancestor, their unions and their descendants.</figcaption>
+</figure>
+
+<h2>Starting from an ancestor</h2>
+<p>On CV.express, the tree grows downwards: you enter an ancestor (a grandfather, a great-grandmother), then their unions, then the children of each union, and so on. It is the clearest way to show all the descendants of one person.</p>
+
+<h2>Several wives or husbands</h2>
+<p>In many families, an ancestor had several unions, each with its own children. The tree shows this directly: each spouse is linked to their children. A child whose other parent is unknown can be added too.</p>
+
+<h2>What to include</h2>
+<ul>
+  <li>Each person's full name, as used in the family.</li>
+  <li>Years of birth and death, if you know them: they help place each generation.</li>
+  <li>The place of birth, when useful (home village, for example).</li>
+</ul>
+<p>Start with what you know, then ask the elders of the family to fill the gaps. You can save your work and come back to it later.</p>
+
+<h2>How to make your tree with CV.express</h2>
+<ol>
+  <li>Open the "Family tree" tab and write the ancestor's name.</li>
+  <li>Add their unions and children, then the children of each child.</li>
+  <li>Choose whether to show dates and places, and set a title ("The Mbarga family").</li>
+  <li>Download the PDF. A large family automatically moves to a bigger page (A3) so it stays readable.</li>
+</ol>
+
+<aside class="appel">
+  <p>Free, no sign-up, a clean PDF to print or share on WhatsApp.</p>
+  <a href="{{ p }}/creer?type=arbre" class="bouton principal grand">Create my family tree</a>
+</aside>
+{% endblock %}

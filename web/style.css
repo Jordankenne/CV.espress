@@ -973,3 +973,9 @@ body:has(#admin) .article { max-width: 1040px; }
 @media (max-width: 800px) { .outils { grid-template-columns: 1fr; } }
 @media (max-width: 640px) { .services { grid-template-columns: repeat(2, minmax(0, 1fr)); } .lien-entete { display: none; } }
 @media (max-width: 420px) { .services { grid-template-columns: 1fr; } }
+
+/* ---------- Pages des services : image d'exemple ---------- */
+.exemple-image { margin: 24px 0 8px; text-align: center; }
+.exemple-image img { width: 100%; max-width: 680px; height: auto; border: 1px solid var(--bord); border-radius: 12px; background: #fff; box-shadow: var(--ombre); }
+.exemple-image.portrait img { max-width: 360px; }
+.exemple-image figcaption { margin-top: 8px; color: var(--doux); font-size: 14px; }

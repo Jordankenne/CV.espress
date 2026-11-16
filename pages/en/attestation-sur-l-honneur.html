@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block titre %}Sworn statement (attestation sur l'honneur): free template in French{% endblock %}
+{% block description %}Write a sworn statement, a power of attorney or a sponsorship statement in French: the text is drafted from your answers with the usual wording. Free, as a PDF to sign.{% endblock %}
+{% block contenu %}
+<h1>Make a sworn statement (« attestation sur l'honneur »)</h1>
+<p class="chapeau">A sworn statement is a written declaration in which you state that a fact is true: that you receive no grant, that you live at a given address, that you are single… It is often requested in a file when you cannot provide any other proof. <strong>The document is written in French</strong>, with the wording used by French-speaking administrations.</p>
+
+<figure class="exemple-image portrait">
+  <img src="/img/exemple_attestation.png" alt="Example of a sworn statement in French" width="480" height="679" loading="lazy">
+  <figcaption>A sworn statement made with CV.express.</figcaption>
+</figure>
+
+<h2>What the statement must contain</h2>
+<ul>
+  <li>The title « Attestation sur l'honneur ».</li>
+  <li>Your full identity: name, date and place of birth, nationality, ID number, address.</li>
+  <li>The declaration itself, precise and unambiguous.</li>
+  <li>A sentence saying you know the penalties for a false declaration.</li>
+  <li>The closing formula, place, date and your handwritten signature.</li>
+</ul>
+
+<h2>Be careful</h2>
+<p>A false sworn statement is punishable by law. Only declare what is true. Depending on the administration, the signature sometimes has to be certified (town hall, police station or consulate): check before you submit your file.</p>
+
+<h2>Other documents of the same kind</h2>
+<p><strong>Power of attorney</strong> (« procuration »): you authorise someone else to carry out a formality on your behalf. Both people sign.</p>
+<p><strong>Sponsorship statement</strong> (« attestation de prise en charge »): you commit to covering someone's costs during a stay (studies, visit, medical care), often for a visa application. Attach proof of your income.</p>
+
+<h2>How to do it with CV.express</h2>
+<ol>
+  <li>Open the "Administrative documents" tab and choose "Sworn statement" (or "Power of attorney", "Sponsorship statement").</li>
+  <li>Fill in your identity and write what you are declaring.</li>
+  <li>The text writes itself with the usual wording. Read it over and edit it if needed.</li>
+  <li>Download the PDF, print it and sign by hand.</li>
+</ol>
+
+<aside class="appel">
+  <p>The text is drafted from your answers. Free, no sign-up.</p>
+  <a href="{{ p }}/creer?type=admin&amp;genre=attestation" class="bouton principal grand">Write my sworn statement</a>
+  <a href="{{ p }}/creer?type=admin&amp;genre=procuration" class="bouton grand">Make a power of attorney</a>
+</aside>
+{% endblock %}

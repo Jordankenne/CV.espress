@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block titre %}Demande administrative : modèle de lettre gratuit en PDF{% endblock %}
+{% block description %}Rédige une demande d'emploi, de stage, de bourse, d'autorisation ou de mutation adressée à une autorité, avec les formules en usage. Le texte se rédige d'après tes réponses. Gratuit, en PDF.{% endblock %}
+{% block contenu %}
+<h1>Rédiger une demande administrative</h1>
+<p class="chapeau">Une demande adressée à un directeur, un ministre, un maire ou un chef de service suit une présentation précise et des formules de politesse attendues. CV.express rédige le texte pour toi d'après tes réponses : tu n'as plus qu'à le relire.</p>
+
+<figure class="exemple-image portrait">
+  <img src="/img/exemple_demande.png" alt="Exemple de demande d'emploi adressée à un directeur général" width="480" height="679" loading="lazy">
+  <figcaption>Une demande d'emploi faite avec CV.express.</figcaption>
+</figure>
+
+<h2>Les demandes proposées</h2>
+<ul>
+  <li><strong>Demande d'emploi</strong> ou <strong>de stage</strong>, à joindre à ton CV.</li>
+  <li><strong>Demande de bourse</strong> ou <strong>d'inscription</strong> dans un établissement.</li>
+  <li><strong>Demande d'autorisation</strong>, <strong>de mutation</strong> ou <strong>d'attribution de terrain</strong>.</li>
+  <li>Toute autre demande, avec un objet que tu choisis.</li>
+</ul>
+<p>Pour contester une décision ou signaler un problème, choisis plutôt <strong>« Réclamation ou recours »</strong> (gracieux ou hiérarchique) dans le même onglet.</p>
+
+<h2>La présentation attendue</h2>
+<p><strong>En haut à gauche</strong> : tes nom, adresse et téléphone. <strong>À droite</strong> : le lieu et la date, puis l'autorité à qui tu écris (« À Monsieur le Directeur Général de… »).</p>
+<p><strong>L'objet</strong> en une ligne : « Demande d'emploi », « Demande de stage ».</p>
+<p><strong>La formule d'appel</strong> reprend le titre de la personne : « Monsieur le Directeur Général, ».</p>
+<p><strong>Le corps</strong> tient en trois parties : ce que tu demandes, pourquoi (ta situation, tes diplômes, ton expérience), puis la formule de fin : « Dans l'attente d'une suite favorable, je vous prie d'agréer, Monsieur le Directeur Général, l'expression de mon profond respect. »</p>
+<p><strong>En bas</strong> : ta signature et la liste des pièces jointes (CV, copies des diplômes…).</p>
+
+<h2>Écrite à la main ?</h2>
+<p>Certaines administrations exigent une demande manuscrite. Dans ce cas, prépare le texte ici, imprime-le, puis recopie-le à la main sur une feuille en gardant la même présentation. Pense au timbre fiscal s'il est demandé, et signe.</p>
+
+<h2>Comment faire avec CV.express</h2>
+<ol>
+  <li>Ouvre l'onglet « Documents administratifs » et choisis « Demande adressée à une autorité ».</li>
+  <li>Choisis la nature de la demande, l'autorité destinataire, et explique ta situation en quelques phrases.</li>
+  <li>Le texte se rédige tout seul. Les passages entre [crochets] restent à compléter. Tu peux ensuite le corriger librement.</li>
+  <li>Télécharge le PDF.</li>
+</ol>
+
+<aside class="appel">
+  <p>Le texte est rédigé d'après tes réponses, avec les formules en usage. Gratuit, sans inscription.</p>
+  <a href="{{ p }}/creer?type=admin&amp;genre=demande" class="bouton principal grand">Rédiger ma demande</a>
+</aside>
+{% endblock %}

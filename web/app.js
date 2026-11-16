@@ -371,6 +371,8 @@ if (MODELES.includes(parametres.get("modele"))) { etat.options.modele = parametr
 const TYPES_DOCUMENT = ["cv", "lettre", "admin", "plan", "arbre"];
 const typeDemande = TYPES_DOCUMENT.includes(parametres.get("type")) ? parametres.get("type") : null;
 if (typeDemande) etat.type = typeDemande;
+// Pages « Demande administrative », « Attestation sur l'honneur » : /creer?type=admin&genre=attestation
+if (typeDemande === "admin" && GENRES_ADMIN.includes(parametres.get("genre"))) etat.admin.genre = parametres.get("genre");
 
 const $ = sel => document.querySelector(sel);
 const $$ = sel => [...document.querySelectorAll(sel)];
@@ -1624,6 +1626,7 @@ async function envoyer() {
 /** Remplace le contenu de l'éditeur par un document du compte. */
 function chargerDocument(reponse) {
   etat = fusionner({ ...reponse.donnees, type: typeDemande || etat.type });
+  if (typeDemande === "admin" && GENRES_ADMIN.includes(parametres.get("genre"))) etat.admin.genre = parametres.get("genre");
   try { localStorage.setItem(CLE_STOCKAGE, JSON.stringify(etat)); } catch { /* stockage indisponible */ }
   ecrireSynchro({ doc: reponse.doc, vu: reponse.modifie_le, version: reponse.version, sale: false });
   toutDessiner(); actualiser();

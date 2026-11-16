@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block titre %}Plan de localisation : fais le tien gratuitement en PDF{% endblock %}
+{% block description %}Dessine en ligne le plan de localisation de ton domicile ou de ton commerce : routes, carrefours, repères, coordonnées GPS et QR code. Gratuit, en PDF prêt à imprimer pour ton dossier.{% endblock %}
+{% block contenu %}
+<h1>Faire un plan de localisation, gratuitement</h1>
+<p class="chapeau">Dans beaucoup de villes, les rues n'ont pas de nom ni de numéro. Pour un dossier administratif, une banque, un employeur ou une livraison, on te demande alors un plan de localisation : un petit croquis qui montre comment arriver chez toi à partir d'un endroit connu de tous.</p>
+
+<figure class="exemple-image">
+  <img src="/img/exemple_plan.png" alt="Exemple de plan de localisation : routes, carrefours, église, domicile, coordonnées GPS et QR code" width="680" height="481" loading="lazy">
+  <figcaption>Un plan fait avec CV.express : repères, itinéraire, contact, position GPS et QR code.</figcaption>
+</figure>
+
+<h2>Quand faut-il un plan de localisation ?</h2>
+<ul>
+  <li>Dossier de bourse, de concours ou d'inscription dans une école.</li>
+  <li>Ouverture d'un compte bancaire ou demande de crédit.</li>
+  <li>Demande d'emploi, de raccordement à l'eau ou à l'électricité.</li>
+  <li>Enregistrement d'une entreprise ou d'un commerce.</li>
+  <li>Pour qu'un visiteur, un livreur ou un taxi trouve ton adresse.</li>
+</ul>
+
+<h2>Ce qu'un bon plan doit contenir</h2>
+<p><strong>Un point de départ que tout le monde connaît</strong> : un grand carrefour, un rond-point, une station-service, une église, une mosquée, un marché, une école. C'est de là que part l'itinéraire.</p>
+<p><strong>Les routes à suivre</strong>, avec les virages dans le bon sens, et des flèches qui montrent la direction.</p>
+<p><strong>Des repères le long du chemin</strong> : un bâtiment facile à reconnaître à chaque changement de direction.</p>
+<p><strong>Ton domicile clairement marqué</strong>, avec une courte description : « portail bleu, deuxième maison à gauche après la boutique ».</p>
+<p><strong>Ton nom et ton numéro de téléphone</strong>, pour qu'on puisse t'appeler en cas de doute.</p>
+<p><strong>La position GPS</strong>, si possible. Avec CV.express, un QR code imprimé sur le plan ouvre directement la carte sur le téléphone de celui qui le scanne.</p>
+
+<h2>Comment faire ton plan avec CV.express</h2>
+<ol>
+  <li>Ouvre l'onglet « Plan de localisation ». Réponds aux questions de l'assistant itinéraire (point de départ, virages, repères) : il dessine un premier plan pour toi.</li>
+  <li>Corrige-le à la souris ou au doigt : déplace une route, ajoute un bâtiment, écris un nom.</li>
+  <li>Quand tu es chez toi, appuie sur « Utiliser ma position actuelle » pour ajouter les coordonnées GPS.</li>
+  <li>Télécharge le PDF et imprime-le. Il tient sur une page, en paysage ou en portrait.</li>
+</ol>
+
+<h2>Conseils</h2>
+<p>Garde le plan simple : un croquis clair vaut mieux qu'une carte très détaillée. Écris les noms tels que les gens du quartier les disent (« Carrefour Vogt », « derrière la pharmacie »). Fais tester ton plan par quelqu'un qui ne connaît pas le chemin avant de l'envoyer.</p>
+
+<aside class="appel">
+  <p>L'assistant itinéraire dessine le plan pour toi en quelques questions. Gratuit, sans inscription.</p>
+  <a href="{{ p }}/creer?type=plan" class="bouton principal grand">Dessiner mon plan de localisation</a>
+</aside>
+{% endblock %}

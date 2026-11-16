@@ -136,7 +136,9 @@ def entetes_securite(reponse):
 # --------------------------------------------------------------------------
 # Adresse -> fichier de pages/. Les guides sont aussi listés dans le plan du site.
 GUIDES = ["modele-cv-afrique", "cv-europass", "cv-sans-experience", "lettre-de-motivation",
-          "cv-ats", "cv-infirmier", "cv-commercial"]
+          "cv-ats", "cv-infirmier", "cv-commercial",
+          # Pages des autres services (plan, arbre, documents administratifs), pour les moteurs de recherche.
+          "plan-de-localisation", "arbre-genealogique", "demande-administrative", "attestation-sur-l-honneur"]
 LEGALES = ["mentions-legales", "confidentialite", "conditions"]
 
 
