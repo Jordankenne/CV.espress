@@ -1,0 +1,38 @@
+\#{ Arbre genealogique : titre, arbre (TikZ fabrique par arbre.py, reduit pour tenir sur la page),
+    legende et note. }
+\BLOCK{include "_preambule.tex.j2"}
+\policesans
+\geometry{\VAR{arbre.papier}\BLOCK{if arbre.paysage}, landscape\BLOCK{endif}, margin=1.2cm}
+\usepackage{tikz}
+\definecolor{chomme}{HTML}{3D6FB6}
+\definecolor{cfemme}{HTML}{C2477A}
+\definecolor{cautre}{HTML}{7A7A7A}
+\definecolor{cdecede}{HTML}{EFEFEF}
+\definecolor{clien}{HTML}{555555}
+\definecolor{cmariage}{HTML}{B8860B}
+\hypersetup{pdftitle={\VAR{arbre.titre}}}
+
+\begin{document}
+\begin{center}
+  {\LARGE\bfseries\color{accent} \VAR{arbre.titre}\par}
+  \BLOCK{if arbre.sous_titre}
+  \vspace{3pt}{\large \VAR{arbre.sous_titre}\par}
+  \BLOCK{endif}
+\end{center}
+\vspace{6pt}
+\vfill
+\begin{center}
+\scalebox{\VAR{arbre.echelle}}{%
+\begin{tikzpicture}
+\VAR{arbre.dessin}
+\end{tikzpicture}}
+\end{center}
+\vfill
+{\scriptsize\color{black!70}
+\textcolor{chomme}{\rule{6pt}{6pt}} Homme \quad \textcolor{cfemme}{\rule{6pt}{6pt}} Femme \quad
+Cadre en pointillés : conjoint \quad
+\textcolor{cmariage}{=} union \quad ° naissance \quad † décès\par}
+\BLOCK{if arbre.note}
+\vspace{4pt}{\small \VAR{arbre.note}\par}
+\BLOCK{endif}
+\end{document}

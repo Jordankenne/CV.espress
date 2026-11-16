@@ -15,6 +15,7 @@
     <button role="tab" data-type="lettre" aria-selected="false">Lettre de motivation</button>
     <button role="tab" data-type="admin" aria-selected="false">Documents administratifs</button>
     <button role="tab" data-type="plan" aria-selected="false">Plan de localisation</button>
+    <button role="tab" data-type="arbre" aria-selected="false">Arbre généalogique</button>
   </nav>
   <div class="outils">
     <button type="button" id="btn-exemple" class="mini">Voir un exemple</button>
@@ -210,6 +211,30 @@
       <details open>
         <summary>Pièces jointes <small>facultatif</small></summary>
         <label>Documents joints à la lettre<input data-k="lettre.pj" maxlength="300" placeholder="Curriculum vitae" data-suggere="pieces"></label>
+      </details>
+    </div>
+
+    <!-- ===================== Arbre généalogique ===================== -->
+    <div class="pour-arbre" hidden>
+      <details open>
+        <summary>Ton arbre</summary>
+        <div class="grille">
+          <label class="large">Titre<input data-k="arbre.titre" maxlength="120"></label>
+          <label class="large">Sous-titre <small>facultatif</small>
+            <input data-k="arbre.sous_titre" maxlength="200" placeholder="Famille Mbarga, descendance de Mbarga Jean"></label>
+          <label>Format du papier
+            <select data-k="arbre.papier"><option value="A4">A4</option><option value="A3">A3 (grande famille)</option></select></label>
+          <label class="case"><input type="checkbox" data-k="arbre.options.dates"> Afficher les dates</label>
+          <label class="case"><input type="checkbox" data-k="arbre.options.lieux"> Afficher les lieux</label>
+          <label class="large">Note en bas de page <small>facultatif</small>
+            <input data-k="arbre.note" maxlength="400" placeholder="Établi par …, à l'occasion de …"></label>
+        </div>
+      </details>
+      <details open>
+        <summary>La famille <small>en partant de l'ancêtre</small></summary>
+        <p class="conseil">Commence par l'ancêtre le plus ancien que tu connais. Ajoute ses conjoints, puis, pour chaque couple, ses enfants ; et ainsi de suite pour chaque enfant. Une personne peut avoir plusieurs conjoints, chacun avec ses enfants.</p>
+        <p class="conseil" id="arbre-compte" role="status"></p>
+        <div id="arbre-editeur"></div>
       </details>
     </div>
 
@@ -527,5 +552,6 @@
 <script src="/traductions.js"></script>
 <script src="/app.js"></script>
 <script src="/plan.js"></script>
+<script src="/arbre.js"></script>
 </body>
 </html>

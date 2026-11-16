@@ -287,6 +287,9 @@ function etatVide() {
     // Plan de localisation : les éléments dessinés (web/plan.js), et ce qui est écrit autour.
     plan: { titre: "PLAN DE LOCALISATION", sous_titre: "", orientation: "paysage", cadre: true,
             description: "", contact: "", gps: null, elements: [] },
+    // Arbre généalogique : la descendance d'un ancêtre (web/arbre.js), unions multiples possibles.
+    arbre: { titre: "ARBRE GÉNÉALOGIQUE", sous_titre: "", papier: "A4", note: "", options: { dates: true, lieux: false },
+             racine: { nom: "", sexe: "", naissance: "", deces: "", decede: false, lieu: "", unions: [] } },
   };
 }
 
@@ -296,13 +299,13 @@ function fusionner(source) {
   if (!source || typeof source !== "object") return e;
   // Un cv.json « nu » (sans enveloppe cv/lettre/options) est accepté aussi.
   const s = source.cv || source.lettre || source.options ? source : { cv: source };
-  if (["lettre", "admin", "plan"].includes(s.type)) e.type = s.type;
-  for (const bloc of ["options", "cv", "lettre", "admin", "plan"]) {
+  if (["lettre", "admin", "plan", "arbre"].includes(s.type)) e.type = s.type;
+  for (const bloc of ["options", "cv", "lettre", "admin", "plan", "arbre"]) {
     if (s[bloc] && typeof s[bloc] === "object") Object.assign(e[bloc], s[bloc]);
   }
   // Un champ texte doit rester une chaîne, quoi que contienne le fichier importé.
   const modele = etatVide();
-  for (const bloc of ["cv", "lettre", "options", "admin", "plan"]) {
+  for (const bloc of ["cv", "lettre", "options", "admin", "plan", "arbre"]) {
     for (const [cle, defaut] of Object.entries(modele[bloc])) {
       if (typeof defaut === "string" && typeof e[bloc][cle] !== "string") e[bloc][cle] = defaut;
     }
@@ -321,6 +324,9 @@ function fusionner(source) {
   e.plan.elements = Array.isArray(e.plan.elements) ? e.plan.elements.filter(x => x && typeof x === "object") : [];
   if (!["paysage", "portrait"].includes(e.plan.orientation)) e.plan.orientation = "paysage";
   if (typeof e.plan.cadre !== "boolean") e.plan.cadre = true;
+  if (!e.arbre.racine || typeof e.arbre.racine !== "object" || Array.isArray(e.arbre.racine)) e.arbre.racine = modele.arbre.racine;
+  if (typeof e.arbre.racine.nom !== "string") e.arbre.racine.nom = "";
+  e.arbre.options = { ...modele.arbre.options, ...(e.arbre.options && typeof e.arbre.options === "object" ? e.arbre.options : {}) };
   if (!Array.isArray(e.admin.signataires)) e.admin.signataires = [];
   e.admin.auto = e.admin.auto !== false;
   for (const [bloc, cle] of [["cv", "etat_civil"], ["lettre", "destinataire"], ["admin", "destinataire"], ["admin", "mandataire"], ["admin", "beneficiaire"]]) {
@@ -840,8 +846,9 @@ $("#admin-rediger").addEventListener("click", () => {
 // ---------- Onglets CV / Lettre, conseil, jauge ----------
 function afficherType() {
   for (const b of $$(".onglets button")) b.setAttribute("aria-selected", String(b.dataset.type === etat.type));
-  for (const el of $$(".pour-cv, .pour-lettre, .pour-admin, .pour-plan")) el.hidden = !el.classList.contains("pour-" + etat.type);
-  $("#import").hidden = etat.type === "admin" || etat.type === "plan";
+  for (const el of $$(".pour-cv, .pour-lettre, .pour-admin, .pour-plan, .pour-arbre")) el.hidden = !el.classList.contains("pour-" + etat.type);
+  $("#import").hidden = ["admin", "plan", "arbre"].includes(etat.type);
+  if (typeof arbreAfficher === "function") arbreAfficher();
   if (typeof planAfficher === "function") planAfficher();
   afficherAdmin();
   $("#conseil-modele").textContent = CONSEILS[etat.options.modele] || "";
@@ -963,6 +970,7 @@ function montrerErreur(message) {
 
 function pret() {
   if (etat.type === "plan") return etat.plan.elements.length ? "" : "Dessine ton plan, ou utilise l'assistant itinéraire.";
+  if (etat.type === "arbre") return etat.arbre.racine.nom.trim() ? "" : "Indique le nom de l'ancêtre pour voir l'aperçu.";
   if (!etat.cv.nom.trim()) return "Renseigne ton nom pour voir l'aperçu.";
   if (etat.type === "lettre" && !texteLettre(etat.lettre)) return "Écris le texte de la lettre pour voir l'aperçu.";
   if (etat.type === "admin" && !etat.admin.corps.trim()) return "Écris le texte du document pour voir l'aperçu.";
@@ -975,7 +983,7 @@ async function appeler(chemin, signal) {
     reponse = await fetch(chemin, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: etat.type, cv: etat.cv, lettre: etat.lettre, admin: documentAdmin(), plan: etat.plan, options: etat.options }),
+      body: JSON.stringify({ type: etat.type, cv: etat.cv, lettre: etat.lettre, admin: documentAdmin(), plan: etat.plan, arbre: etat.arbre, options: etat.options }),
       signal,
     });
   } catch (e) {
@@ -1035,7 +1043,7 @@ async function telecharger(bouton) {
     const nom = etat.cv.nom.trim().normalize("NFD").replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "");
     const lien = document.createElement("a");
     lien.href = URL.createObjectURL(pdf);
-    lien.download = etat.type === "plan" ? "Plan_de_localisation.pdf"
+    lien.download = etat.type === "arbre" ? "Arbre_genealogique.pdf" : etat.type === "plan" ? "Plan_de_localisation.pdf"
       : `${{ lettre: "Lettre", admin: "Document" }[etat.type] || "CV"}_${nom || "document"}.pdf`;
     document.body.append(lien);
     lien.click();
@@ -1052,6 +1060,7 @@ async function telecharger(bouton) {
 function nomFichier() {
   const nom = etat.cv.nom.trim().normalize("NFD").replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "");
   if (etat.type === "plan") return "Plan_de_localisation.pdf";
+  if (etat.type === "arbre") return "Arbre_genealogique.pdf";
   return `${{ lettre: "Lettre", admin: "Document", plan: "Plan" }[etat.type] || "CV"}_${nom || "document"}.pdf`;
 }
 

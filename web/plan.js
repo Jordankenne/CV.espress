@@ -577,4 +577,5 @@
   });
   dessinerEtapes();
   choisirOutil("selection");
+  planAfficher();       // app.js a déjà affiché l'onglet avant que ce script soit chargé
 })();

@@ -19,6 +19,7 @@ from flask import Flask, Response, jsonify, render_template, request
 from markupsafe import Markup, escape
 
 import admin
+import arbre
 import comptes
 import importer
 import moteur
@@ -296,6 +297,8 @@ def fabriquer_pdf():
     if corps.get("type") == "lettre":
         pdf = moteur.generer_lettre(corps.get("cv"), corps.get("lettre"), corps.get("options"))
         prefixe = "Lettre"
+    elif corps.get("type") == "arbre":
+        return arbre.generer_arbre(corps.get("arbre"), corps.get("options")), "Arbre_genealogique.pdf"
     elif corps.get("type") == "plan":
         # Plan de localisation : le dessin de l'éditeur, mis en page avec titre, contact et GPS.
         return plan.generer_plan(corps.get("plan"), corps.get("options")), "Plan_de_localisation.pdf"
