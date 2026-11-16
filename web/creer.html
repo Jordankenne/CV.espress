@@ -222,6 +222,8 @@
               <option value="demande">Demande adressée à une autorité (emploi, stage, bourse, terrain…)</option>
               <option value="attestation">Attestation sur l'honneur</option>
               <option value="procuration">Procuration</option>
+              <option value="reclamation">Réclamation ou recours</option>
+              <option value="prise_en_charge">Attestation de prise en charge (visa, études)</option>
             </select></label>
           <label class="admin-demande">Objet de la demande
             <select data-k="admin.nature">
@@ -245,7 +247,7 @@
         <p class="conseil">Ton nom et tes coordonnées viennent de la rubrique « Identité ». CV.express fournit des modèles de documents : ce n'est pas un conseil juridique.</p>
       </details>
 
-      <details open class="admin-demande">
+      <details open class="admin-lettre">
         <summary>Destinataire <small>l'autorité à qui tu écris</small></summary>
         <div class="grille">
           <label class="large">Autorité<input data-k="admin.destinataire.nom" maxlength="120" placeholder="À Monsieur le Maire de la commune de…" list="choix-autorites" autocomplete="off"></label>
@@ -267,6 +269,26 @@
           <input data-k="admin.precision" id="admin-precision" maxlength="300"></label>
         <label>Ta situation et tes raisons <small>qui tu es, pourquoi tu fais cette demande</small>
           <textarea data-k="admin.motif" rows="4" maxlength="1500"></textarea></label>
+      </details>
+
+      <details open class="admin-reclamation">
+        <summary>Ta réclamation</summary>
+        <div class="grille">
+          <label class="large">Type
+            <select data-k="admin.recours">
+              <option value="reclamation">Réclamation (signaler un problème, demander réparation)</option>
+              <option value="gracieux">Recours gracieux (demander à l'auteur de revoir sa décision)</option>
+              <option value="hierarchique">Recours hiérarchique (s'adresser à son supérieur)</option>
+            </select></label>
+          <label class="large">Ce que tu contestes <small>la décision ou le problème</small>
+            <input data-k="admin.conteste" maxlength="300" placeholder="le refus de ma demande de bourse"></label>
+          <label>Référence <small>n° de dossier, de facture…</small><input data-k="admin.reference" maxlength="120"></label>
+          <label>En date du<input data-k="admin.date_fait" maxlength="80" placeholder="3 octobre 2026"></label>
+          <label class="large">Tes arguments <small>les faits, et pourquoi ce n'est pas juste</small>
+            <textarea data-k="admin.arguments" rows="4" maxlength="2000"></textarea></label>
+          <label class="large">Ce que tu demandes <small>annulation, remboursement, réexamen…</small>
+            <input data-k="admin.reparation" maxlength="300" placeholder="réexaminer mon dossier"></label>
+        </div>
       </details>
 
       <details open class="admin-identite">
@@ -307,6 +329,30 @@
         </div>
       </details>
 
+      <details open class="admin-prise_en_charge">
+        <summary>La personne que tu prends en charge</summary>
+        <div class="grille">
+          <label>Nom et prénom<input data-k="admin.beneficiaire.nom" maxlength="120"></label>
+          <label>Lien avec toi<input data-k="admin.beneficiaire.lien" maxlength="80" placeholder="mon neveu, ma fille, mon ami…"></label>
+          <label>Date et lieu de naissance<input data-k="admin.beneficiaire.naissance" maxlength="160" placeholder="le 3 mai 2004 à Dakar"></label>
+          <label>Passeport ou pièce d'identité<input data-k="admin.beneficiaire.piece" maxlength="160" placeholder="passeport n° …"></label>
+          <label>Domicile actuel<input data-k="admin.beneficiaire.domicile" maxlength="200"></label>
+          <label>Motif du séjour
+            <select data-k="admin.sejour">
+              <option value="etudes">Études</option>
+              <option value="visite">Visite familiale ou tourisme</option>
+              <option value="soins">Soins médicaux</option>
+            </select></label>
+          <label class="large">Pays, ville ou établissement<input data-k="admin.destination" maxlength="200" placeholder="l'Université de Modène, en Italie"></label>
+          <label>Du<input data-k="admin.debut" maxlength="80" placeholder="1er septembre 2026"></label>
+          <label>Au <small>ou « toute la durée des études »</small><input data-k="admin.fin" maxlength="80"></label>
+          <label class="large">Ce que tu prends en charge
+            <input data-k="admin.frais" maxlength="300"></label>
+          <label class="large">Ta profession et tes ressources <small>facultatif, rassure l'administration</small>
+            <input data-k="admin.ressources" maxlength="200" placeholder="commerçant, revenus mensuels de 900 000 FCFA"></label>
+        </div>
+      </details>
+
       <details open>
         <summary>Lieu, date et texte</summary>
         <div class="grille">
@@ -314,7 +360,7 @@
           <label>Date<input data-k="admin.date" maxlength="60"></label>
           <label class="large">Texte du document <small>rédigé d'après tes réponses ; tu peux le corriger</small>
             <textarea data-k="admin.corps" id="admin-corps" rows="12" maxlength="6000"></textarea></label>
-          <label class="large admin-demande">Pièces jointes <small>facultatif</small>
+          <label class="large admin-lettre">Pièces jointes <small>facultatif</small>
             <input data-k="admin.pj" maxlength="300" placeholder="Curriculum vitae, copie des diplômes, copie de la carte d'identité"></label>
         </div>
         <p class="conseil" id="admin-etat" role="status"></p>

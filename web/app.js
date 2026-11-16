@@ -261,7 +261,7 @@ const TEXTES_LETTRE = {
           conclusion: "Resto a disposizione per un colloquio conoscitivo." } },
 };
 
-const GENRES_ADMIN = ["demande", "attestation", "procuration"];
+const GENRES_ADMIN = ["demande", "attestation", "procuration", "reclamation", "prise_en_charge"];
 
 function etatVide() {
   return {
@@ -281,6 +281,8 @@ function etatVide() {
              domicile: "", piece_type: "la carte nationale d'identité", piece_numero: "",
              declaration: "", mandataire: {}, demarche: "", validite: "", lieu: "", pj: "",
              date: new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }),
+             recours: "reclamation", conteste: "", reference: "", date_fait: "", arguments: "", reparation: "",
+             beneficiaire: {}, sejour: "etudes", destination: "", debut: "", fin: "", frais: "", ressources: "",
              corps: "", objet: "", titre: "", signataires: [], auto: true },
   };
 }
@@ -315,7 +317,7 @@ function fusionner(source) {
   if (!GENRES_ADMIN.includes(e.admin.genre)) e.admin.genre = "demande";
   if (!Array.isArray(e.admin.signataires)) e.admin.signataires = [];
   e.admin.auto = e.admin.auto !== false;
-  for (const [bloc, cle] of [["cv", "etat_civil"], ["lettre", "destinataire"], ["admin", "destinataire"], ["admin", "mandataire"]]) {
+  for (const [bloc, cle] of [["cv", "etat_civil"], ["lettre", "destinataire"], ["admin", "destinataire"], ["admin", "mandataire"], ["admin", "beneficiaire"]]) {
     const v = e[bloc][cle];
     e[bloc][cle] = v && typeof v === "object" && !Array.isArray(v) ? { ...v } : {};
   }
@@ -701,6 +703,8 @@ const DEMANDES = {
 const NOTES_ADMIN = {
   demande: "Certaines administrations exigent une demande écrite à la main : dans ce cas, recopie ce texte sur une feuille en gardant la même présentation. Pense au timbre fiscal s'il est demandé, et signe.",
   attestation: "Signe l'attestation à la main. Une fausse déclaration sur l'honneur est punie par la loi.",
+  reclamation: "Garde une copie de ta lettre et des pièces jointes. Envoie-la en recommandé avec accusé de réception, ou dépose-la contre un récépissé daté : c'est la preuve de ta démarche. Un recours contre une décision a souvent un délai (deux mois, par exemple) : agis vite.",
+  prise_en_charge: "Signe à la main, puis fais légaliser ta signature (mairie, commissariat ou consulat). Joins une copie de ta pièce d'identité et des justificatifs de ressources (bulletins de salaire, relevés bancaires, attestation de travail). Le consulat peut demander d'autres pièces : renseigne-toi.",
   procuration: "Les deux personnes signent à la main, en recopiant la mention placée au-dessus de leur nom. Joins une copie de ta pièce d'identité. Beaucoup d'administrations demandent une signature légalisée (mairie, commissariat ou consulat) : renseigne-toi avant.",
 };
 const sansPoint = t => t.trim().replace(/[.\s]+$/, "");
@@ -747,6 +751,43 @@ function redigerAdmin() {
     ];
     a.signataires = [{ role: "Le mandant", nom: cv.nom.trim(), mention: "« Bon pour pouvoir »" },
                      { role: "Le mandataire", nom: (m.nom || "").trim(), mention: "« Bon pour acceptation de pouvoir »" }];
+  } else if (a.genre === "prise_en_charge") {
+    const b = a.beneficiaire || {};
+    const motif = { etudes: "ses études", visite: "son séjour", soins: "ses soins médicaux" }[a.sejour] || "son séjour";
+    const frais = (a.frais || "").trim() || (a.sejour === "etudes"
+      ? "les frais de scolarité, l'hébergement, la nourriture, l'assurance maladie et le billet de retour"
+      : "l'hébergement, la nourriture, l'assurance maladie et le billet de retour");
+    a.titre = "ATTESTATION DE PRISE EN CHARGE";
+    paragraphes = [
+      `${identite}${(a.ressources || "").trim() ? `, ${sansPoint(a.ressources)}` : ""}, `
+        + `m'engage à prendre en charge ${ou(b.nom, "nom et prénom de la personne prise en charge")}`
+        + `${(b.lien || "").trim() ? `, ${sansPoint(b.lien)}` : ""}, né(e) ${ou(b.naissance, "date et lieu de naissance")}`
+        + `, titulaire de la pièce suivante : ${ou(b.piece, "passeport ou pièce d'identité et son numéro")}`
+        + ((b.domicile || "").trim() ? `, demeurant à ${sansPoint(b.domicile)}` : "")
+        + `, pendant toute la durée de ${motif} ${(a.destination || "").trim() ? `à ${suite(a.destination, "à")}` : "[pays, ville ou établissement]"}`
+        + `, du ${ou(a.debut, "date d'arrivée")} au ${ou(a.fin, "date de départ")}.`,
+      `Je m'engage à couvrir ${sansPoint(frais)}, de sorte que la personne prise en charge ne soit à la charge ni de l'État ni des organismes publics.`,
+      "En foi de quoi, la présente attestation est établie pour servir et valoir ce que de droit.",
+    ];
+  } else if (a.genre === "reclamation") {
+    const civilite = civiliteAutorite(a.destinataire.nom) || "[Monsieur le…]";
+    const conteste = ou(a.conteste, "la décision ou le problème contesté");
+    const precisions = [(a.reference || "").trim() && `référence ${sansPoint(a.reference)}`,
+                        (a.date_fait || "").trim() && `en date du ${sansPoint(a.date_fait)}`].filter(Boolean).join(", ");
+    const sujet = sansPoint(suite(conteste, "contre")) + (precisions ? ` (${precisions})` : "");
+    a.objet = ({ gracieux: "Recours gracieux contre ", hierarchique: "Recours hiérarchique contre " }[a.recours]
+               || "Réclamation concernant ") + sujet;
+    a.objet = a.objet.length > 280 ? a.objet.slice(0, 277) + "…" : a.objet;
+    paragraphes = [
+      `${civilite},`,
+      a.recours === "reclamation"
+        ? `J'ai l'honneur de porter à votre connaissance la situation suivante : ${sujet}.`
+        : `J'ai l'honneur de former, par la présente, un recours ${a.recours === "gracieux" ? "gracieux" : "hiérarchique"} contre ${sujet}.`,
+      (a.arguments || "").trim() || "[Expose les faits, dans l'ordre, et explique pourquoi cette décision ou cette situation n'est pas justifiée.]",
+      `C'est pourquoi je vous saurais gré de bien vouloir ${suite(ou(a.reparation, "ce que tu demandes"), "de")}.`,
+      ...((a.pj || "").trim() ? ["Vous trouverez ci-joint les pièces justificatives."] : []),
+      `Dans l'attente de votre réponse, je vous prie d'agréer, ${civilite}, l'expression de ma considération distinguée.`,
+    ];
   } else {
     const [objet, defaut] = DEMANDES[a.nature] || DEMANDES.autre;
     const civilite = civiliteAutorite(a.destinataire.nom) || "[Monsieur le…]";
@@ -762,11 +803,22 @@ function redigerAdmin() {
   const zone = $("#admin-corps");
   if (zone) zone.value = a.corps;
 }
+/** Ce qui part au serveur : un document sans destinataire (attestation, procuration, prise en
+ *  charge) n'imprime pas l'autorité ni les pièces jointes saisies pour une demande ou un recours. */
+function documentAdmin() {
+  const a = etat.admin;
+  return ["demande", "reclamation"].includes(a.genre) ? a : { ...a, destinataire: {}, pj: "" };
+}
 function afficherAdmin() {
   const a = etat.admin, t = window.tr || (x => x);
   for (const g of GENRES_ADMIN) for (const el of $$(".admin-" + g)) el.hidden = a.genre !== g;
-  for (const el of $$(".admin-identite")) el.hidden = a.genre === "demande";
+  const lettre = a.genre === "demande" || a.genre === "reclamation";
+  for (const el of $$(".admin-lettre")) el.hidden = !lettre;
+  for (const el of $$(".admin-identite")) el.hidden = lettre;
   $("#admin-note").textContent = t(NOTES_ADMIN[a.genre]);
+  $("[data-k='admin.frais']").placeholder = a.sejour === "etudes"
+    ? "les frais de scolarité, l'hébergement, la nourriture, l'assurance maladie et le billet de retour"
+    : "l'hébergement, la nourriture, l'assurance maladie et le billet de retour";
   $("#admin-precision").placeholder = (DEMANDES[a.nature] || DEMANDES.autre)[1];
   $("#admin-rediger").hidden = a.auto;
   const manques = (a.corps.match(/\[[^\]]*\]/g) || []).length;
@@ -915,7 +967,7 @@ async function appeler(chemin, signal) {
     reponse = await fetch(chemin, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: etat.type, cv: etat.cv, lettre: etat.lettre, admin: etat.admin, options: etat.options }),
+      body: JSON.stringify({ type: etat.type, cv: etat.cv, lettre: etat.lettre, admin: documentAdmin(), options: etat.options }),
       signal,
     });
   } catch (e) {
