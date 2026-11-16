@@ -256,7 +256,10 @@ def initialiser(app):
     if PRODUCTION:
         # Seules les requêtes adressées au vrai nom du site sont acceptées (plus localhost,
         # pour le contrôle de santé du conteneur).
-        noms = [urlsplit(ADRESSE_SITE).hostname, "localhost", "127.0.0.1"]
+        principal = urlsplit(ADRESSE_SITE).hostname
+        # Nom de domaine propre : la variante en « www. » est acceptée aussi (app.py la redirige).
+        variante = principal[4:] if principal.startswith("www.") else "www." + principal
+        noms = [principal, variante, "localhost", "127.0.0.1"]
         # Render donne aussi au service une adresse en .onrender.com (contrôle de santé).
         # Hugging Face Spaces aussi (SPACE_HOST, ex. ton-nom-cv-express.hf.space).
         for variable in ("RENDER_EXTERNAL_HOSTNAME", "SPACE_HOST"):

@@ -55,3 +55,14 @@ def test_compteurs_d_usage(client):
     assert donnees["cles"]["pdf:plan"][-1] == 2
     statistiques.compter("pdf:plan")                       # s'ajoute à ce qui est déjà en base
     assert statistiques.lire(30)["cles"]["pdf:plan"][-1] == 3
+
+
+def test_une_seule_adresse_publique(client, monkeypatch):
+    monkeypatch.setattr(comptes, "ADRESSE_SITE", "https://moncvexpress.com")
+    monkeypatch.setenv("RENDER_EXTERNAL_HOSTNAME", "cv-espress.onrender.com")
+    for hote in ("www.moncvexpress.com", "cv-espress.onrender.com"):
+        r = client.get("/cv-ats?x=1", headers={"Host": hote})
+        assert r.status_code == 301 and r.headers["Location"] == "https://moncvexpress.com/cv-ats?x=1"
+    assert client.get("/sante", headers={"Host": "cv-espress.onrender.com"}).status_code == 200
+    assert client.get("/", headers={"Host": "moncvexpress.com"}).status_code == 200
+    assert client.post("/api/contact", json={}, headers={"Host": "www.moncvexpress.com"}).status_code != 301

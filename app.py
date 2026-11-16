@@ -19,7 +19,9 @@ import time
 import unicodedata
 from collections import defaultdict, deque
 
-from flask import Flask, Response, abort, jsonify, render_template, request
+from urllib.parse import urlsplit
+
+from flask import Flask, Response, abort, jsonify, redirect, render_template, request
 from markupsafe import Markup, escape
 
 import admin
@@ -115,6 +117,24 @@ def _sortir(fiche):
         fiche[0] -= 1
         if fiche[0] == 0:
             _en_cours.pop(request.remote_addr, None)
+
+
+@app.before_request
+def adresse_unique():
+    """Une seule adresse publique : www.moncvexpress.com et l'ancienne adresse en .onrender.com
+    renvoient (redirection permanente) vers ADRESSE_SITE, à la même page. Google ne voit ainsi
+    qu'un seul site, et les liens déjà partagés continuent de marcher.
+    /sante n'est jamais redirigé (contrôle de santé de Render, moniteur de réveil)."""
+    if not comptes.ADRESSE_SITE or request.path == "/sante" or request.method not in ("GET", "HEAD"):
+        return None
+    principal = urlsplit(comptes.ADRESSE_SITE).hostname
+    hote = (request.host or "").split(":")[0].lower()
+    autres = {"www." + principal if not principal.startswith("www.") else principal[4:],
+              os.environ.get("RENDER_EXTERNAL_HOSTNAME", "").lower()} - {"", principal}
+    if hote in autres:
+        cible = comptes.ADRESSE_SITE + request.full_path.rstrip("?")
+        return redirect(cible, code=301)
+    return None
 
 
 @app.after_request
