@@ -85,7 +85,7 @@
     {%- endfor %}
   </div>
   <h3 class="outils-titre">{{ a.outils_titre }}</h3>
-  <div class="outils">
+  <div class="outils-compte">
     {%- for nom, titre, texte, bouton, lien in a.outils %}
     <a class="outil" href="{{ p }}{{ lien }}">
       <span class="service-icone">{{ icone(nom) }}</span>
