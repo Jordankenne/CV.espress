@@ -37,6 +37,42 @@ def compter(cle, nombre=1):
             _fil.start()
 
 
+# Robots connus (moteurs de recherche, surveillance, aperçus de liens, outils) : reconnus à leur
+# « User-Agent ». Leurs visites sont comptées à part (« robot:<nom> »), pas dans les pages vues.
+_ROBOTS = [("Google", "googlebot"), ("Google", "google-inspectiontool"), ("Google", "googleother"),
+           ("Google", "adsbot-google"), ("Google", "mediapartners-google"), ("Google", "storebot-google"),
+           ("Bing", "bingbot"), ("Bing", "bingpreview"), ("Yandex", "yandex"), ("Baidu", "baiduspider"),
+           ("DuckDuckGo", "duckduckbot"), ("Apple", "applebot"), ("UptimeRobot", "uptimerobot"),
+           ("Facebook", "facebookexternalhit"), ("Facebook", "meta-externalagent"), ("WhatsApp", "whatsapp"),
+           ("Telegram", "telegrambot"), ("LinkedIn", "linkedinbot"), ("Twitter/X", "twitterbot"),
+           ("Ahrefs", "ahrefsbot"), ("Semrush", "semrushbot"), ("IA", "gptbot"), ("IA", "claudebot"),
+           ("IA", "chatgpt-user"), ("IA", "perplexitybot"), ("IA", "ccbot"), ("IA", "bytespider"),
+           ("Render", "render/health")]
+_ROBOT_GENERIQUE = ("bot", "crawler", "spider", "crawl", "slurp", "python-requests", "curl/", "wget/",
+                    "go-http-client", "headlesschrome", "monitor", "scrapy", "httpclient")
+
+
+def robot(agent):
+    """Nom du robot si le User-Agent en est un (« Google », « UptimeRobot », « Autre robot »), sinon None."""
+    agent = (agent or "").lower()
+    if not agent:
+        return "Autre robot"                      # un navigateur envoie toujours un User-Agent
+    for nom, motif in _ROBOTS:
+        if motif in agent:
+            return nom
+    return "Autre robot" if any(m in agent for m in _ROBOT_GENERIQUE) else None
+
+
+def compter_visite(page, langue, agent):
+    """Une page vue : par une personne (page:… et langue_site:…) ou par un robot (robot:…)."""
+    nom = robot(agent)
+    if nom:
+        compter(f"robot:{nom}")
+    else:
+        compter(f"page:{page}")
+        compter(f"langue_site:{langue}")
+
+
 def vider():
     """Écrit dans la base ce qui est en mémoire. Remet les compteurs en mémoire en cas d'échec."""
     with _verrou:

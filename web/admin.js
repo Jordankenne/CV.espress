@@ -424,7 +424,9 @@ async function chargerUsage() {
   $("#t-pdf").textContent = entier(pdfJour);
   $("#t-pdf-aide").textContent = `aujourd'hui · ${entier(sommeCles(c => c.startsWith("pdf:") && c !== "pdf:cv_avec_qr", 7))} sur 7 jours`;
   $("#t-visites").textContent = entier(sommeCles(c => c.startsWith("page:"), 1));
-  $("#t-visites-aide").textContent = `pages vues aujourd'hui · ${entier(sommeCles(c => c.startsWith("page:"), 7))} sur 7 jours`;
+  const robots = sommeCles(c => c.startsWith("robot:"), 1);
+  $("#t-visites-aide").textContent = `pages vues par des personnes aujourd'hui · ${entier(sommeCles(c => c.startsWith("page:"), 7))} sur 7 jours`
+    + (robots ? ` · ${entier(robots)} visite${robots > 1 ? "s" : ""} de robots en plus` : "");
   dessinerBarres();
   const lignes = [];
   const ajouter = (libelle, serie, classe) => {
@@ -442,9 +444,16 @@ async function chargerUsage() {
   const pages = Object.keys(cles).filter(c => c.startsWith("page:")).sort((a, b) => somme(cles[b], 30) - somme(cles[a], 30));
   if (pages.length) {
     const tete = element("tr", undefined, "usage-groupe");
-    tete.append(Object.assign(element("th", "Pages vues"), { colSpan: 4 }));
+    tete.append(Object.assign(element("th", "Pages vues par des personnes"), { colSpan: 4 }));
     lignes.push(tete);
     for (const cle of pages) { connues.add(cle); ajouter(cle.slice(5) === "accueil" ? "Accueil" : cle.slice(5) === "creer" ? "Éditeur" : "/" + cle.slice(5), cles[cle]); }
+  }
+  const robotsCles = Object.keys(cles).filter(c => c.startsWith("robot:")).sort((a, b) => somme(cles[b], 30) - somme(cles[a], 30));
+  if (robotsCles.length) {
+    const tete = element("tr", undefined, "usage-groupe");
+    tete.append(Object.assign(element("th", "Robots (moteurs de recherche, surveillance, aperçus de liens…)"), { colSpan: 4 }));
+    lignes.push(tete);
+    for (const cle of robotsCles) { connues.add(cle); ajouter(cle.slice(6), cles[cle]); }
   }
   for (const cle of Object.keys(cles).filter(c => !connues.has(c)).sort()) ajouter(cle, cles[cle]);
   $("#usage").replaceChildren(...lignes);

@@ -251,8 +251,7 @@ def page(nom, langue="fr", chemin=None, **extra):
     """Affiche pages/<nom>.html dans la langue demandée. Les pages longues (guides, pages
     légales) ont un fichier par langue : pages/en/<nom>.html, pages/it/<nom>.html."""
     if nom not in ("admin", "compte", "erreur"):
-        statistiques.compter(f"page:{nom}")
-        statistiques.compter(f"langue_site:{langue}")
+        statistiques.compter_visite(nom, langue, request.user_agent.string)
     fichier = f"{nom}.html"
     if langue != "fr" and (moteur.RACINE / "pages" / langue / fichier).is_file():
         fichier = f"{langue}/{fichier}"
@@ -322,8 +321,7 @@ def page_traduite(langue, nom):
     if nom in GUIDES or nom in LEGALES or nom == "compte":
         return page(nom, langue)
     if nom == "creer":
-        statistiques.compter("page:creer")
-        statistiques.compter(f"langue_site:{langue}")
+        statistiques.compter_visite("creer", langue, request.user_agent.string)
         return app.send_static_file("creer.html")      # traduit dans le navigateur (traductions.js)
     abort(404)
 
@@ -357,8 +355,7 @@ def plan_du_site():
 
 @app.get("/creer")
 def editeur():
-    statistiques.compter("page:creer")
-    statistiques.compter("langue_site:fr")
+    statistiques.compter_visite("creer", "fr", request.user_agent.string)
     return app.send_static_file("creer.html")
 
 

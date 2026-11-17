@@ -66,3 +66,13 @@ def test_une_seule_adresse_publique(client, monkeypatch):
     assert client.get("/sante", headers={"Host": "cv-espress.onrender.com"}).status_code == 200
     assert client.get("/", headers={"Host": "moncvexpress.com"}).status_code == 200
     assert client.post("/api/contact", json={}, headers={"Host": "www.moncvexpress.com"}).status_code != 301
+
+
+def test_les_robots_ne_comptent_pas_comme_des_visites(client):
+    statistiques.vider()
+    client.get("/", headers={"User-Agent": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"})
+    client.get("/contact", headers={"User-Agent": "Mozilla/5.0+(compatible; UptimeRobot/2.0; http://www.uptimerobot.com/)"})
+    client.get("/", headers={"User-Agent": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/131.0 Mobile Safari/537.36"})
+    cles = statistiques.lire(1)["cles"]
+    assert cles["page:accueil"] == [1] and "page:contact" not in cles
+    assert cles["robot:Google"] == [1] and cles["robot:UptimeRobot"] == [1]

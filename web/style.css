@@ -1041,7 +1041,8 @@ body:has(#admin) .article { max-width: 1040px; }
 .admin-sommaire a:hover { border-color: var(--primaire); color: var(--primaire); }
 .article .admin-titre { margin: 26px 0 12px; font-size: 21px; scroll-margin-top: 60px; }
 .tuile-aide { color: var(--doux); font-size: 12px; line-height: 1.35; }
-.tuile-accent { border-color: var(--primaire); background: var(--primaire-doux); }
+/* Mise en avant par une bordure seulement : lisible en mode clair, sombre ou forcé par le navigateur. */
+.tuile-accent { border-color: var(--primaire); box-shadow: inset 4px 0 0 var(--primaire); }
 .tuile-accent strong { color: var(--primaire); }
 .admin-deux { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 .admin-deux .carte-espace { margin-bottom: 0; }
