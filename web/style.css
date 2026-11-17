@@ -1066,3 +1066,5 @@ body:has(#admin) .article { max-width: 1040px; }
 @media (max-width: 480px) { .barres li { grid-template-columns: 1fr 3em; } .barres .barre-fond { grid-column: 1 / -1; grid-row: 2; } }
 .admin-details > summary { padding: 4px 0; font: 700 16px var(--titres); }
 .admin-details > summary::before { content: none; counter-increment: none; display: none; }
+.tableau-admin td.pdfs { white-space: normal; }
+.tableau-admin td.pdfs .pdf { margin: 2px 4px 2px 0; }

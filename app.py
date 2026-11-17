@@ -400,10 +400,11 @@ def exemple_pdf(modele):
 # --------------------------------------------------------------------------
 # API
 # --------------------------------------------------------------------------
-def fabriquer_pdf():
-    """Lit la requête {type, cv, lettre, options} et renvoie (pdf, nom de fichier).
+def fabriquer_pdf(corps=None):
+    """Lit la requête {type, cv, lettre, options} (ou le dict « corps ») et renvoie (pdf, nom de fichier).
     Lève ErreurDonnees / ErreurCompilation."""
-    corps = requetes.lire_json()
+    if corps is None:
+        corps = requetes.lire_json()
     if not isinstance(corps, dict):
         raise moteur.ErreurDonnees("Requête invalide.")
     if corps.get("type") == "lettre":
@@ -620,6 +621,43 @@ def cv_en_ligne_pdf(code):
     nom = re.sub(r"[^A-Za-z0-9]+", "_", nom).strip("_")[:40]
     return _sans_index(Response(pdf, mimetype="application/pdf", headers={
         "Content-Disposition": f'inline; filename="CV_{nom or "document"}.pdf"'}))
+
+
+# --------------------------------------------------------------------------
+# Administration : le PDF d'un document enregistré dans un compte, fabriqué à la demande
+# (les PDF ne sont jamais stockés). Réservé aux administrateurs ; chaque ouverture est
+# notée dans le journal, sans adresse ni contenu. Non compté dans les statistiques d'usage.
+# --------------------------------------------------------------------------
+@app.get("/api/admin/documents/<int:numero>/pdf")
+def admin_pdf(numero):
+    if not admin.admin_connecte():
+        abort(404)
+    genre = request.args.get("type", "cv")
+    if genre not in ("cv", "lettre", "admin", "plan", "arbre"):
+        abort(404)
+    with comptes._base() as b:
+        ligne = b.execute("SELECT contenu, compte_id FROM documents WHERE id = ?", (comptes._numero(numero),)).fetchone()
+    if not ligne:
+        abort(404)
+    donnees = json.loads(ligne[0])
+    if genre not in moteur.pdf_possibles(donnees):
+        return jsonify(erreur="Ce document ne contient pas encore ce type de document."), 404
+    adm = moteur._dico(donnees.get("admin"))
+    if adm.get("genre") not in ("demande", "reclamation"):     # comme dans l'éditeur (documentAdmin)
+        adm = {**adm, "destinataire": {}, "pj": ""}
+    corps = {"type": genre, "cv": donnees.get("cv"), "lettre": donnees.get("lettre"), "admin": adm,
+             "plan": donnees.get("plan"), "arbre": donnees.get("arbre"), "options": donnees.get("options")}
+    reponse = _admin_pdf_fabrique(corps)
+    if isinstance(reponse, Response) and reponse.status_code == 200:
+        admin._journal(f"PDF consulté ({genre})", document=comptes._numero(numero), compte=ligne[1])
+    return reponse
+
+
+@avec_erreurs
+def _admin_pdf_fabrique(corps):
+    document, nom = fabriquer_pdf(corps)
+    return Response(document, mimetype="application/pdf", headers={
+        "Content-Disposition": f'inline; filename="{nom}"', "Cache-Control": "no-store"})
 
 
 # QR codes déjà fabriqués (une image ne change jamais pour un même code). Bornés en nombre.

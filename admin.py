@@ -22,6 +22,7 @@ from flask import Blueprint, abort, current_app, jsonify, request
 from werkzeug.security import check_password_hash
 
 import comptes as c
+import moteur
 
 admin = Blueprint("admin", __name__, url_prefix="/api/admin")
 admin.before_request(c._meme_site)          # même protection contre les requêtes d'autres sites
@@ -151,6 +152,14 @@ def _journal(action, **numeros):
                             ", ".join(f"{k} n°{v}" for k, v in numeros.items()))
 
 
+def _pdf_possibles(contenu):
+    """Les PDF que ce document peut produire."""
+    try:
+        return moteur.pdf_possibles(json.loads(contenu))
+    except ValueError:
+        return []
+
+
 def _introuvable(quoi="Ce compte"):
     return jsonify(erreur=f"{quoi} n'existe pas ou n'existe plus."), 404
 
@@ -162,15 +171,16 @@ def fiche_compte(numero):
         compte = b.execute("SELECT id, email, cree_le, vu_le, prenom, nom FROM comptes WHERE id = ?", (numero,)).fetchone()
         if not compte:
             return _introuvable()
-        documents = b.execute("""SELECT id, nom, modifie_le, version, LENGTH(contenu) FROM documents
+        documents = b.execute("""SELECT id, nom, modifie_le, version, LENGTH(contenu), contenu FROM documents
                                  WHERE compte_id = ? ORDER BY modifie_le DESC, id DESC""", (numero,)).fetchall()
         lien = b.execute("SELECT expire_le FROM reinitialisations WHERE compte_id = ?", (numero,)).fetchone()
     _journal("fiche consultée", compte=numero)
     return jsonify(id=compte[0], email=compte[1], cree_le=compte[2], vu_le=compte[3], prenom=compte[4], nom=compte[5],
                    admin=compte[1] in adresses_admins(),
                    lien_en_cours=bool(lien and lien[0] >= time.time()),
-                   documents=[{"doc": d, "nom": n, "modifie_le": m, "version": v, "volume": t}
-                              for d, n, m, v, t in documents])
+                   documents=[{"doc": d, "nom": n, "modifie_le": m, "version": v, "volume": t,
+                               "pdf": _pdf_possibles(contenu)}
+                              for d, n, m, v, t, contenu in documents])
 
 
 @admin.patch("/comptes/<int:numero>")

@@ -164,6 +164,8 @@ for (const bouton of document.querySelectorAll("[data-fermer]")) {
   bouton.addEventListener("click", () => bouton.closest("dialog").close());
 }
 
+const LIBELLES_PDF = { cv: "CV", lettre: "Lettre", admin: "Document admin.", plan: "Plan", arbre: "Arbre" };
+
 async function ouvrirFiche(numero, garderMessage) {
   const r = await api("GET", `/comptes/${numero}`);
   if (!r.ok) { message(r.corps.erreur || "Impossible d'ouvrir ce compte."); return; }
@@ -181,10 +183,21 @@ async function ouvrirFiche(numero, garderMessage) {
     const voir = element("button", "Ouvrir", "bouton petit");
     voir.type = "button";
     voir.addEventListener("click", () => ouvrirDocument(d.doc));
+    voir.title = "Lire et corriger les données du document";
     const actions = element("td", undefined, "actions");
     actions.append(voir);
+    // Les PDF que ce document peut produire : fabriqués à la demande, ouverts dans un nouvel onglet.
+    const pdfs = element("td", undefined, "pdfs");
+    for (const genre of d.pdf || []) {
+      const lien = element("a", LIBELLES_PDF[genre], "bouton petit pdf");
+      lien.href = `/api/admin/documents/${d.doc}/pdf?type=${genre}`;
+      lien.target = "_blank"; lien.rel = "noopener";
+      lien.title = `Ouvrir le PDF (${LIBELLES_PDF[genre]})`;
+      pdfs.append(lien);
+    }
+    if (!(d.pdf || []).length) pdfs.append(element("span", "aucun", "note"));
     ligne.append(element("td", d.nom, "email"), element("td", date(d.modifie_le)), element("td", String(d.version), "nombre"),
-                 element("td", taille(d.volume), "nombre"), actions);
+                 element("td", taille(d.volume), "nombre"), pdfs, actions);
     corps.append(ligne);
   }
   $("#fiche-vide").hidden = f.documents.length > 0;

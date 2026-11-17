@@ -183,3 +183,22 @@ def test_les_actions_de_l_administration_sont_journalisees_par_defaut():
     import logging
     import app as application
     assert application.app.logger.getEffectiveLevel() <= logging.INFO
+
+
+def test_l_administrateur_ouvre_les_pdf_d_un_document(admin, inscrire, client, caplog):
+    import logging
+    awa = inscrire("awa@exemple.org", ip="10.0.0.9")
+    doc = awa.put(f"{API}/donnees", json={"nouveau": True, "donnees": {
+        "cv": {"nom": "Awa Exemple"}, "lettre": {"parties": {"accroche": "Madame, Monsieur."}},
+        "plan": {"elements": [{"type": "ici", "x": 10, "y": 10, "nom": "ICI"}]}}}).get_json()["doc"]
+    compte = admin.get(f"{ADMIN}/comptes?q=awa").get_json()["comptes"][0]["id"]
+    fiche = admin.get(f"{ADMIN}/comptes/{compte}").get_json()
+    assert fiche["documents"][0]["pdf"] == ["cv", "lettre", "plan"]
+    with caplog.at_level(logging.INFO):
+        r = admin.get(f"/api/admin/documents/{doc}/pdf?type=lettre")
+    assert r.status_code == 200 and r.data[:5] == b"%PDF-" and "inline" in r.headers["Content-Disposition"]
+    assert f"document n°{doc}" in caplog.text and "awa@exemple.org" not in caplog.text
+    assert admin.get(f"/api/admin/documents/{doc}/pdf?type=arbre").status_code == 404      # pas d'arbre
+    # Ni le titulaire, ni un visiteur : la page n'existe pas pour eux.
+    assert awa.get(f"/api/admin/documents/{doc}/pdf?type=cv").status_code == 404
+    assert client.get(f"/api/admin/documents/{doc}/pdf?type=cv").status_code == 404

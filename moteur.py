@@ -779,6 +779,33 @@ def generer_lettre(donnees, lettre, options=None):
     return compiler(rendre_latex(f"lettre_{contexte['o']['modele_lettre']}.tex.j2", contexte), fichiers, "lettre")
 
 
+def pdf_possibles(donnees):
+    """Types de PDF qu'un document enregistré peut produire : cv, lettre, admin, plan, arbre."""
+    d = _dico(donnees)
+    cv, lettre, adm = _dico(d.get("cv")), _dico(d.get("lettre")), _dico(d.get("admin"))
+    plan_, arbre_ = _dico(d.get("plan")), _dico(d.get("arbre"))
+    a_un_nom = bool(_texte(cv.get("nom")))
+    parties = _dico(lettre.get("parties"))
+    types = []
+    if a_un_nom:
+        types.append("cv")
+    if a_un_nom and (any(_texte(v) for v in parties.values()) or _texte(lettre.get("corps"))):
+        types.append("lettre")
+    # Document administratif : l'éditeur pré-remplit toujours un modèle de texte ; on ne le compte que
+    # s'il a vraiment été commencé (même règle que « Mon espace »).
+    commence = (d.get("type") == "admin" or adm.get("auto") is False
+                or any(_texte(adm.get(c)) for c in ("declaration", "motif", "precision", "conteste", "arguments",
+                                                     "demarche", "piece_numero"))
+                or any(_texte(_dico(adm.get(c)).get("nom")) for c in ("destinataire", "mandataire", "beneficiaire")))
+    if a_un_nom and commence and isinstance(adm.get("corps"), str) and adm["corps"].strip():
+        types.append("admin")
+    if _liste(plan_.get("elements"), 1):
+        types.append("plan")
+    if _texte(_dico(arbre_.get("racine")).get("nom")):
+        types.append("arbre")
+    return types
+
+
 def pdf_vers_images(pdf, pages_max=3, resolution=96):
     """PDF -> liste d'images JPEG (bytes), une par page, pour l'aperçu à l'écran.
     Pourquoi des images ? Beaucoup de navigateurs de téléphone n'affichent pas
