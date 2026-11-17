@@ -288,7 +288,7 @@ def infos_editeur():
             return escape(valeur.strip())
         return Markup("<mark>[À COMPLÉTER dans editeur.json : {}]</mark>").format(a_completer)
 
-    return {"editeur": infos, "champ": champ}
+    return {"editeur": infos, "champ": champ, "annee": time.strftime("%Y")}
 
 
 @app.get("/")
@@ -479,9 +479,21 @@ def apercu():
     return jsonify(pages=["data:image/jpeg;base64," + base64.b64encode(i).decode() for i in images])
 
 
+# Télécharger un document demande un compte (gratuit). L'éditeur et l'aperçu restent libres.
+# COMPTE_OBLIGATOIRE=0 chez l'hébergeur : téléchargement sans compte, comme avant.
+app.config["COMPTE_POUR_PDF"] = os.environ.get("COMPTE_OBLIGATOIRE", "1").strip() != "0"
+
+
 @app.post("/api/pdf")
-@avec_erreurs
 def pdf():
+    if app.config["COMPTE_POUR_PDF"] and not comptes.compte_connecte():
+        return jsonify(erreur="Crée ton compte gratuit (ou connecte-toi) pour télécharger ton document.",
+                       compte_requis=True), 401
+    return fabriquer_le_pdf()
+
+
+@avec_erreurs
+def fabriquer_le_pdf():
     """Le document final, en PDF."""
     document, nom = fabriquer_pdf()
     # Statistiques : type de document et langue du document (rien d'autre).

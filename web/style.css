@@ -1018,3 +1018,51 @@ body:has(#admin) .article { max-width: 1040px; }
 .contact-direct .fiche { margin: 0; }
 .contact-direct a { overflow-wrap: anywhere; }
 .contact-ou { margin: 6px 0 12px; color: var(--doux); font-size: 15px; }
+
+/* ---------- Inscription : prénom et nom côte à côte ---------- */
+.compte-noms { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+.compte-noms .erreur-compte, .compte-noms .bouton { grid-column: 1 / -1; justify-self: start; }
+@media (max-width: 420px) { .compte-noms { grid-template-columns: 1fr; } }
+
+/* ---------- Pied de page : signature ---------- */
+.pied-bas { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; margin-top: 14px; }
+.pied-bas .langues { margin-top: 0; }
+.signature { margin: 0; color: var(--doux); font-size: 13px; }
+.signature strong { color: var(--texte); letter-spacing: .04em; }
+
+/* ---------- Administration : tableau de bord ---------- */
+.admin-tete { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 20px; margin-bottom: 14px; }
+.admin-tete h1 { margin: 0; }
+.admin-tete .note { margin: 4px 0 0; }
+.admin-surtitre { margin: 0 0 2px; color: var(--primaire); font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.admin-tete-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.admin-sommaire { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: 6px; margin: 0 -4px 10px; padding: 8px 4px; background: var(--fond); }
+.admin-sommaire a { padding: 5px 12px; border: 1px solid var(--bord); border-radius: 99px; background: var(--carte); color: var(--texte); font-size: 14px; font-weight: 600; text-decoration: none; }
+.admin-sommaire a:hover { border-color: var(--primaire); color: var(--primaire); }
+.article .admin-titre { margin: 26px 0 12px; font-size: 21px; scroll-margin-top: 60px; }
+.tuile-aide { color: var(--doux); font-size: 12px; line-height: 1.35; }
+.tuile-accent { border-color: var(--primaire); background: var(--primaire-doux); }
+.tuile-accent strong { color: var(--primaire); }
+.admin-deux { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.admin-deux .carte-espace { margin-bottom: 0; }
+.admin .carte-espace h3 { margin: 0 0 4px; font: 700 17px var(--titres); }
+.admin .carte-espace > .note { margin: 0 0 12px; }
+.periodes { display: inline-flex; gap: 4px; margin: 6px 0 14px; padding: 3px; border: 1px solid var(--bord); border-radius: 99px; background: var(--fond); }
+.periodes button { padding: 4px 12px; border: 0; border-radius: 99px; background: none; color: var(--doux); font: 600 13px var(--corps); cursor: pointer; }
+.periodes button[aria-pressed="true"] { background: var(--carte); color: var(--primaire); box-shadow: var(--ombre); }
+.barres { margin: 0; padding: 0; list-style: none; }
+.barres li { display: grid; grid-template-columns: minmax(120px, 11em) 1fr 3em; align-items: center; gap: 10px; margin: 0 0 10px; font-size: 14px; }
+.barre-fond { height: 12px; border-radius: 99px; background: var(--fond); overflow: hidden; }
+.barre-remplie { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--primaire), var(--soleil)); transition: width .3s; }
+.barre-valeur { text-align: right; font-variant-numeric: tabular-nums; }
+.admin-details { margin-top: 18px; }
+.admin-details > summary { cursor: pointer; font-weight: 700; }
+.admin-details[open] > summary { margin-bottom: 12px; }
+.personne-nom { display: block; }
+.personne-nom.vide { color: var(--doux); font-weight: 400; font-style: italic; }
+.personne-email { display: block; color: var(--doux); font-size: 13px; }
+.admin-pied { margin-top: 22px; text-align: center; }
+@media (max-width: 800px) { .admin-deux { grid-template-columns: 1fr; } }
+@media (max-width: 480px) { .barres li { grid-template-columns: 1fr 3em; } .barres .barre-fond { grid-column: 1 / -1; grid-row: 2; } }
+.admin-details > summary { padding: 4px 0; font: 700 16px var(--titres); }
+.admin-details > summary::before { content: none; counter-increment: none; display: none; }

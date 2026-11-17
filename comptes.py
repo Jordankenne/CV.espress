@@ -157,7 +157,9 @@ def _schema(postgres):
             empreinte TEXT NOT NULL,
             jeton     TEXT NOT NULL,           -- change à chaque suppression/changement : invalide les sessions
             cree_le   {entier} NOT NULL,
-            vu_le     {entier} NOT NULL)""",
+            vu_le     {entier} NOT NULL,
+            prenom    TEXT NOT NULL DEFAULT '',
+            nom       TEXT NOT NULL DEFAULT '')""",
         # Un compte peut garder plusieurs documents (un CV et sa lettre), par exemple un par offre.
         # « version » augmente à chaque enregistrement : un appareil qui enregistre une version
         # périmée est refusé (409) au lieu d'écraser le travail fait entre-temps sur un autre.
@@ -289,6 +291,15 @@ def _creer_tables():
         maintenant = int(time.time())
         b.execute("DELETE FROM invitations WHERE expire_le < ?", (maintenant,))
         b.execute("DELETE FROM reinitialisations WHERE expire_le < ?", (maintenant,))
+        # Base créée avant le prénom et le nom dans les comptes.
+        if POSTGRES:
+            for colonne in ("prenom", "nom"):
+                b.execute(f"ALTER TABLE comptes ADD COLUMN IF NOT EXISTS {colonne} TEXT NOT NULL DEFAULT ''")
+        else:
+            existantes = {colonne[1] for colonne in b.execute("PRAGMA table_info(comptes)")}
+            for colonne in ("prenom", "nom"):
+                if colonne not in existantes:
+                    b.execute(f"ALTER TABLE comptes ADD COLUMN {colonne} TEXT NOT NULL DEFAULT ''")
         if not POSTGRES:
             # Ancienne table (un seul CV par compte) : son contenu devient le premier document.
             if b.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'donnees'").fetchone():
@@ -457,7 +468,8 @@ def _sauvegardes_regulieres(journal):
 # Les réussites ne comptent pas. Les e-mails envoyés (inscription, mot de passe oublié) sont
 # limités par adresse visée et par adresse IP, pour qu'on ne puisse pas inonder une boîte.
 FENETRE_S = 15 * 60
-LIMITES = {"paire": 8, "ip": 20, "email": 100, "lien_email": 3, "lien_ip": 10, "jeton_ip": 10}
+LIMITES = {"paire": 8, "ip": 20, "email": 100, "lien_email": 3, "lien_ip": 10, "jeton_ip": 10,
+           "inscription_ip": 10}
 _echecs = defaultdict(deque)
 _verrou = threading.Lock()
 
@@ -568,13 +580,17 @@ def _sans_nul(texte):
 @comptes.get("")
 def etat():
     compte = compte_connecte()
+    # Le navigateur sait ainsi s'il doit demander un compte avant un téléchargement (COMPTE_OBLIGATOIRE).
+    requis = current_app.config.get("COMPTE_POUR_PDF", True)
     if not compte:
-        return jsonify(connecte=False, email=None)
+        return jsonify(connecte=False, email=None, compte_requis_pour_pdf=requis)
     # Pour la page « Mon espace » : dates du compte et de la dernière sauvegarde du CV.
     with _base() as b:
-        cree_le, vu_le = b.execute("SELECT cree_le, vu_le FROM comptes WHERE id = ?", (compte[0],)).fetchone()
+        cree_le, vu_le, prenom, nom = b.execute("SELECT cree_le, vu_le, prenom, nom FROM comptes WHERE id = ?",
+                                                (compte[0],)).fetchone()
         sauvegarde = b.execute("SELECT MAX(modifie_le) FROM documents WHERE compte_id = ?", (compte[0],)).fetchone()
-    return jsonify(connecte=True, email=compte[1], cree_le=cree_le, vu_le=vu_le,
+    return jsonify(connecte=True, email=compte[1], cree_le=cree_le, vu_le=vu_le, prenom=prenom, nom=nom,
+                   compte_requis_pour_pdf=requis,
                    modifie_le=sauvegarde[0] if sauvegarde else None)
 
 
@@ -584,12 +600,95 @@ def _cles_echec(email):
     return (("paire", (ip, email)), ("ip", ip), ("email", email))
 
 
+NOM_PERSONNE_MAX = 60
+
+
+def _nom_personne(valeur):
+    return " ".join(_sans_nul(valeur).split())[:NOM_PERSONNE_MAX] if isinstance(valeur, str) else ""
+
+
 @comptes.post("/inscription")
 def inscription():
-    """Inscription en deux temps : ici on envoie un lien à l'adresse indiquée ; c'est en
-    l'ouvrant qu'on choisit son mot de passe et que le compte est créé (/nouveau-mot-de-passe).
-    La réponse est la même que l'adresse ait déjà un compte ou non."""
-    return _envoyer_un_lien("inscription")
+    """Inscription en une étape : prénom, nom, adresse e-mail, mot de passe (deux fois). Le compte
+    est créé et connecté aussitôt ; un e-mail de bienvenue part à l'adresse indiquée.
+    L'adresse n'est pas vérifiée : si quelqu'un utilise celle d'un autre, son vrai titulaire reçoit
+    le message de bienvenue et peut reprendre le compte avec « Mot de passe oublié »."""
+    corps = _corps()
+    prenom, nom = _nom_personne(corps.get("prenom")), _nom_personne(corps.get("nom"))
+    email = corps.get("email")
+    email = _sans_nul(email).strip().lower()[:120] if isinstance(email, str) else ""
+    mdp, confirmation = corps.get("mot_de_passe"), corps.get("confirmation")
+    langue = corps.get("langue") if corps.get("langue") in _DUREES else "fr"
+    cle = ("inscription_ip", request.remote_addr)
+    if _bloque(cle):
+        return jsonify(erreur="Trop d'inscriptions depuis cette connexion. Réessaie dans un quart d'heure."), 429
+    if not prenom or not nom:
+        return jsonify(erreur="Indique ton prénom et ton nom.", champ="prenom" if not prenom else "nom"), 400
+    if not _EMAIL_OK.match(email):
+        return jsonify(erreur="Adresse e-mail invalide.", champ="email"), 400
+    if not isinstance(mdp, str) or not MDP_MIN <= len(mdp) <= MDP_MAX:
+        return jsonify(erreur=f"Le mot de passe doit contenir au moins {MDP_MIN} caractères.", champ="mot_de_passe"), 400
+    if mdp.lower() in (email, email.split("@")[0]):
+        return jsonify(erreur="Choisis un mot de passe différent de ton adresse e-mail.", champ="mot_de_passe"), 400
+    if confirmation != mdp:
+        return jsonify(erreur="Les deux mots de passe ne sont pas identiques.", champ="confirmation"), 400
+    _noter(cle)
+    maintenant, jeton = int(time.time()), secrets.token_hex(16)
+    empreinte = generate_password_hash(mdp)
+    with _base() as b:
+        if b.execute("SELECT 1 FROM comptes WHERE email = ?", (email,)).fetchone():
+            return jsonify(erreur="Cette adresse a déjà un compte. Connecte-toi, ou choisis « Mot de passe oublié ».",
+                           champ="email", deja=True), 409
+        cid = b.execute("""INSERT INTO comptes (email, empreinte, jeton, cree_le, vu_le, prenom, nom)
+                           VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id""",
+                        (email, empreinte, jeton, maintenant, maintenant, prenom, nom)).fetchone()[0]
+        b.execute("DELETE FROM invitations WHERE email = ?", (email,))
+    _ouvrir_session(cid, jeton)
+    sujet, texte = _TEXTES_BIENVENUE[langue]
+    prefixe = {"en": "/en", "it": "/it"}.get(langue, "")
+    texte = texte.format(prenom=prenom, email=email, lien=f"{racine_site()}{prefixe}/compte",
+                         oubli=f"{racine_site()}{prefixe}/compte?oubli=1")
+    threading.Thread(target=envoyer_email, args=(email, sujet, texte, "bienvenue", current_app.logger),
+                     daemon=True).start()
+    return jsonify(connecte=True, email=email, prenom=prenom, nom=nom, nouveau_compte=True), 201
+
+
+_TEXTES_BIENVENUE = {
+    "fr": ("Bienvenue sur CV.express : ton compte est créé",
+           "Bonjour {prenom},\n\nTon compte CV.express est créé avec l'adresse {email}.\n"
+           "Tes documents sont enregistrés dans ton compte : tu les retrouves depuis n'importe quel appareil, "
+           "dans « Mon espace » :\n\n{lien}\n\n"
+           "Si tu n'as pas créé ce compte, quelqu'un a utilisé ton adresse : choisis un nouveau mot de passe ici "
+           "pour en reprendre le contrôle, puis supprime-le depuis « Mon espace » si tu le souhaites :\n\n{oubli}\n\n"
+           "À bientôt,\nCV.express\n"),
+    "en": ("Welcome to CV.express: your account has been created",
+           "Hello {prenom},\n\nYour CV.express account has been created with the address {email}.\n"
+           "Your documents are saved in your account: you can find them on any device, in “My space”:\n\n{lien}\n\n"
+           "If you did not create this account, someone used your address: choose a new password here to take "
+           "control of it, then delete it from “My space” if you wish:\n\n{oubli}\n\n"
+           "See you soon,\nCV.express\n"),
+    "it": ("Benvenuto su CV.express: il tuo account è stato creato",
+           "Ciao {prenom},\n\nIl tuo account CV.express è stato creato con l'indirizzo {email}.\n"
+           "I tuoi documenti sono salvati nel tuo account: li ritrovi da qualsiasi dispositivo, in «Il mio spazio»:\n\n{lien}\n\n"
+           "Se non hai creato tu questo account, qualcuno ha usato il tuo indirizzo: scegli qui una nuova password per "
+           "riprenderne il controllo, poi eliminalo da «Il mio spazio» se lo desideri:\n\n{oubli}\n\n"
+           "A presto,\nCV.express\n"),
+}
+
+
+@comptes.patch("/profil")
+def modifier_profil():
+    """Prénom et nom du compte (Mon espace)."""
+    compte = compte_connecte()
+    if not compte:
+        return _non_connecte()
+    corps = _corps()
+    prenom, nom = _nom_personne(corps.get("prenom")), _nom_personne(corps.get("nom"))
+    if not prenom or not nom:
+        return jsonify(erreur="Indique ton prénom et ton nom."), 400
+    with _base() as b:
+        b.execute("UPDATE comptes SET prenom = ?, nom = ? WHERE id = ?", (prenom, nom, compte[0]))
+    return jsonify(prenom=prenom, nom=nom)
 
 
 @comptes.post("/connexion")
@@ -723,7 +822,12 @@ def envoyer_email(email, sujet, texte, genre, journal, repondre_a=None):
         _envoyer_par_brevo(email, sujet, texte, genre, journal, repondre_a)
         return
     if not SMTP_HOTE:
-        journal.warning("SMTP non configuré : e-mail non envoyé (%s).\n%s", genre, texte)
+        # En développement : le texte n'est écrit que pour les e-mails à lien (il faut pouvoir
+        # l'ouvrir) ; jamais celui des autres, qui contient l'adresse ou un message personnel.
+        if genre in ("invitation", "deja", "oubli"):
+            journal.warning("SMTP non configuré : e-mail non envoyé (%s).\n%s", genre, texte)
+        else:
+            journal.warning("SMTP non configuré : e-mail non envoyé (%s).", genre)
         return
     message = EmailMessage()
     message["Subject"], message["From"], message["To"] = sujet, EMAIL_EXPEDITEUR, email

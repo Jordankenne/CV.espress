@@ -552,12 +552,18 @@
   <form id="compte-form" novalidate>
     <h2 id="compte-titre">Se connecter</h2>
     <p class="conseil" id="compte-intro">Retrouve ton CV et ta lettre depuis n'importe quel appareil.</p>
+    <div class="compte-noms" id="compte-noms" hidden>
+      <label>Prénom<input id="compte-prenom" maxlength="60" autocomplete="given-name"></label>
+      <label>Nom de famille<input id="compte-nom" maxlength="60" autocomplete="family-name"></label>
+    </div>
     <label>Adresse e-mail<input type="email" id="compte-email" maxlength="120" autocomplete="username" required></label>
-    <label id="compte-mdp-ligne">Mot de passe
+    <label id="compte-mdp-ligne">Mot de passe <small id="compte-mdp-aide" hidden>8 caractères au minimum</small>
       <input type="password" id="compte-mdp" minlength="8" maxlength="200" autocomplete="current-password" required></label>
-    <p class="conseil" id="compte-info-inscription" hidden>En créant un compte, tu acceptes que ton CV, ta lettre et ta photo soient enregistrés sur nos serveurs pour que tu puisses les retrouver (voir la <a href="/confidentialite" target="_blank" rel="noopener">politique de confidentialité</a>).</p>
+    <label id="compte-confirmation-ligne" hidden>Confirme le mot de passe
+      <input type="password" id="compte-confirmation" minlength="8" maxlength="200" autocomplete="new-password"></label>
+    <label class="case"><input type="checkbox" id="compte-voir-mdp"> Afficher le mot de passe</label>
+    <p class="conseil" id="compte-info-inscription" hidden>En créant un compte, tu acceptes que tes documents (photo comprise) soient enregistrés sur nos serveurs pour que tu puisses les retrouver (voir la <a href="/confidentialite" target="_blank" rel="noopener">politique de confidentialité</a>).</p>
     <p id="compte-erreur" class="erreur-compte" role="alert" hidden></p>
-    <p id="compte-envoye" class="conseil" role="status" hidden>C'est presque fini : nous venons d'envoyer un e-mail à cette adresse. Ouvre le lien qu'il contient pour choisir ton mot de passe (il est valable 24 heures). Ton CV reste sur cet appareil en attendant. Si tu ouvres le lien sur un autre appareil, reviens ensuite ici et connecte-toi avec ton adresse et ce mot de passe.</p>
     <button type="submit" class="bouton principal" id="compte-valider">Se connecter</button>
     <p class="bascule" id="compte-oubli-ligne"><a class="lien" href="/compte?oubli=1">Mot de passe oublié ?</a></p>
     <p class="bascule"><span id="compte-question">Pas encore de compte ?</span>

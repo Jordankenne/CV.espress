@@ -8,14 +8,20 @@
 <!-- ===================== Visiteur non connecté ===================== -->
 <section id="espace-porte" class="espace-porte" hidden>
   <h1 id="porte-titre">Se connecter</h1>
-  <p class="chapeau">Retrouve ton CV et ta lettre depuis n'importe quel appareil. Le compte est gratuit et facultatif.</p>
+  <p class="chapeau" id="porte-chapeau">Retrouve tes documents depuis n'importe quel appareil. Le compte est gratuit.</p>
   <form id="porte-form" class="carte-espace" novalidate>
+    <div class="compte-noms" id="porte-noms" hidden>
+      <label>Prénom<input id="porte-prenom" maxlength="60" autocomplete="given-name"></label>
+      <label>Nom de famille<input id="porte-nom" maxlength="60" autocomplete="family-name"></label>
+    </div>
     <label>Adresse e-mail<input type="email" id="porte-email" maxlength="120" autocomplete="username" required></label>
-    <label id="porte-mdp-ligne">Mot de passe
+    <label id="porte-mdp-ligne">Mot de passe <small id="porte-mdp-aide" hidden>8 caractères au minimum</small>
       <input type="password" id="porte-mdp" minlength="8" maxlength="200" autocomplete="current-password" required></label>
-    <p class="note" id="porte-info" hidden>En créant un compte, tu acceptes que ton CV, ta lettre et ta photo soient enregistrés sur nos serveurs pour que tu puisses les retrouver (voir la <a href="{{ p }}/confidentialite">politique de confidentialité</a>).</p>
+    <label id="porte-confirmation-ligne" hidden>Confirme le mot de passe
+      <input type="password" id="porte-confirmation" minlength="8" maxlength="200" autocomplete="new-password"></label>
+    <label class="case"><input type="checkbox" id="porte-voir-mdp"> Afficher le mot de passe</label>
+    <p class="note" id="porte-info" hidden>En créant un compte, tu acceptes que tes documents (photo comprise) soient enregistrés sur nos serveurs pour que tu puisses les retrouver (voir la <a href="{{ p }}/confidentialite">politique de confidentialité</a>).</p>
     <p id="porte-erreur" class="erreur-compte" role="alert" hidden></p>
-    <p id="porte-envoye" class="espace-message" role="status" hidden>C'est presque fini : nous venons d'envoyer un e-mail à cette adresse. Ouvre le lien qu'il contient pour choisir ton mot de passe (il est valable 24 heures) : ton compte n'existera qu'à ce moment-là. Pense à regarder dans les courriers indésirables. Si tu ouvres le lien sur un autre appareil, reviens ensuite ici et connecte-toi avec ton adresse et ce mot de passe.</p>
     <button type="submit" class="bouton principal" id="porte-valider">Se connecter</button>
     <p class="bascule" id="porte-oubli-ligne"><button type="button" class="lien" id="porte-oubli">Mot de passe oublié ?</button></p>
     <p class="bascule"><span id="porte-question">Pas encore de compte ?</span>
@@ -48,7 +54,7 @@
   <div class="espace-tete">
     <span class="initiale grande" id="espace-initiale" aria-hidden="true"></span>
     <div>
-      <h1>Mon espace</h1>
+      <h1 id="espace-bonjour">Mon espace</h1>
       <p class="note" id="espace-email" translate="no"></p>
     </div>
   </div>
@@ -93,10 +99,20 @@
     <article class="carte-espace">
       <h2>Mon profil</h2>
       <dl class="fiche">
+        <dt>Nom</dt><dd id="profil-nom" translate="no"></dd>
         <dt>Adresse e-mail</dt><dd id="profil-email" translate="no"></dd>
         <dt>Compte créé le</dt><dd id="profil-cree" translate="no"></dd>
         <dt>Dernière connexion</dt><dd id="profil-vu" translate="no"></dd>
       </dl>
+      <details class="danger" id="profil-modifier">
+        <summary>Modifier mon prénom et mon nom</summary>
+        <form id="profil-form" class="compte-noms" novalidate>
+          <label>Prénom<input id="profil-prenom-champ" maxlength="60" autocomplete="given-name"></label>
+          <label>Nom de famille<input id="profil-nom-champ" maxlength="60" autocomplete="family-name"></label>
+          <p id="profil-erreur" class="erreur-compte" role="alert" hidden></p>
+          <button type="submit" class="bouton">Enregistrer</button>
+        </form>
+      </details>
       <button type="button" class="bouton" id="espace-deconnexion">Se déconnecter</button>
       <p class="note">La déconnexion efface ton CV de cet appareil. Il reste enregistré dans ton compte.</p>
     </article>

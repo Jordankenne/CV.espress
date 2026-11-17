@@ -1,4 +1,4 @@
-"""Sécurité des comptes : inscription vérifiée, non-divulgation, blocages, liens, configuration."""
+"""Sécurité des comptes : inscription, non-divulgation, blocages, liens, configuration."""
 import os
 import stat
 import time
@@ -22,94 +22,69 @@ def nombre_de_comptes():
 
 
 # ---------------------------------------------------------------------------
-# Inscription : l'adresse e-mail est toujours vérifiée
+# Inscription en une étape : prénom, nom, e-mail, mot de passe et confirmation
 # ---------------------------------------------------------------------------
-def test_inscription_ne_cree_le_compte_qu_a_l_ouverture_du_lien(client, liens):
-    r = client.post(f"{API}/inscription", json={"email": " Awa@Exemple.org ", "langue": "it"})
-    assert r.status_code == 202 and r.get_json() == {"envoye": True}
-    assert nombre_de_comptes() == 0                      # rien tant que le lien n'est pas ouvert
-    assert client.get(API).get_json()["connecte"] is False
-    adresse, genre, langue, lien = liens[-1]
-    assert (adresse, genre, langue) == ("awa@exemple.org", "invitation", "it")
-    assert "/it/compte?jeton=" in lien
+def inscription(client, **champs):
+    corps = {"prenom": "Awa", "nom": "Exemple", "email": "awa@exemple.org",
+             "mot_de_passe": "Mot-de-passe-42", "confirmation": "Mot-de-passe-42", **champs}
+    return client.post(f"{API}/inscription", json=corps)
 
-    r = client.post(f"{API}/nouveau-mot-de-passe", json={"jeton": jeton_de(lien), "mot_de_passe": "Mot-de-passe-42"})
+
+def test_inscription_cree_le_compte_et_connecte(client, nouveau_client, monkeypatch):
+    envoyes = []
+    monkeypatch.setattr(comptes, "envoyer_email", lambda *a: envoyes.append(a))
+    monkeypatch.setattr(comptes.threading, "Thread", __import__("conftest")._FilImmediat)
+    r = inscription(client, email="  Awa@Exemple.org ")
+    assert r.status_code == 201 and r.get_json()["connecte"] is True
+    etat = client.get(API).get_json()
+    assert (etat["email"], etat["prenom"], etat["nom"]) == ("awa@exemple.org", "Awa", "Exemple")
+    # E-mail de bienvenue, sans lien d'activation (rien à confirmer).
+    assert envoyes[0][0] == "awa@exemple.org" and envoyes[0][3] == "bienvenue" and "Awa" in envoyes[0][2]
+    r = nouveau_client().post(f"{API}/connexion", json={"email": "awa@exemple.org", "mot_de_passe": "Mot-de-passe-42"})
     assert r.status_code == 200
-    assert r.get_json() == {"connecte": True, "email": "awa@exemple.org", "nouveau_compte": True}
-    assert nombre_de_comptes() == 1
-    assert client.get(API).get_json()["email"] == "awa@exemple.org"
 
 
-def test_un_mot_de_passe_envoye_a_l_inscription_est_ignore(client, liens, nouveau_client):
-    """On ne peut plus créer un compte au nom d'une adresse sans lire sa boîte."""
-    r = client.post(f"{API}/inscription", json={"email": "victime@exemple.org", "mot_de_passe": "Pirate-passe-9"})
-    assert r.status_code == 202 and nombre_de_comptes() == 0
-    r = nouveau_client().post(f"{API}/connexion", json={"email": "victime@exemple.org", "mot_de_passe": "Pirate-passe-9"})
-    assert r.status_code == 401
+@pytest.mark.parametrize("champs, champ", [
+    ({"prenom": " "}, "prenom"), ({"nom": ""}, "nom"), ({"email": "pas-une-adresse"}, "email"),
+    ({"mot_de_passe": "court", "confirmation": "court"}, "mot_de_passe"),
+    ({"mot_de_passe": "awa@exemple.org", "confirmation": "awa@exemple.org"}, "mot_de_passe"),
+    ({"mot_de_passe": None}, "mot_de_passe"), ({"confirmation": "Autre-mot-de-passe"}, "confirmation"),
+])
+def test_inscription_refusee_si_un_champ_est_invalide(client, champs, champ):
+    r = inscription(client, **champs)
+    assert r.status_code == 400 and r.get_json()["champ"] == champ
+    assert nombre_de_comptes() == 0 and client.get(API).get_json()["connecte"] is False
 
 
-def test_le_lien_d_inscription_ne_sert_qu_une_fois(client, liens, nouveau_client):
-    client.post(f"{API}/inscription", json={"email": "awa@exemple.org"})
-    jeton = jeton_de(liens[-1][3])
-    assert client.post(f"{API}/nouveau-mot-de-passe", json={"jeton": jeton, "mot_de_passe": "Mot-de-passe-42"}).status_code == 200
-    r = nouveau_client().post(f"{API}/nouveau-mot-de-passe", json={"jeton": jeton, "mot_de_passe": "Autre-passe-77"})
-    assert r.status_code == 400
-    assert nouveau_client().post(f"{API}/connexion", json={"email": "awa@exemple.org", "mot_de_passe": "Mot-de-passe-42"}).status_code == 200
-
-
-def test_une_nouvelle_demande_remplace_le_lien_precedent(client, liens):
-    client.post(f"{API}/inscription", json={"email": "awa@exemple.org"})
-    ancien = jeton_de(liens[-1][3])
-    client.post(f"{API}/inscription", json={"email": "awa@exemple.org"})
-    nouveau = jeton_de(liens[-1][3])
-    assert ancien != nouveau
-    assert client.post(f"{API}/nouveau-mot-de-passe", json={"jeton": ancien, "mot_de_passe": "Mot-de-passe-42"}).status_code == 400
-    assert client.post(f"{API}/nouveau-mot-de-passe", json={"jeton": nouveau, "mot_de_passe": "Mot-de-passe-42"}).status_code == 200
-
-
-def test_lien_d_inscription_expire(client, liens):
-    client.post(f"{API}/inscription", json={"email": "awa@exemple.org"})
-    with comptes._base() as b:
-        b.execute("UPDATE invitations SET expire_le = ?", (int(time.time()) - 1,))
-    r = client.post(f"{API}/nouveau-mot-de-passe", json={"jeton": jeton_de(liens[-1][3]), "mot_de_passe": "Mot-de-passe-42"})
-    assert r.status_code == 400 and nombre_de_comptes() == 0
-
-
-def test_seule_l_empreinte_du_jeton_est_en_base(client, liens):
-    client.post(f"{API}/inscription", json={"email": "awa@exemple.org"})
-    jeton = jeton_de(liens[-1][3])
-    with comptes._base() as b:
-        (empreinte,) = b.execute("SELECT empreinte FROM invitations").fetchone()
-    assert jeton not in empreinte and len(empreinte) == 64
-
-
-@pytest.mark.parametrize("mot_de_passe", ["court", "awa@exemple.org", "awa", "", None, ["x"]])
-def test_mot_de_passe_faible_refuse_sans_consommer_le_lien(client, liens, mot_de_passe):
-    client.post(f"{API}/inscription", json={"email": "awa@exemple.org"})
-    jeton = jeton_de(liens[-1][3])
-    assert client.post(f"{API}/nouveau-mot-de-passe", json={"jeton": jeton, "mot_de_passe": mot_de_passe}).status_code == 400
-    assert client.post(f"{API}/nouveau-mot-de-passe", json={"jeton": jeton, "mot_de_passe": "Mot-de-passe-42"}).status_code == 200
-
-
-# ---------------------------------------------------------------------------
-# Le site ne révèle pas qui est inscrit
-# ---------------------------------------------------------------------------
-def test_inscription_meme_reponse_que_l_adresse_ait_un_compte_ou_non(inscrire, liens, nouveau_client):
-    inscrire("deja@exemple.org")
-    r1 = nouveau_client().post(f"{API}/inscription", json={"email": "deja@exemple.org"})
-    r2 = nouveau_client().post(f"{API}/inscription", json={"email": "nouvelle@exemple.org"})
-    assert (r1.status_code, r1.get_json()) == (r2.status_code, r2.get_json()) == (202, {"envoye": True})
-    # La différence n'apparaît que dans la boîte du titulaire de l'adresse.
-    assert [(e, genre) for e, genre, _, _ in liens[-2:]] == [("deja@exemple.org", "deja"), ("nouvelle@exemple.org", "invitation")]
-
-
-def test_inscription_sur_un_compte_existant_ne_le_modifie_pas(inscrire, liens, nouveau_client):
+def test_inscription_sur_un_compte_existant_ne_le_modifie_pas(inscrire, nouveau_client):
     titulaire = inscrire("deja@exemple.org", "Mot-de-passe-42")
-    nouveau_client().post(f"{API}/inscription", json={"email": "deja@exemple.org"})
+    r = inscription(nouveau_client(), email="deja@exemple.org", mot_de_passe="Pirate-1234", confirmation="Pirate-1234")
+    assert r.status_code == 409 and r.get_json()["deja"] is True
     assert titulaire.get(API).get_json()["connecte"] is True                 # toujours connecté
     r = nouveau_client().post(f"{API}/connexion", json={"email": "deja@exemple.org", "mot_de_passe": "Mot-de-passe-42"})
     assert r.status_code == 200                                               # mot de passe inchangé
     assert nombre_de_comptes() == 1
+
+
+def test_inscriptions_limitees_par_adresse_ip(nouveau_client):
+    codes = [nouveau_client().post(f"{API}/inscription", environ_base=ip("8.8.8.8"), json={
+        "prenom": "A", "nom": "B", "email": f"n{n}@exemple.org", "mot_de_passe": "Mot-de-passe-42",
+        "confirmation": "Mot-de-passe-42"}).status_code for n in range(12)]
+    assert codes == [201] * 10 + [429, 429]
+
+
+def test_les_mots_de_passe_ne_sont_jamais_enregistres_en_clair(inscrire):
+    inscrire("awa@exemple.org", "Mot-de-passe-42")
+    with comptes._base() as b:
+        empreinte = b.execute("SELECT empreinte FROM comptes").fetchone()[0]
+    assert "Mot-de-passe-42" not in empreinte and empreinte.startswith("scrypt:")
+
+
+def test_modifier_son_prenom_et_son_nom(inscrire, client):
+    c = inscrire("awa@exemple.org")
+    assert c.patch(f"{API}/profil", json={"prenom": "Awa Marie", "nom": "Diop"}).get_json() == {"prenom": "Awa Marie", "nom": "Diop"}
+    assert c.patch(f"{API}/profil", json={"prenom": "", "nom": "Diop"}).status_code == 400
+    assert client.patch(f"{API}/profil", json={"prenom": "X", "nom": "Y"}).status_code == 401
 
 
 def test_mot_de_passe_oublie_meme_reponse_et_aucun_mail_pour_une_adresse_inconnue(inscrire, liens, nouveau_client):
@@ -169,10 +144,11 @@ def test_blocage_global_tres_haut_et_leve_par_le_lien(inscrire, liens, nouveau_c
     assert r.status_code == 200
 
 
-def test_on_ne_peut_pas_inonder_une_boite_de_mails(liens, nouveau_client):
-    codes = [nouveau_client().post(f"{API}/inscription", json={"email": "cible@exemple.org"},
+def test_on_ne_peut_pas_inonder_une_boite_de_mails(inscrire, liens, nouveau_client):
+    inscrire("cible@exemple.org")
+    codes = [nouveau_client().post(f"{API}/mot-de-passe-oublie", json={"email": "cible@exemple.org"},
                                    environ_base=ip(f"8.8.8.{n}")).status_code for n in range(5)]
-    assert codes == [202, 202, 202, 429, 429]                # 3 e-mails au plus par quart d'heure et par adresse
+    assert codes == [200, 200, 200, 429, 429]                # 3 e-mails au plus par quart d'heure et par adresse
     assert len(liens) == 3
 
 
@@ -219,9 +195,10 @@ def test_supprimer_le_compte_annule_son_lien(inscrire, liens, nouveau_client):
 # ---------------------------------------------------------------------------
 # L'adresse mise dans les liens ne vient jamais de la requête, en production
 # ---------------------------------------------------------------------------
-def test_le_lien_utilise_l_adresse_du_site_pas_l_en_tete_host(client, liens, monkeypatch):
+def test_le_lien_utilise_l_adresse_du_site_pas_l_en_tete_host(inscrire, client, liens, monkeypatch):
+    inscrire("awa@exemple.org")
     monkeypatch.setattr(comptes, "ADRESSE_SITE", "https://cv.exemple")
-    client.post(f"{API}/inscription", json={"email": "awa@exemple.org"}, headers={"Host": "site-du-pirate.example"})
+    client.post(f"{API}/mot-de-passe-oublie", json={"email": "awa@exemple.org"}, headers={"Host": "site-du-pirate.example"})
     assert liens[-1][3].startswith("https://cv.exemple/compte?jeton=")
     assert "pirate" not in liens[-1][3]
 
@@ -299,9 +276,8 @@ def test_les_connexions_a_la_base_sont_fermees(inscrire):
 # ---------------------------------------------------------------------------
 # Session et origine des requêtes
 # ---------------------------------------------------------------------------
-def test_cookie_de_session_protege(inscrire, liens, client):
-    client.post(f"{API}/inscription", json={"email": "awa@exemple.org"})
-    r = client.post(f"{API}/nouveau-mot-de-passe", json={"jeton": jeton_de(liens[-1][3]), "mot_de_passe": "Mot-de-passe-42"})
+def test_cookie_de_session_protege(client):
+    r = inscription(client)
     cookie = r.headers["Set-Cookie"]
     assert cookie.startswith("session_cv=") and "HttpOnly" in cookie and "SameSite=Lax" in cookie
     assert "Mot-de-passe-42" not in cookie

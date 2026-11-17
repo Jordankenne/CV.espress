@@ -20,6 +20,24 @@
   document.documentElement.lang = LANGUE;
 
   const DICO = { en: {
+    "Nom de famille": "Last name",
+    "Prénom": "First name",
+    "Confirme le mot de passe": "Confirm the password",
+    "Afficher le mot de passe": "Show the password",
+    "En créant un compte, tu acceptes que tes documents (photo comprise) soient enregistrés sur nos serveurs pour que tu puisses les retrouver (voir la": "By creating an account, you agree that your documents (including your photo) are stored on our servers so that you can find them again (see the",
+    "Créer mon compte gratuit": "Create my free account",
+    "Crée ton compte gratuit pour télécharger ton document. Ce que tu as rempli y sera enregistré : tu le retrouveras sur tous tes appareils.": "Create your free account to download your document. What you filled in will be saved in it: you will find it on all your devices.",
+    "Connecte-toi pour télécharger ton document. Ce que tu as rempli sera enregistré dans ton compte.": "Log in to download your document. What you filled in will be saved in your account.",
+    "Retrouve tes documents depuis n'importe quel appareil.": "Find your documents on any device.",
+    "Retrouve tes documents depuis n'importe quel appareil. Le compte est gratuit.": "Find your documents on any device. The account is free.",
+    "Un compte gratuit pour télécharger tes documents et les retrouver sur tous tes appareils.": "A free account to download your documents and find them on all your devices.",
+    "Indique ton prénom et ton nom.": "Enter your first and last name.",
+    "Les deux mots de passe ne sont pas identiques.": "The two passwords do not match.",
+    "Trop d'inscriptions depuis cette connexion. Réessaie dans un quart d'heure.": "Too many sign-ups from this connection. Try again in a quarter of an hour.",
+    "Cette adresse a déjà un compte. Connecte-toi, ou choisis « Mot de passe oublié ».": "This address already has an account. Log in, or choose “Forgot your password?”.",
+    "Crée ton compte gratuit (ou connecte-toi) pour télécharger ton document.": "Create your free account (or log in) to download your document.",
+    "Modifier mon prénom et mon nom": "Change my first and last name",
+    "Ton prénom et ton nom ont été enregistrés.": "Your first and last name have been saved.",
     "Document administratif": "Administrative document",
     "1 personne": "1 person",
     "Écris ton message (quelques mots au moins).": "Write your message (a few words at least).",
@@ -692,6 +710,24 @@
     "Aucun texte de lettre n'a été trouvé dans ce fichier.": "No letter text was found in this file.",
     "Le contenu de ce fichier n'a pas pu être reconnu comme un CV. Remplis le formulaire à la main : cela prend quelques minutes.": "The content of this file could not be recognised as a CV. Fill in the form by hand: it takes a few minutes."
   }, it: {
+    "Nom de famille": "Cognome",
+    "Prénom": "Nome",
+    "Confirme le mot de passe": "Conferma la password",
+    "Afficher le mot de passe": "Mostra la password",
+    "En créant un compte, tu acceptes que tes documents (photo comprise) soient enregistrés sur nos serveurs pour que tu puisses les retrouver (voir la": "Creando un account, accetti che i tuoi documenti (foto compresa) siano salvati sui nostri server perché tu possa ritrovarli (vedi l'",
+    "Créer mon compte gratuit": "Crea il mio account gratuito",
+    "Crée ton compte gratuit pour télécharger ton document. Ce que tu as rempli y sera enregistré : tu le retrouveras sur tous tes appareils.": "Crea il tuo account gratuito per scaricare il documento. Quello che hai compilato verrà salvato lì: lo ritroverai su tutti i tuoi dispositivi.",
+    "Connecte-toi pour télécharger ton document. Ce que tu as rempli sera enregistré dans ton compte.": "Accedi per scaricare il documento. Quello che hai compilato verrà salvato nel tuo account.",
+    "Retrouve tes documents depuis n'importe quel appareil.": "Ritrova i tuoi documenti da qualsiasi dispositivo.",
+    "Retrouve tes documents depuis n'importe quel appareil. Le compte est gratuit.": "Ritrova i tuoi documenti da qualsiasi dispositivo. L'account è gratuito.",
+    "Un compte gratuit pour télécharger tes documents et les retrouver sur tous tes appareils.": "Un account gratuito per scaricare i tuoi documenti e ritrovarli su tutti i tuoi dispositivi.",
+    "Indique ton prénom et ton nom.": "Indica il tuo nome e cognome.",
+    "Les deux mots de passe ne sont pas identiques.": "Le due password non coincidono.",
+    "Trop d'inscriptions depuis cette connexion. Réessaie dans un quart d'heure.": "Troppe registrazioni da questa connessione. Riprova tra un quarto d'ora.",
+    "Cette adresse a déjà un compte. Connecte-toi, ou choisis « Mot de passe oublié ».": "Questo indirizzo ha già un account. Accedi, oppure scegli «Password dimenticata».",
+    "Crée ton compte gratuit (ou connecte-toi) pour télécharger ton document.": "Crea il tuo account gratuito (o accedi) per scaricare il documento.",
+    "Modifier mon prénom et mon nom": "Modifica il mio nome e cognome",
+    "Ton prénom et ton nom ont été enregistrés.": "Il tuo nome e cognome sono stati salvati.",
     "Document administratif": "Documento amministrativo",
     "1 personne": "1 persona",
     "Écris ton message (quelques mots au moins).": "Scrivi il tuo messaggio (almeno qualche parola).",
@@ -1365,6 +1401,8 @@
     "Le contenu de ce fichier n'a pas pu être reconnu comme un CV. Remplis le formulaire à la main : cela prend quelques minutes.": "Il contenuto di questo file non è stato riconosciuto come un CV. Compila il modulo a mano: bastano pochi minuti."
   } }[LANGUE] || {};
   const MOTIFS = { en: [
+    [/^Bienvenue (.+) ! Ton compte est créé\. Un e-mail de confirmation t'a été envoyé\.$/, "Welcome $1! Your account has been created. A confirmation e-mail has been sent to you."],
+    [/^Bonjour (.+)$/, "Hello $1"],
     [/^(\d+) personnes$/, "$1 people"],
     [/^Mots-clés de l'offre absents de ton CV : (.+)$/, "Keywords from the advert missing from your CV: $1"],
     [/^(\d+) % de correspondance$/, "$1% match"],
@@ -1405,6 +1443,8 @@
     [/^(Expérience|Formation|Compétence|Langue|Lien|Référence) (\d+)$/, "$t1 $2"],
     [/^\+ Ajouter : (.+)$/, "+ Add: $t1"]
   ], it: [
+    [/^Bienvenue (.+) ! Ton compte est créé\. Un e-mail de confirmation t'a été envoyé\.$/, "Benvenuto $1! Il tuo account è stato creato. Ti abbiamo inviato un'e-mail di conferma."],
+    [/^Bonjour (.+)$/, "Ciao $1"],
     [/^(\d+) personnes$/, "$1 persone"],
     [/^Mots-clés de l'offre absents de ton CV : (.+)$/, "Parole chiave dell'offerta assenti dal tuo CV: $1"],
     [/^(\d+) % de correspondance$/, "Corrispondenza $1%"],

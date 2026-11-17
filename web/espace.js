@@ -17,6 +17,8 @@ let vue = "connexion";      // ce que montre la porte d'entrée : "connexion", "
 let jetonRecu = new URLSearchParams(location.search).get("jeton");
 if (jetonRecu) { vue = "jeton"; history.replaceState(null, "", location.pathname); }
 else if (new URLSearchParams(location.search).get("oubli")) vue = "oubli";
+// Arrivée par « Créer mon compte » (/compte?inscription=1) : le formulaire d'inscription d'emblée.
+if (new URLSearchParams(location.search).get("inscription")) inscription = true;
 
 async function api(methode, chemin, corps) {
   try {
@@ -52,16 +54,17 @@ function afficherPorte() {
     $("#porte-titre").textContent = vue === "oubli" ? "Mot de passe oublié" : "Choisis ton mot de passe";
     return;
   }
-  // Inscription : seulement l'adresse e-mail. Le mot de passe se choisit en ouvrant le lien reçu,
-  // ce qui prouve que l'adresse est bien la sienne.
-  $("#porte-titre").textContent = inscription ? "Créer un compte" : "Se connecter";
-  $("#porte-valider").textContent = inscription ? "Recevoir le lien d'inscription" : "Se connecter";
+  // Inscription en une étape : prénom, nom, e-mail, mot de passe et confirmation.
+  $("#porte-titre").textContent = inscription ? "Créer mon compte gratuit" : "Se connecter";
+  $("#porte-valider").textContent = inscription ? "Créer mon compte" : "Se connecter";
   $("#porte-question").textContent = inscription ? "Déjà un compte ?" : "Pas encore de compte ?";
   $("#porte-bascule").textContent = inscription ? "Se connecter" : "Créer un compte";
-  $("#porte-mdp-ligne").hidden = inscription;
+  $("#porte-chapeau").textContent = inscription
+    ? "Un compte gratuit pour télécharger tes documents et les retrouver sur tous tes appareils."
+    : "Retrouve tes documents depuis n'importe quel appareil. Le compte est gratuit.";
+  for (const sel of ["#porte-noms", "#porte-confirmation-ligne", "#porte-mdp-aide"]) $(sel).hidden = !inscription;
+  $("#porte-mdp").autocomplete = inscription ? "new-password" : "current-password";
   $("#porte-info").hidden = !inscription;
-  $("#porte-envoye").hidden = true;
-  $("#porte-valider").hidden = false;
 }
 $("#porte-bascule").addEventListener("click", () => { inscription = !inscription; erreur("#porte-erreur", ""); afficherPorte(); });
 // ---------- Mot de passe oublié ----------
@@ -107,18 +110,32 @@ $("#jeton-form").addEventListener("submit", async e => {
                                  : "Ton mot de passe a été changé. Tes autres appareils ont été déconnectés.");
 });
 
+const CHAMPS_PORTE = { prenom: "#porte-prenom", nom: "#porte-nom", email: "#porte-email",
+                       mot_de_passe: "#porte-mdp", confirmation: "#porte-confirmation" };
+$("#porte-voir-mdp").addEventListener("change", e => {
+  for (const sel of ["#porte-mdp", "#porte-confirmation"]) $(sel).type = e.target.checked ? "text" : "password";
+});
 $("#porte-form").addEventListener("submit", async e => {
   e.preventDefault();
   const email = $("#porte-email").value.trim(), mdp = $("#porte-mdp").value;
+  const refuser = (texte, champ) => { erreur("#porte-erreur", texte); if (champ) $(CHAMPS_PORTE[champ]).focus(); };
   if (inscription) {
-    if (!email) return erreur("#porte-erreur", "Renseigne ton adresse e-mail.");
+    const prenom = $("#porte-prenom").value.trim(), nom = $("#porte-nom").value.trim(), confirmation = $("#porte-confirmation").value;
+    if (!prenom || !nom) return refuser("Indique ton prénom et ton nom.", prenom ? "nom" : "prenom");
+    if (!email) return refuser("Renseigne ton adresse e-mail.", "email");
+    if (mdp.length < 8) return refuser("Le mot de passe doit contenir au moins 8 caractères.", "mot_de_passe");
+    if (mdp !== confirmation) return refuser("Les deux mots de passe ne sont pas identiques.", "confirmation");
     $("#porte-valider").disabled = true;
-    const r = await api("POST", "/inscription", { email, langue: window.LANGUE_SITE || "fr" });
+    const r = await api("POST", "/inscription", { prenom, nom, email, mot_de_passe: mdp, confirmation, langue: window.LANGUE_SITE || "fr" });
     $("#porte-valider").disabled = false;
-    if (!r.ok) return erreur("#porte-erreur", r.corps.erreur || "Une erreur est survenue. Réessaie.");
+    if (!r.ok) return refuser(r.corps.erreur || "Une erreur est survenue. Réessaie.", r.corps.champ);
+    $("#porte-mdp").value = $("#porte-confirmation").value = "";
     erreur("#porte-erreur", "");
-    $("#porte-envoye").hidden = false;
-    $("#porte-valider").hidden = true;
+    try { localStorage.removeItem(CLE_SYNCHRO); } catch { /* stockage indisponible */ }
+    await envoyerLocal();        // un CV commencé sur cet appareil rejoint le nouveau compte
+    await charger();
+    annoncerConnexion();
+    message(`Bienvenue ${prenom} ! Ton compte est créé. Un e-mail de confirmation t'a été envoyé.`);
     return;
   }
   if (!email || !mdp) return erreur("#porte-erreur", "Renseigne ton adresse e-mail et ton mot de passe.");
@@ -177,7 +194,13 @@ function texteLettre(lettre) {
 }
 
 function afficherEspace(compte) {
-  $("#espace-initiale").textContent = compte.email[0].toUpperCase();
+  const prenom = texte(compte.prenom), nom = texte(compte.nom);
+  $("#espace-initiale").textContent = (prenom || compte.email)[0].toUpperCase();
+  $("#espace-bonjour").textContent = prenom ? `Bonjour ${prenom}` : "Mon espace";
+  $("#espace-bonjour").setAttribute("translate", prenom ? "no" : "yes");
+  $("#profil-nom").textContent = [prenom, nom].filter(Boolean).join(" ") || "—";
+  $("#profil-prenom-champ").value = prenom;
+  $("#profil-nom-champ").value = nom;
   $("#espace-email").textContent = compte.email;
   $("#profil-email").textContent = compte.email;
   $("#profil-cree").textContent = date(compte.cree_le);
@@ -637,6 +660,20 @@ $("#donnees-copie").addEventListener("click", async () => {
     if (r.ok) copie.push({ nom: r.corps.nom, modifie_le: r.corps.modifie_le, ...r.corps.donnees });
   }
   enregistrer(new Blob([JSON.stringify({ documents: copie }, null, 2)], { type: "application/json" }), "mes-donnees-cv.json");
+});
+
+// ---------- Prénom et nom ----------
+$("#profil-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const prenom = $("#profil-prenom-champ").value.trim(), nom = $("#profil-nom-champ").value.trim();
+  if (!prenom || !nom) return erreur("#profil-erreur", "Indique ton prénom et ton nom.");
+  const r = await api("PATCH", "/profil", { prenom, nom });
+  if (!r.ok) return erreur("#profil-erreur", r.corps.erreur || "Une erreur est survenue. Réessaie.");
+  erreur("#profil-erreur", "");
+  $("#profil-modifier").open = false;
+  const etat = await api("GET", "");
+  if (etat.ok) afficherEspace(etat.corps);
+  message("Ton prénom et ton nom ont été enregistrés.");
 });
 
 // ---------- Mot de passe, déconnexion, suppression ----------

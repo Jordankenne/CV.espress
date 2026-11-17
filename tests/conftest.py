@@ -24,6 +24,8 @@ if os.environ.get("CV_TESTS_POSTGRES"):
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import app as application  # noqa: E402
+# Les tests du moteur fabriquent des PDF sans compte ; test_compte_obligatoire.py teste l'obligation.
+application.app.config["COMPTE_POUR_PDF"] = False
 import comptes  # noqa: E402
 
 
@@ -82,10 +84,9 @@ def inscrire(liens):
     def _inscrire(email, mot_de_passe="Mot-de-passe-42", ip="10.0.0.1"):
         c = application.app.test_client()
         base = {"REMOTE_ADDR": ip}
-        r = c.post("/api/compte/inscription", json={"email": email}, environ_base=base)
-        assert r.status_code == 202, r.get_json()
-        r = c.post("/api/compte/nouveau-mot-de-passe",
-                   json={"jeton": jeton_de(liens[-1][3]), "mot_de_passe": mot_de_passe}, environ_base=base)
-        assert r.status_code == 200, r.get_json()
+        r = c.post("/api/compte/inscription", json={"prenom": "Awa", "nom": "Exemple", "email": email,
+                                                    "mot_de_passe": mot_de_passe, "confirmation": mot_de_passe},
+                   environ_base=base)
+        assert r.status_code == 201, r.get_json()
         return c
     return _inscrire

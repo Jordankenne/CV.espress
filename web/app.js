@@ -13,6 +13,8 @@ const LANGUE_SITE = window.LANGUE_SITE || "fr";
 const CLE_SYNCHRO = "cv-saas-synchro";   // { vu: date de la version du compte déjà vue ici, sale: modifié depuis }
 let compte = { connecte: false, email: null };
 let modeInscription = false;
+let actionApresConnexion = null;   // ce qu'il faut faire une fois connecté (télécharger le PDF…)
+let compteRequisPourPdf = true;    // réglage du serveur (COMPTE_OBLIGATOIRE), lu à l'ouverture de la page
 let minuterieEnvoi = null;
 const MODELES = ["moderne", "classique", "europeen", "africain", "elegant", "compact"];
 
@@ -1127,6 +1129,10 @@ async function appeler(chemin, signal) {
   }
   if (!reponse.ok) {
     const detail = await reponse.json().catch(() => ({}));
+    if (detail.compte_requis) {          // session expirée entre-temps : on se reconnecte
+      compte = { connecte: false, email: null };
+      afficherCompte();
+    }
     throw new Error(detail.erreur || `Erreur ${reponse.status}`);
   }
   return reponse;
@@ -1169,7 +1175,15 @@ async function actualiser() {
   }
 }
 
+/** Télécharger demande un compte : sans compte, on ouvre l'inscription, puis on reprend. */
+function compteAvant(action) {
+  if (compte.connecte || !compteRequisPourPdf) return true;
+  ouvrirCompte(action, true);
+  return false;
+}
+
 async function telecharger(bouton) {
+  if (!compteAvant(() => telecharger(bouton))) return;
   const texte = bouton.textContent;
   bouton.disabled = true;
   bouton.textContent = "Préparation…";
@@ -1209,6 +1223,7 @@ const partagePossible = (() => {
 $("#btn-partager").hidden = !partagePossible;
 
 async function partager(bouton) {
+  if (!compteAvant(() => partager(bouton))) return;
   bouton.disabled = true;
   try {
     const pdf = await (await appeler("/api/pdf")).blob();
@@ -1227,6 +1242,8 @@ $("#btn-partager").addEventListener("click", e => partager(e.currentTarget));
 
 /** Ouvre le PDF dans un nouvel onglet (au lieu de le télécharger). */
 async function ouvrir(bouton) {
+  // Après l'inscription, l'onglet ne pourrait plus s'ouvrir (bloqué par le navigateur) : on télécharge.
+  if (!compteAvant(() => telecharger($("#btn-telecharger")))) return;
   // L'onglet est ouvert TOUT DE SUITE, pendant le clic : ouvert plus tard (après la
   // réponse du serveur), le navigateur le bloquerait comme une fenêtre publicitaire.
   const onglet = window.open("", "_blank");
@@ -1557,16 +1574,21 @@ function afficherCompte(message) {
   $("#compte-connecte").hidden = !compte.connecte;
   $("#compte-qui").textContent = compte.email || "";
   if (message !== undefined) $("#compte-synchro").textContent = message;
-  $("#compte-titre").textContent = modeInscription ? "Créer un compte" : "Se connecter";
-  $("#compte-valider").textContent = modeInscription ? "Recevoir le lien d'inscription" : "Se connecter";
+  $("#compte-titre").textContent = modeInscription ? "Créer mon compte gratuit" : "Se connecter";
+  $("#compte-valider").textContent = modeInscription ? "Créer mon compte" : "Se connecter";
   $("#compte-question").textContent = modeInscription ? "Déjà un compte ?" : "Pas encore de compte ?";
   $("#compte-bascule").textContent = modeInscription ? "Se connecter" : "Créer un compte";
-  // Inscription : l'adresse seulement ; le mot de passe se choisit en ouvrant le lien reçu.
-  $("#compte-mdp-ligne").hidden = modeInscription;
+  $("#compte-intro").textContent = actionApresConnexion
+    ? (modeInscription ? "Crée ton compte gratuit pour télécharger ton document. Ce que tu as rempli y sera enregistré : tu le retrouveras sur tous tes appareils."
+                       : "Connecte-toi pour télécharger ton document. Ce que tu as rempli sera enregistré dans ton compte.")
+    : "Retrouve tes documents depuis n'importe quel appareil.";
+  // Inscription en une étape : prénom, nom, e-mail, mot de passe et confirmation.
+  $("#compte-noms").hidden = !modeInscription;
+  $("#compte-confirmation-ligne").hidden = !modeInscription;
+  $("#compte-mdp-aide").hidden = !modeInscription;
+  $("#compte-mdp").autocomplete = modeInscription ? "new-password" : "current-password";
   $("#compte-info-inscription").hidden = !modeInscription;
   $("#compte-oubli-ligne").hidden = modeInscription;
-  $("#compte-envoye").hidden = true;
-  $("#compte-valider").hidden = false;
   if (!compte.connecte) partageActuel = null;
   afficherQr();
 }
@@ -1686,45 +1708,71 @@ async function synchroniser() {
   }
 }
 
-$("#btn-compte").addEventListener("click", () => {
+/** Ouvre la fenêtre du compte. action : ce qu'il faudra faire une fois connecté (télécharger…). */
+function ouvrirCompte(action, inscription) {
+  actionApresConnexion = action || null;
+  if (inscription !== undefined) modeInscription = inscription;
   erreurCompte("#compte-erreur", ""); erreurCompte("#compte-erreur-suppr", "");
   afficherCompte();
   $("#dlg-compte").showModal();
-});
+  (modeInscription ? $("#compte-prenom") : $("#compte-email")).focus();
+}
+$("#btn-compte").addEventListener("click", () => ouvrirCompte(null));
 $("#compte-fermer").addEventListener("click", () => $("#dlg-compte").close());
+$("#dlg-compte").addEventListener("close", () => { if (!compte.connecte) actionApresConnexion = null; });
+$("#compte-voir-mdp").addEventListener("change", e => {
+  for (const sel of ["#compte-mdp", "#compte-confirmation"]) $(sel).type = e.target.checked ? "text" : "password";
+});
+
+/** Connecté (connexion ou inscription) : on enregistre le travail en cours, puis on reprend l'action demandée. */
+async function apresConnexion(corps, nouveau) {
+  compte = { connecte: true, email: corps.email };
+  // Nouveau compte : ce qui est sur cet appareil y est enregistré. Connexion : un autre compte
+  // a pu être utilisé ici, on refait le point avec le compte.
+  if (!nouveau) ecrireSynchro({});
+  afficherCompte("");
+  await synchroniser();
+  await verifierPartage();
+  annoncerConnexion();
+  const action = actionApresConnexion;
+  actionApresConnexion = null;
+  $("#dlg-compte").close();
+  if (action) action();
+}
 $("#compte-bascule").addEventListener("click", () => {
   modeInscription = !modeInscription;
   erreurCompte("#compte-erreur", "");
   afficherCompte();
 });
 
+const CHAMPS_INSCRIPTION = { prenom: "#compte-prenom", nom: "#compte-nom", email: "#compte-email",
+                             mot_de_passe: "#compte-mdp", confirmation: "#compte-confirmation" };
 $("#compte-form").addEventListener("submit", async e => {
   e.preventDefault();
   const email = $("#compte-email").value.trim(), mdp = $("#compte-mdp").value;
+  const refuser = (message, champ) => { erreurCompte("#compte-erreur", message); if (champ) $(CHAMPS_INSCRIPTION[champ]).focus(); };
   if (modeInscription) {
-    if (!email) return erreurCompte("#compte-erreur", "Renseigne ton adresse e-mail.");
+    const prenom = $("#compte-prenom").value.trim(), nom = $("#compte-nom").value.trim(), confirmation = $("#compte-confirmation").value;
+    if (!prenom || !nom) return refuser("Indique ton prénom et ton nom.", prenom ? "nom" : "prenom");
+    if (!email) return refuser("Renseigne ton adresse e-mail.", "email");
+    if (mdp.length < 8) return refuser("Le mot de passe doit contenir au moins 8 caractères.", "mot_de_passe");
+    if (mdp !== confirmation) return refuser("Les deux mots de passe ne sont pas identiques.", "confirmation");
     $("#compte-valider").disabled = true;
-    const r = await api("POST", "/inscription", { email, langue: LANGUE_SITE });
+    const r = await api("POST", "/inscription", { prenom, nom, email, mot_de_passe: mdp, confirmation, langue: LANGUE_SITE });
     $("#compte-valider").disabled = false;
-    if (!r.ok) return erreurCompte("#compte-erreur", r.corps.erreur || "Une erreur est survenue. Réessaie.");
+    if (!r.ok) return refuser(r.corps.erreur || "Une erreur est survenue. Réessaie.", r.corps.champ);
+    $("#compte-mdp").value = $("#compte-confirmation").value = "";
     erreurCompte("#compte-erreur", "");
-    $("#compte-envoye").hidden = false;
-    $("#compte-valider").hidden = true;
-    return;
+    return apresConnexion(r.corps, true);
   }
-  if (!email || !mdp) return erreurCompte("#compte-erreur", "Renseigne ton adresse e-mail et ton mot de passe.");
+  if (!email || !mdp) return refuser("Renseigne ton adresse e-mail et ton mot de passe.");
   $("#compte-valider").disabled = true;
   const r = await api("POST", "/connexion", { email, mot_de_passe: mdp });
   $("#compte-valider").disabled = false;
   $("#compte-mdp").value = "";
-  if (!r.ok) return erreurCompte("#compte-erreur", r.corps.erreur || "Une erreur est survenue. Réessaie.");
+  if (!r.ok) return refuser(r.corps.erreur || "Une erreur est survenue. Réessaie.");
   erreurCompte("#compte-erreur", "");
-  compte = { connecte: true, email: r.corps.email };
-  ecrireSynchro({});              // autre compte possible sur cet appareil : on repart de zéro
-  afficherCompte("");
-  await synchroniser();
-  await verifierPartage();
-  annoncerConnexion();
+  await apresConnexion(r.corps, false);
 });
 
 // ---------- Plusieurs onglets ----------
@@ -1791,6 +1839,7 @@ $("#compte-supprimer").addEventListener("click", async () => {
 // Au chargement de la page : déjà connecté sur cet appareil ?
 (async () => {
   const r = await api("GET", "");
+  if (r.ok && typeof r.corps.compte_requis_pour_pdf === "boolean") compteRequisPourPdf = r.corps.compte_requis_pour_pdf;
   if (r.ok && r.corps.connecte) {
     compte = { connecte: true, email: r.corps.email };
     afficherCompte("");

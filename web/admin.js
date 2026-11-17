@@ -41,14 +41,16 @@ async function chargerResume() {
   if (!r.ok) { message(r.corps.erreur || "Impossible de charger les chiffres."); return; }
   const d = r.corps;
   $("#t-comptes").textContent = entier(d.comptes);
-  $("#t-inscrits").textContent = `${entier(d.inscrits_7j)} / ${entier(d.inscrits_30j)}`;
-  $("#t-actifs").textContent = `${entier(d.actifs_7j)} / ${entier(d.actifs_30j)}`;
-  $("#t-documents").textContent = entier(d.documents);
-  $("#t-attente").textContent = entier(d.invitations_en_attente);
+  $("#t-comptes-aide").textContent = `${entier(d.documents)} document${d.documents > 1 ? "s" : ""} enregistré${d.documents > 1 ? "s" : ""}`
+    + (d.inscrits_aujourdhui ? ` · ${entier(d.inscrits_aujourdhui)} aujourd'hui` : "");
+  $("#t-inscrits").textContent = `${entier(d.inscrits_7j)} · ${entier(d.inscrits_30j)}`;
+  $("#t-actifs").textContent = `${entier(d.actifs_7j)} · ${entier(d.actifs_30j)}`;
+  $("#t-attente-texte").textContent = d.invitations_en_attente
+    ? `${entier(d.invitations_en_attente)} ancien(s) lien(s) d'inscription encore valable(s).` : "";
   $("#t-base").textContent = d.base;
   const pourcent = Math.min(100, 100 * d.taille_base / d.stockage_max);
   $("#t-stockage").textContent = taille(d.taille_base);
-  $("#t-stockage-max").textContent = `${pourcent.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} % de ${taille(d.stockage_max)}`;
+  $("#t-stockage-max").textContent = `${pourcent.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} % des ${taille(d.stockage_max)} gratuits`;
   $("#t-jauge").value = pourcent;
   $("#t-jauge").textContent = `${Math.round(pourcent)} %`;
   dessinerHistogramme(d.inscriptions);
@@ -95,8 +97,11 @@ async function chargerComptes() {
   corps.replaceChildren();
   for (const c of r.corps.comptes) {
     const ligne = document.createElement("tr");
-    const email = element("td", c.email, "email");
-    if (c.admin) email.append(" ", element("span", "admin", "puce-modele"));
+    const email = element("td", undefined, "email");
+    const nomComplet = [c.prenom, c.nom].filter(Boolean).join(" ");
+    email.append(element("strong", nomComplet || "(sans nom)", nomComplet ? "personne-nom" : "personne-nom vide"),
+                 element("span", c.email, "personne-email"));
+    if (c.admin) email.querySelector(".personne-nom").append(" ", element("span", "admin", "puce-modele"));
     ligne.append(email, element("td", date(c.cree_le)), element("td", date(c.vu_le)),
                  element("td", entier(c.documents), "nombre"), element("td", c.volume ? taille(c.volume) : "—", "nombre"));
     const action = element("td", undefined, "actions");
@@ -164,6 +169,7 @@ async function ouvrirFiche(numero, garderMessage) {
   if (!r.ok) { message(r.corps.erreur || "Impossible d'ouvrir ce compte."); return; }
   const f = ficheCourante = r.corps;
   $("#fiche-numero").textContent = f.id;
+  $("#fiche-nom").textContent = [f.prenom, f.nom].filter(Boolean).join(" ") || f.email;
   $("#fiche-email").value = f.email;
   $("#fiche-cree").textContent = date(f.cree_le);
   $("#fiche-vu").textContent = date(f.vu_le);
@@ -371,11 +377,42 @@ const GROUPES_USAGE = [
                       ["contact", "Messages de contact"]]],
   ["Visites par langue du site", [["langue_site:fr", "Français"], ["langue_site:en", "Anglais"], ["langue_site:it", "Italien"]]],
 ];
+const TYPES_DOCUMENTS = [["pdf:cv", "CV"], ["pdf:lettre", "Lettres de motivation"], ["pdf:admin", "Documents administratifs"],
+                         ["pdf:plan", "Plans de localisation"], ["pdf:arbre", "Arbres généalogiques"]];
+let compteurs = {}, periode = 7;
+const somme = (serie, n) => (serie || []).slice(-n).reduce((a, b) => a + b, 0);
+const sommeCles = (filtre, n) => Object.keys(compteurs).filter(filtre).reduce((s, c) => s + somme(compteurs[c], n), 0);
+
+function dessinerBarres() {
+  const valeurs = TYPES_DOCUMENTS.map(([cle, libelle]) => [libelle, somme(compteurs[cle], periode)]);
+  const max = Math.max(1, ...valeurs.map(v => v[1]));
+  $("#barres-vide").hidden = valeurs.some(v => v[1] > 0);
+  $("#barres-documents").replaceChildren(...valeurs.map(([libelle, n]) => {
+    const li = element("li");
+    const barre = element("span", undefined, "barre-remplie");
+    barre.style.width = n ? `${Math.max(2, 100 * n / max)}%` : "0";
+    const fond = element("span", undefined, "barre-fond");
+    fond.append(barre);
+    li.append(element("span", libelle, "barre-nom"), fond, element("strong", entier(n), "barre-valeur"));
+    return li;
+  }));
+  for (const b of document.querySelectorAll("[data-periode]")) b.setAttribute("aria-pressed", String(+b.dataset.periode === periode));
+}
+for (const b of document.querySelectorAll("[data-periode]")) {
+  b.addEventListener("click", () => { periode = +b.dataset.periode; dessinerBarres(); });
+}
+
 async function chargerUsage() {
   const r = await api("GET", "/utilisation");
   if (!r.ok) return;
   const { cles } = r.corps;
-  const somme = (serie, n) => (serie || []).slice(-n).reduce((a, b) => a + b, 0);
+  compteurs = cles;
+  const pdfJour = sommeCles(c => c.startsWith("pdf:") && c !== "pdf:cv_avec_qr", 1);
+  $("#t-pdf").textContent = entier(pdfJour);
+  $("#t-pdf-aide").textContent = `aujourd'hui · ${entier(sommeCles(c => c.startsWith("pdf:") && c !== "pdf:cv_avec_qr", 7))} sur 7 jours`;
+  $("#t-visites").textContent = entier(sommeCles(c => c.startsWith("page:"), 1));
+  $("#t-visites-aide").textContent = `pages vues aujourd'hui · ${entier(sommeCles(c => c.startsWith("page:"), 7))} sur 7 jours`;
+  dessinerBarres();
   const lignes = [];
   const ajouter = (libelle, serie, classe) => {
     const tr = element("tr", undefined, classe);
@@ -399,6 +436,10 @@ async function chargerUsage() {
   for (const cle of Object.keys(cles).filter(c => !connues.has(c)).sort()) ajouter(cle, cles[cle]);
   $("#usage").replaceChildren(...lignes);
 }
+
+const aujourdhui = new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+$("#admin-date").textContent = aujourdhui.charAt(0).toUpperCase() + aujourdhui.slice(1);
+$("#admin-actualiser").addEventListener("click", () => { message(""); chargerResume(); chargerUsage(); chargerComptes(); chargerTable(); });
 
 chargerResume();
 chargerUsage();

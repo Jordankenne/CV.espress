@@ -4,39 +4,65 @@
 {% block tete %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 {% block contenu %}
 <section id="admin" class="admin" translate="no">
-  <div class="espace-tete">
+  <div class="admin-tete">
     <div>
-      <h1>Administration</h1>
-      <p class="note">Chaque consultation d'un compte ou d'un document est enregistrée dans le journal du serveur. Les mots de passe ne sont jamais visibles.</p>
+      <p class="admin-surtitre">Administration · CV.express</p>
+      <h1>Tableau de bord</h1>
+      <p class="note" id="admin-date"></p>
+    </div>
+    <div class="admin-tete-actions">
+      <button type="button" class="bouton" id="admin-actualiser">↻ Actualiser</button>
+      <a class="bouton" href="{{ p }}/" target="_blank" rel="noopener">Voir le site ↗</a>
     </div>
   </div>
+  <nav class="admin-sommaire" aria-label="Sommaire">
+    <a href="#apercu">Aperçu</a><a href="#activite">Activité</a><a href="#comptes-section">Comptes</a><a href="#base">Base de données</a>
+  </nav>
   <p id="admin-message" class="espace-message" role="status" hidden></p>
 
-  <!-- Chiffres clés -->
+  <!-- ===== Aperçu : les chiffres à regarder chaque jour ===== -->
+  <h2 class="admin-titre" id="apercu">Aperçu</h2>
   <div class="tuiles" id="tuiles" aria-live="polite">
-    <div class="tuile"><span class="tuile-nom">Comptes</span><strong id="t-comptes">—</strong></div>
-    <div class="tuile"><span class="tuile-nom">Nouveaux (7 j / 30 j)</span><strong id="t-inscrits">—</strong></div>
-    <div class="tuile"><span class="tuile-nom">Actifs (7 j / 30 j)</span><strong id="t-actifs">—</strong></div>
-    <div class="tuile"><span class="tuile-nom">Documents</span><strong id="t-documents">—</strong></div>
-    <div class="tuile"><span class="tuile-nom">Inscriptions en attente</span><strong id="t-attente">—</strong></div>
+    <div class="tuile"><span class="tuile-nom">Comptes</span><strong id="t-comptes">—</strong>
+      <span class="tuile-aide" id="t-comptes-aide">personnes inscrites</span></div>
+    <div class="tuile"><span class="tuile-nom">Nouveaux inscrits</span><strong id="t-inscrits">—</strong>
+      <span class="tuile-aide">cette semaine · ce mois</span></div>
+    <div class="tuile"><span class="tuile-nom">Comptes actifs</span><strong id="t-actifs">—</strong>
+      <span class="tuile-aide">connectés cette semaine · ce mois</span></div>
+    <div class="tuile tuile-accent"><span class="tuile-nom">PDF téléchargés</span><strong id="t-pdf">—</strong>
+      <span class="tuile-aide" id="t-pdf-aide">aujourd'hui</span></div>
+    <div class="tuile"><span class="tuile-nom">Visites</span><strong id="t-visites">—</strong>
+      <span class="tuile-aide" id="t-visites-aide">pages vues aujourd'hui</span></div>
     <div class="tuile">
       <span class="tuile-nom">Stockage (<span id="t-base"></span>)</span><strong id="t-stockage">—</strong>
-      <span class="tuile-nom" id="t-stockage-max"></span>
+      <span class="tuile-aide" id="t-stockage-max"></span>
       <progress id="t-jauge" max="100" value="0"></progress>
     </div>
   </div>
 
-  <!-- Inscriptions des 30 derniers jours -->
-  <article class="carte-espace">
-    <h2>Inscriptions des 30 derniers jours</h2>
-    <div class="histogramme" id="histogramme" role="img" aria-label="Inscriptions par jour"></div>
-    <div class="histogramme-axe"><span id="axe-debut"></span><span id="axe-fin"></span></div>
-    <p id="infobulle" class="infobulle" hidden></p>
-  </article>
-
-  <!-- Utilisation du site (compteurs anonymes, statistiques.py) -->
-  <article class="carte-espace">
-    <h2>Utilisation du site</h2>
+  <!-- ===== Activité ===== -->
+  <h2 class="admin-titre" id="activite">Activité</h2>
+  <div class="admin-deux">
+    <article class="carte-espace">
+      <h3>Inscriptions des 30 derniers jours</h3>
+      <p class="note">Passe la souris (ou le doigt) sur une barre pour voir le chiffre du jour.</p>
+      <div class="histogramme" id="histogramme" role="img" aria-label="Inscriptions par jour"></div>
+      <div class="histogramme-axe"><span id="axe-debut"></span><span id="axe-fin"></span></div>
+      <p id="infobulle" class="infobulle" hidden></p>
+    </article>
+    <article class="carte-espace">
+      <h3>Documents téléchargés</h3>
+      <div class="periodes" role="group" aria-label="Période">
+        <button type="button" data-periode="1">Aujourd'hui</button>
+        <button type="button" data-periode="7" aria-pressed="true">7 jours</button>
+        <button type="button" data-periode="30">30 jours</button>
+      </div>
+      <ul class="barres" id="barres-documents"></ul>
+      <p class="note" id="barres-vide" hidden>Aucun document téléchargé sur cette période.</p>
+    </article>
+  </div>
+  <details class="carte-espace admin-details">
+    <summary>Toutes les statistiques (langues, imports, CV en ligne, pages vues…)</summary>
     <p class="note">Comptes anonymes : ni personne, ni adresse IP. Mis à jour toutes les 10 minutes environ. Les robots des moteurs de recherche sont comptés dans les pages vues.</p>
     <div class="tableau-defilant">
       <table class="table-usage">
@@ -44,53 +70,59 @@
         <tbody id="usage"></tbody>
       </table>
     </div>
-  </article>
+  </details>
 
-  <!-- Comptes -->
+  <!-- ===== Comptes ===== -->
+  <h2 class="admin-titre" id="comptes-section">Comptes</h2>
   <article class="carte-espace">
     <div class="docs-tete">
-      <h2>Comptes</h2>
-      <input type="search" id="recherche" placeholder="Rechercher une adresse e-mail" maxlength="120" aria-label="Rechercher une adresse e-mail">
+      <p class="note">Clique sur « Ouvrir » pour voir les documents d'un compte, corriger son adresse ou lui envoyer un lien de mot de passe.</p>
+      <input type="search" id="recherche" placeholder="Rechercher un nom ou une adresse" maxlength="120" aria-label="Rechercher un nom ou une adresse e-mail">
     </div>
     <div class="tableau-defile">
       <table class="tableau-admin">
-        <thead><tr><th>Adresse e-mail</th><th>Inscrit le</th><th>Dernière connexion</th><th class="nombre">Documents</th><th class="nombre">Volume</th><th></th></tr></thead>
+        <thead><tr><th>Personne</th><th>Inscrit le</th><th>Dernière connexion</th><th class="nombre">Documents</th><th class="nombre">Volume</th><th></th></tr></thead>
         <tbody id="comptes"></tbody>
       </table>
     </div>
     <p class="note" id="comptes-vide" hidden>Aucun compte.</p>
     <div class="pagination">
-      <button type="button" class="bouton" id="page-prec">Précédents</button>
+      <button type="button" class="bouton" id="page-prec">← Précédents</button>
       <span id="page-info" class="note"></span>
-      <button type="button" class="bouton" id="page-suiv">Suivants</button>
+      <button type="button" class="bouton" id="page-suiv">Suivants →</button>
     </div>
   </article>
 
-  <!-- Vue brute de la base -->
-  <article class="carte-espace">
+  <!-- ===== Base de données (avancé) ===== -->
+  <h2 class="admin-titre" id="base">Base de données</h2>
+  <details class="carte-espace admin-details">
+    <summary>Vue brute des tables (avancé)</summary>
     <div class="docs-tete">
-      <h2>Base de données</h2>
+      <p class="note">Les empreintes de mots de passe et les jetons sont masqués ; le contenu des documents est abrégé (ouvre le document depuis la fiche du compte pour le lire en entier). <span id="t-attente-texte"></span></p>
       <label class="choix-table">Table
         <select id="table-choix">
           <option value="comptes">comptes</option>
           <option value="documents">documents</option>
-          <option value="invitations">invitations (inscriptions en attente)</option>
+          <option value="candidatures">candidatures</option>
+          <option value="partages">partages (CV en ligne)</option>
+          <option value="compteurs">compteurs (statistiques)</option>
           <option value="reinitialisations">reinitialisations (liens de mot de passe)</option>
+          <option value="invitations">invitations (anciennes inscriptions)</option>
         </select></label>
     </div>
-    <p class="note">Vue brute de chaque table. Les empreintes de mots de passe et les jetons sont masqués ; le contenu des documents est abrégé (ouvre le document depuis la fiche du compte pour le lire en entier).</p>
     <div class="tableau-defile"><table class="tableau-admin brut"><thead id="table-tete"></thead><tbody id="table-lignes"></tbody></table></div>
     <div class="pagination">
-      <button type="button" class="bouton" id="table-prec">Précédents</button>
+      <button type="button" class="bouton" id="table-prec">← Précédents</button>
       <span id="table-info" class="note"></span>
-      <button type="button" class="bouton" id="table-suiv">Suivants</button>
+      <button type="button" class="bouton" id="table-suiv">Suivants →</button>
     </div>
-  </article>
+  </details>
+  <p class="note admin-pied">Chaque consultation d'un compte ou d'un document est enregistrée dans le journal du serveur. Les mots de passe ne sont jamais visibles.</p>
 
   <!-- Fiche d'un compte -->
   <dialog id="fiche" class="dialogue-admin large">
     <div class="docs-tete">
-      <h2>Fiche du compte n°<span id="fiche-numero"></span></h2>
+      <h2><span id="fiche-nom"></span> <small>compte n°<span id="fiche-numero"></span></small></h2>
       <button type="button" class="bouton petit" data-fermer>Fermer</button>
     </div>
     <p id="fiche-message" class="espace-message" role="status" hidden></p>

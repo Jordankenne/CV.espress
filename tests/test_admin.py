@@ -153,7 +153,10 @@ def test_lien_de_mot_de_passe_envoye_au_titulaire(admin, inscrire, liens, nouvea
 
 def test_vue_brute_masque_les_secrets(admin, inscrire, client, liens):
     _compte_et_document(admin, inscrire)
-    client.post(f"{API}/inscription", json={"email": "attente@exemple.org"})
+    # Un ancien lien d'inscription encore en attente (avant l'inscription en une étape).
+    with comptes._base() as b:
+        b.execute("INSERT INTO invitations (email, empreinte, expire_le) VALUES (?, ?, ?)",
+                  ("attente@exemple.org", "x" * 64, 4_000_000_000))
     for table in comptes.TABLES:
         r = admin.get(f"{ADMIN}/tables/{table}")
         assert r.status_code == 200, table

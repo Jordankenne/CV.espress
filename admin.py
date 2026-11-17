@@ -68,6 +68,7 @@ def resume():
             "inscrits_30j": nombre("SELECT COUNT(*) FROM comptes WHERE cree_le >= ?", maintenant - 30 * jour),
             "actifs_7j": nombre("SELECT COUNT(*) FROM comptes WHERE vu_le >= ?", maintenant - 7 * jour),
             "actifs_30j": nombre("SELECT COUNT(*) FROM comptes WHERE vu_le >= ?", maintenant - 30 * jour),
+            "inscrits_aujourdhui": nombre("SELECT COUNT(*) FROM comptes WHERE cree_le >= ?", maintenant - maintenant % jour),
             "invitations_en_attente": nombre("SELECT COUNT(*) FROM invitations WHERE expire_le >= ?", maintenant),
             "taille_base": _taille_base(b),
         }
@@ -101,18 +102,21 @@ def liste_comptes():
     # Recherche littérale : « % » et « _ » tapés dans la recherche ne sont pas des jokers.
     motif = "%" + recherche.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
     with c._base() as b:
-        total = b.execute("SELECT COUNT(*) FROM comptes WHERE email LIKE ? ESCAPE '\\'", (motif,)).fetchone()[0]
-        lignes = b.execute("""
-            SELECT c.id, c.email, c.cree_le, c.vu_le, COUNT(d.id), COALESCE(SUM(LENGTH(d.contenu)), 0)
+        # Recherche sur l'adresse, le prénom ou le nom (sans tenir compte des majuscules).
+        filtre = "(c.email LIKE ? ESCAPE '\\' OR LOWER(c.prenom || ' ' || c.nom) LIKE ? ESCAPE '\\')"
+        total = b.execute(f"SELECT COUNT(*) FROM comptes c WHERE {filtre}", (motif, motif)).fetchone()[0]
+        lignes = b.execute(f"""
+            SELECT c.id, c.email, c.cree_le, c.vu_le, COUNT(d.id), COALESCE(SUM(LENGTH(d.contenu)), 0), c.prenom, c.nom
             FROM comptes c LEFT JOIN documents d ON d.compte_id = c.id
-            WHERE c.email LIKE ? ESCAPE '\\'
-            GROUP BY c.id, c.email, c.cree_le, c.vu_le
+            WHERE {filtre}
+            GROUP BY c.id, c.email, c.cree_le, c.vu_le, c.prenom, c.nom
             ORDER BY c.cree_le DESC, c.id DESC LIMIT ? OFFSET ?""",
-                           (motif, PAR_PAGE, (numero_page - 1) * PAR_PAGE)).fetchall()
+                           (motif, motif, PAR_PAGE, (numero_page - 1) * PAR_PAGE)).fetchall()
     admins = adresses_admins()
     return jsonify(total=total, page=numero_page, par_page=PAR_PAGE, comptes=[
-        {"id": i, "email": e, "cree_le": cree, "vu_le": vu, "documents": n, "volume": v, "admin": e in admins}
-        for i, e, cree, vu, n, v in lignes])
+        {"id": i, "email": e, "cree_le": cree, "vu_le": vu, "documents": n, "volume": v, "admin": e in admins,
+         "prenom": pr, "nom": no}
+        for i, e, cree, vu, n, v, pr, no in lignes])
 
 
 @admin.delete("/comptes/<int:numero>")
@@ -155,14 +159,14 @@ def _introuvable(quoi="Ce compte"):
 def fiche_compte(numero):
     numero = c._numero(numero)
     with c._base() as b:
-        compte = b.execute("SELECT id, email, cree_le, vu_le FROM comptes WHERE id = ?", (numero,)).fetchone()
+        compte = b.execute("SELECT id, email, cree_le, vu_le, prenom, nom FROM comptes WHERE id = ?", (numero,)).fetchone()
         if not compte:
             return _introuvable()
         documents = b.execute("""SELECT id, nom, modifie_le, version, LENGTH(contenu) FROM documents
                                  WHERE compte_id = ? ORDER BY modifie_le DESC, id DESC""", (numero,)).fetchall()
         lien = b.execute("SELECT expire_le FROM reinitialisations WHERE compte_id = ?", (numero,)).fetchone()
     _journal("fiche consultée", compte=numero)
-    return jsonify(id=compte[0], email=compte[1], cree_le=compte[2], vu_le=compte[3],
+    return jsonify(id=compte[0], email=compte[1], cree_le=compte[2], vu_le=compte[3], prenom=compte[4], nom=compte[5],
                    admin=compte[1] in adresses_admins(),
                    lien_en_cours=bool(lien and lien[0] >= time.time()),
                    documents=[{"doc": d, "nom": n, "modifie_le": m, "version": v, "volume": t}

@@ -8,5 +8,8 @@
     <a href="{{ p }}/{{ adresse }}">{{ libelle }}</a>
     {%- endfor %}
   </nav>
-  {% include "_langues.html" %}
+  <div class="pied-bas">
+    {% include "_langues.html" %}
+    <p class="signature">© {{ annee }} CV.express · {{ c.signature }} <strong translate="no">TKJ.DEV</strong></p>
+  </div>
 </footer>

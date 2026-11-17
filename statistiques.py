@@ -10,6 +10,7 @@ chaque document fabriqué. Un redémarrage brutal peut donc perdre au plus quelq
 import atexit
 import threading
 import time
+from threading import Thread   # référence gardée : les tests remplacent threading.Thread pour les e-mails
 from collections import Counter
 
 import comptes as c
@@ -32,7 +33,7 @@ def compter(cle, nombre=1):
     with _verrou:
         _en_attente[(_aujourdhui(), cle)] += nombre
         if _fil is None:
-            _fil = threading.Thread(target=_ecrire_regulierement, daemon=True, name="statistiques")
+            _fil = Thread(target=_ecrire_regulierement, daemon=True, name="statistiques")
             _fil.start()
 
 
