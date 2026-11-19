@@ -31,6 +31,7 @@ import smtplib
 import sqlite3
 import threading
 import time
+import urllib.parse
 import urllib.request
 from collections import defaultdict, deque
 from contextlib import contextmanager
@@ -84,6 +85,19 @@ EMAIL_EXPEDITEUR = _reglage("EMAIL_EXPEDITEUR") or SMTP_UTILISATEUR
 ADRESSE_SITE = _reglage("ADRESSE_SITE").rstrip("/")
 # Production = site derrière le proxy de l'hébergeur. Les réglages de sécurité y sont obligatoires.
 PRODUCTION = os.environ.get("DERRIERE_PROXY") == "1"
+
+# Protection des inscriptions contre les robots.
+#   TURNSTILE_CLE_SITE et TURNSTILE_SECRET : Cloudflare Turnstile (gratuit, sans image à déchiffrer).
+#     Sans ces deux réglages, il n'y a pas de vérification Turnstile (développement, tests).
+#   INSCRIPTIONS_PAR_JOUR : nombre maximal de comptes créés en 24 heures (200 par défaut).
+#   EMAILS_PAR_JOUR : e-mails envoyés au plus par jour (280 par défaut ; l'offre gratuite de Brevo
+#     en permet 300). Les 60 derniers sont gardés pour les liens « mot de passe oublié ».
+TURNSTILE_CLE_SITE = _reglage("TURNSTILE_CLE_SITE")
+TURNSTILE_SECRET = _reglage("TURNSTILE_SECRET")
+TURNSTILE_ADRESSE = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+INSCRIPTIONS_PAR_JOUR = int(_reglage("INSCRIPTIONS_PAR_JOUR") or 200)
+EMAILS_PAR_JOUR = int(_reglage("EMAILS_PAR_JOUR") or 280)
+EMAILS_RESERVE_LIENS = 60
 _EMAIL_OK = re.compile(r"^[A-Za-z0-9._+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$")
 
 comptes = Blueprint("comptes", __name__, url_prefix="/api/compte")
@@ -159,7 +173,8 @@ def _schema(postgres):
             cree_le   {entier} NOT NULL,
             vu_le     {entier} NOT NULL,
             prenom    TEXT NOT NULL DEFAULT '',
-            nom       TEXT NOT NULL DEFAULT '')""",
+            nom       TEXT NOT NULL DEFAULT '',
+            verifie_le {entier} NOT NULL DEFAULT 0)""",
         # Un compte peut garder plusieurs documents (un CV et sa lettre), par exemple un par offre.
         # « version » augmente à chaque enregistrement : un appareil qui enregistre une version
         # périmée est refusé (409) au lieu d'écraser le travail fait entre-temps sur un autre.
@@ -300,6 +315,11 @@ def _creer_tables():
             for colonne in ("prenom", "nom"):
                 if colonne not in existantes:
                     b.execute(f"ALTER TABLE comptes ADD COLUMN {colonne} TEXT NOT NULL DEFAULT ''")
+        # Date à laquelle l'adresse a été prouvée (lien reçu par e-mail ouvert) ; 0 = pas encore.
+        if POSTGRES:
+            b.execute("ALTER TABLE comptes ADD COLUMN IF NOT EXISTS verifie_le BIGINT NOT NULL DEFAULT 0")
+        elif "verifie_le" not in {colonne[1] for colonne in b.execute("PRAGMA table_info(comptes)")}:
+            b.execute("ALTER TABLE comptes ADD COLUMN verifie_le INTEGER NOT NULL DEFAULT 0")
         if not POSTGRES:
             # Ancienne table (un seul CV par compte) : son contenu devient le premier document.
             if b.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'donnees'").fetchone():
@@ -469,7 +489,7 @@ def _sauvegardes_regulieres(journal):
 # limités par adresse visée et par adresse IP, pour qu'on ne puisse pas inonder une boîte.
 FENETRE_S = 15 * 60
 LIMITES = {"paire": 8, "ip": 20, "email": 100, "lien_email": 3, "lien_ip": 10, "jeton_ip": 10,
-           "inscription_ip": 10}
+           "inscription_ip": 10, "evenement_ip": 60}
 _echecs = defaultdict(deque)
 _verrou = threading.Lock()
 
@@ -583,7 +603,9 @@ def etat():
     # Le navigateur sait ainsi s'il doit demander un compte avant un téléchargement (COMPTE_OBLIGATOIRE).
     requis = current_app.config.get("COMPTE_POUR_PDF", True)
     if not compte:
-        return jsonify(connecte=False, email=None, compte_requis_pour_pdf=requis)
+        # Clé publique Turnstile : le formulaire d'inscription affiche la vérification anti-robot.
+        return jsonify(connecte=False, email=None, compte_requis_pour_pdf=requis,
+                       turnstile=TURNSTILE_CLE_SITE if TURNSTILE_SECRET else "")
     # Pour la page « Mon espace » : dates du compte et de la dernière sauvegarde du CV.
     with _base() as b:
         cree_le, vu_le, prenom, nom = b.execute("SELECT cree_le, vu_le, prenom, nom FROM comptes WHERE id = ?",
@@ -622,6 +644,11 @@ def inscription():
     cle = ("inscription_ip", request.remote_addr)
     if _bloque(cle):
         return jsonify(erreur="Trop d'inscriptions depuis cette connexion. Réessaie dans un quart d'heure."), 429
+    # Champ piège, invisible pour une personne : seul un robot qui remplit tout le renseigne.
+    if corps.get("site_web"):
+        _noter(cle)
+        current_app.logger.info("Inscription refusée : champ piège rempli.")
+        return jsonify(erreur="Inscription refusée. Réessaie, ou écris-nous depuis la page Contact."), 400
     if not prenom or not nom:
         return jsonify(erreur="Indique ton prénom et ton nom.", champ="prenom" if not prenom else "nom"), 400
     if not _EMAIL_OK.match(email):
@@ -632,10 +659,18 @@ def inscription():
         return jsonify(erreur="Choisis un mot de passe différent de ton adresse e-mail.", champ="mot_de_passe"), 400
     if confirmation != mdp:
         return jsonify(erreur="Les deux mots de passe ne sont pas identiques.", champ="confirmation"), 400
+    if not _humain_verifie(corps.get("turnstile")):
+        _noter(cle)
+        return jsonify(erreur="La vérification anti-robot n'a pas abouti. Coche la case et réessaie.",
+                       turnstile=True), 400
     _noter(cle)
     maintenant, jeton = int(time.time()), secrets.token_hex(16)
     empreinte = generate_password_hash(mdp)
     with _base() as b:
+        recents = b.execute("SELECT COUNT(*) FROM comptes WHERE cree_le > ?", (maintenant - 86400,)).fetchone()[0]
+        if recents >= INSCRIPTIONS_PAR_JOUR:
+            current_app.logger.warning("Inscriptions suspendues : %s comptes créés en 24 heures.", recents)
+            return jsonify(erreur="Les inscriptions sont momentanément limitées. Réessaie dans quelques heures."), 503
         if b.execute("SELECT 1 FROM comptes WHERE email = ?", (email,)).fetchone():
             return jsonify(erreur="Cette adresse a déjà un compte. Connecte-toi, ou choisis « Mot de passe oublié ».",
                            champ="email", deja=True), 409
@@ -651,6 +686,26 @@ def inscription():
     threading.Thread(target=envoyer_email, args=(email, sujet, texte, "bienvenue", current_app.logger),
                      daemon=True).start()
     return jsonify(connecte=True, email=email, prenom=prenom, nom=nom, nouveau_compte=True), 201
+
+
+def _humain_verifie(reponse):
+    """Vérifie auprès de Cloudflare le jeton Turnstile envoyé par le formulaire.
+    Sans réglage Turnstile : toujours vrai. Si Cloudflare ne répond pas, l'inscription passe
+    (les autres limites restent actives) plutôt que de bloquer tout le monde."""
+    if not (TURNSTILE_SECRET and TURNSTILE_CLE_SITE):
+        return True
+    if not isinstance(reponse, str) or not 0 < len(reponse) <= 2048:
+        return False
+    donnees = urllib.parse.urlencode({"secret": TURNSTILE_SECRET, "response": reponse,
+                                      "remoteip": request.remote_addr or ""}).encode()
+    try:
+        with urllib.request.urlopen(urllib.request.Request(TURNSTILE_ADRESSE, data=donnees), timeout=8) as r:
+            resultat = json.loads(r.read(20_000) or b"{}")
+    except (OSError, ValueError) as e:
+        current_app.logger.error("Turnstile injoignable (%s) : inscription acceptée sans vérification.",
+                                 type(e).__name__)
+        return True
+    return resultat.get("success") is True
 
 
 _TEXTES_BIENVENUE = {
@@ -818,6 +873,9 @@ def _envoyer_lien(email, genre, langue, lien, journal):
 def envoyer_email(email, sujet, texte, genre, journal, repondre_a=None):
     """Envoie un e-mail texte (Brevo, sinon SMTP ; sans réglage : écrit dans le journal).
     repondre_a : adresse mise en « Répondre à » (message reçu depuis la page Contact)."""
+    if not _budget_email(genre):
+        journal.warning("Quota quotidien d'e-mails atteint : e-mail non envoyé (%s).", genre)
+        return
     if BREVO_CLE_API:
         _envoyer_par_brevo(email, sujet, texte, genre, journal, repondre_a)
         return
@@ -846,6 +904,25 @@ def envoyer_email(email, sujet, texte, genre, journal, repondre_a=None):
             serveur.send_message(message)
     except (OSError, smtplib.SMTPException) as e:
         journal.error("Envoi d'un e-mail (%s) impossible : %s", genre, type(e).__name__)
+
+
+_emails_du_jour = {"jour": "", "envoyes": 0}
+GENRES_PRIORITAIRES = ("oubli", "invitation", "deja")     # e-mails à lien : la personne en a besoin
+
+
+def _budget_email(genre):
+    """Vrai si cet e-mail peut partir aujourd'hui (jour UTC) sans dépasser EMAILS_PAR_JOUR.
+    Les autres e-mails (bienvenue, contact…) s'arrêtent plus tôt, pour garder une réserve aux
+    e-mails à lien (mot de passe oublié). Compté en mémoire : un seul processus (gunicorn -w 1)."""
+    jour = time.strftime("%Y-%m-%d", time.gmtime())
+    with _verrou:
+        if _emails_du_jour["jour"] != jour:
+            _emails_du_jour.update(jour=jour, envoyes=0)
+        plafond = EMAILS_PAR_JOUR if genre in GENRES_PRIORITAIRES else EMAILS_PAR_JOUR - EMAILS_RESERVE_LIENS
+        if _emails_du_jour["envoyes"] >= plafond:
+            return False
+        _emails_du_jour["envoyes"] += 1
+        return True
 
 
 BREVO_ADRESSE = "https://api.brevo.com/v3/smtp/email"
@@ -958,12 +1035,13 @@ def nouveau_mot_de_passe():
             return invalide
         compte = b.execute("SELECT id FROM comptes WHERE email = ?", (email,)).fetchone()
         if compte:
-            b.execute("UPDATE comptes SET empreinte = ?, jeton = ?, vu_le = ? WHERE id = ?",
-                      (empreinte_mdp, session_jeton, maintenant, compte[0]))
+            b.execute("UPDATE comptes SET empreinte = ?, jeton = ?, vu_le = ?, verifie_le = ? WHERE id = ?",
+                      (empreinte_mdp, session_jeton, maintenant, maintenant, compte[0]))
             cid, nouveau_compte = compte[0], False
         else:
-            cid = b.execute("""INSERT INTO comptes (email, empreinte, jeton, cree_le, vu_le) VALUES (?, ?, ?, ?, ?)
-                               RETURNING id""", (email, empreinte_mdp, session_jeton, maintenant, maintenant)).fetchone()[0]
+            cid = b.execute("""INSERT INTO comptes (email, empreinte, jeton, cree_le, vu_le, verifie_le)
+                               VALUES (?, ?, ?, ?, ?, ?) RETURNING id""",
+                            (email, empreinte_mdp, session_jeton, maintenant, maintenant, maintenant)).fetchone()[0]
             nouveau_compte = True
     _oublier(("email", email))                   # le titulaire a prouvé qui il est : plus de blocage global
     _ouvrir_session(cid, session_jeton)
@@ -1370,18 +1448,53 @@ def supprimer():
     return jsonify(connecte=False)
 
 
+_CONTROLE = {"comptes": "MAX(id)", "documents": "MAX(id) + SUM(version)", "candidatures": "MAX(id)",
+             "partages": "SUM(doc_id)", "reinitialisations": "SUM(compte_id)", "compteurs": "SUM(nombre)"}
+
+
+def verifier_restauration(fichier):
+    """Compare la base actuelle à une copie (sauvegarder_base) : même nombre de lignes et même
+    plus grand numéro dans chaque table. Renvoie {table: lignes} ; lève RuntimeError sinon.
+    Sert à prouver qu'une sauvegarde se restaure vraiment (tâche GitHub « Sauvegarde »)."""
+    source = sqlite3.connect(f"file:{Path(fichier).resolve()}?mode=ro", uri=True)
+    try:
+        presentes = {ligne[0] for ligne in source.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
+        bilan, ecarts = {}, []
+        with _base() as b:
+            for table in TABLES:
+                if table not in presentes:
+                    continue
+                # Seulement des nombres : l'ordre des textes diffère entre SQLite et PostgreSQL.
+                mesure = f"SELECT COUNT(*), {_CONTROLE.get(table, '0')} FROM {table}"
+                attendu = tuple(source.execute(mesure).fetchone())
+                obtenu = tuple(b.execute(mesure).fetchone())
+                bilan[table] = attendu[0]
+                if attendu != obtenu:
+                    ecarts.append(f"{table} : {attendu[0]} lignes dans la copie, {obtenu[0]} dans la base")
+        if "comptes" not in bilan:
+            raise RuntimeError("La copie ne contient pas la table des comptes : elle est vide ou abîmée.")
+        if ecarts:
+            raise RuntimeError("Restauration incomplète : " + " ; ".join(ecarts))
+        return bilan
+    finally:
+        source.close()
+
+
 if __name__ == "__main__":
     # python -m comptes sauvegarder        : une copie de la base, tout de suite (fichier SQLite
     #                                        dans donnees/sauvegardes/, même pour PostgreSQL) ;
-    # python -m comptes restaurer FICHIER   : remet une copie dans la base PostgreSQL (vide).
+    # python -m comptes restaurer FICHIER   : remet une copie dans la base PostgreSQL (vide) ;
+    # python -m comptes verifier FICHIER    : la base contient-elle exactement la copie ?
     import sys
     arguments = sys.argv[1:]
-    if arguments == ["sauvegarder"]:
-        print(sauvegarder_base())
-    elif len(arguments) == 2 and arguments[0] == "restaurer":
-        try:
+    try:
+        if arguments == ["sauvegarder"]:
+            print(sauvegarder_base())
+        elif len(arguments) == 2 and arguments[0] == "restaurer":
             print(restaurer_base(arguments[1]))
-        except RuntimeError as e:
-            sys.exit(str(e))
-    else:
-        sys.exit("Utilisation : python -m comptes sauvegarder | python -m comptes restaurer FICHIER")
+        elif len(arguments) == 2 and arguments[0] == "verifier":
+            print(verifier_restauration(arguments[1]))
+        else:
+            sys.exit("Utilisation : python -m comptes sauvegarder | restaurer FICHIER | verifier FICHIER")
+    except RuntimeError as e:
+        sys.exit(str(e))

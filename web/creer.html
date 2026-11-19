@@ -486,6 +486,8 @@
       <div class="apercu-boutons">
         <button type="button" id="btn-partager" class="bouton" disabled hidden>Partager</button>
         <button type="button" id="btn-ouvrir" class="bouton" disabled>Ouvrir le PDF</button>
+        <button type="button" id="btn-word" class="bouton pour-cv pour-lettre pour-admin" disabled
+                title="Fichier Word (.docx) à retoucher dans Word, LibreOffice ou Google Docs">Word</button>
         <button type="button" id="btn-telecharger" class="bouton principal" disabled>Télécharger le PDF</button>
       </div>
     </div>
@@ -562,6 +564,9 @@
     <label id="compte-confirmation-ligne" hidden>Confirme le mot de passe
       <input type="password" id="compte-confirmation" minlength="8" maxlength="200" autocomplete="new-password"></label>
     <label class="case"><input type="checkbox" id="compte-voir-mdp"> Afficher le mot de passe</label>
+    <!-- Champ piège : invisible, seul un robot le remplit. -->
+    <label class="piege" aria-hidden="true">Site web<input id="compte-site" tabindex="-1" autocomplete="off"></label>
+    <div id="compte-robot-ligne" hidden><div class="anti-robot" id="compte-robot"></div></div>
     <p class="conseil" id="compte-info-inscription" hidden>En créant un compte, tu acceptes que tes documents (photo comprise) soient enregistrés sur nos serveurs pour que tu puisses les retrouver (voir la <a href="/confidentialite" target="_blank" rel="noopener">politique de confidentialité</a>).</p>
     <p id="compte-erreur" class="erreur-compte" role="alert" hidden></p>
     <button type="submit" class="bouton principal" id="compte-valider">Se connecter</button>
@@ -589,6 +594,7 @@
 </dialog>
 
 <script src="/traductions.js"></script>
+<script src="/anti-robot.js"></script>
 <script src="/app.js"></script>
 <script src="/plan.js"></script>
 <script src="/arbre.js"></script>

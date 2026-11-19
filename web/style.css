@@ -1004,6 +1004,8 @@ body:has(#admin) .article { max-width: 1040px; }
 .formulaire-contact textarea, .formulaire-contact input, .formulaire-contact select { width: 100%; }
 .contact-ligne { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
 .piege { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+.anti-robot { margin: .25rem 0 .5rem; min-height: 0; }
+.anti-robot:empty { display: none; }
 @media (max-width: 560px) { .contact-ligne { grid-template-columns: 1fr; } }
 
 /* ---------- Administration : utilisation du site ---------- */

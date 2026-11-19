@@ -48,6 +48,7 @@ def etat_propre(monkeypatch):
         for table in ("compteurs", "candidatures", "partages", "documents", "reinitialisations", "invitations", "comptes"):
             b.execute(f"DELETE FROM {table}")
     comptes._echecs.clear()
+    comptes._emails_du_jour.update(jour="", envoyes=0)
     application._appels.clear()
     yield
 

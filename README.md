@@ -18,6 +18,39 @@ sont écrits dans le terminal au lieu d'être envoyés.
 .venv/bin/python -m pytest tests -q
 ```
 
+Sur GitHub, les tests tournent tout seuls à chaque envoi (`.github/workflows/tests.yml`),
+une fois sur SQLite et une fois sur une base PostgreSQL jetable. Résultat : onglet « Actions ».
+
+`tests/test_traductions.py` vérifie les traductions anglaises et italiennes : pas de doublon,
+les mêmes textes dans les deux langues, tous les messages du serveur traduits, et chaque
+`confirm()` / `alert()` / `prompt()` passé par `tr()`. S'il échoue, il affiche le texte à ajouter
+dans `web/traductions.js`.
+
+## Export Word et suivi du parcours
+
+- `word.py` fabrique le CV, la lettre ou le document administratif en `.docx` (route `/api/docx`,
+  bouton « Word » de l'éditeur), sans bibliothèque à installer. Mise en page sur une colonne,
+  lisible par les logiciels de recrutement. Plans et arbres : PDF seulement.
+- Parcours dans l'éditeur (`/api/evenement`) : chaque étape (éditeur ouvert, commencé, aperçu,
+  téléchargement, compte demandé, erreur) est comptée une fois par onglet, sans rien de personnel.
+  Tableau de bord : carte « Parcours dans l'éditeur ». Les échecs de fabrication côté serveur sont
+  comptés (`echec:…`) et visibles dans « Toutes les statistiques ».
+- Téléchargements : deux minutes au plus, un second essai automatique si le serveur est occupé ou
+  se réveille, et un message clair dans chaque cas.
+
+## Inscriptions protégées contre les robots
+
+- Champ piège invisible dans le formulaire, et 10 inscriptions au plus par quart d'heure et par adresse IP.
+- Vérification Cloudflare Turnstile (une case « Je suis humain », souvent validée toute seule),
+  active seulement avec ces deux réglages chez l'hébergeur :
+  1. Cloudflare → Turnstile → Add widget, domaine `www.moncvexpress.com`, mode « Managed » ;
+  2. `TURNSTILE_CLE_SITE` = la Site Key, `TURNSTILE_SECRET` = la Secret Key.
+- `INSCRIPTIONS_PAR_JOUR` (200 par défaut) : au-delà, les inscriptions sont suspendues 24 heures.
+- `EMAILS_PAR_JOUR` (280 par défaut ; Brevo gratuit = 300) : les e-mails de bienvenue et de
+  contact s'arrêtent 60 e-mails avant, pour garder de quoi envoyer les liens « mot de passe oublié ».
+- La colonne `verifie_le` d'un compte note le jour où son adresse a été prouvée (lien reçu
+  par e-mail ouvert) : prête pour une future vérification d'adresse obligatoire.
+
 ## Production
 
 Voir le `Dockerfile`. Avec `DERRIERE_PROXY=1`, le serveur refuse de démarrer sans
@@ -119,8 +152,31 @@ autres visiteurs, la page n'existe pas (erreur 404).
 
 ### Sauvegarder la base en ligne
 
-Neon gratuit ne garde pas de vraies sauvegardes. Depuis ton ordinateur, régulièrement
-(par exemple chaque semaine) :
+Neon gratuit ne garde pas de vraies sauvegardes.
+
+**Automatique, chaque nuit** (`.github/workflows/sauvegarde.yml`) : GitHub copie la base Neon,
+la restaure dans une base jetable pour vérifier qu'elle est complète, puis la chiffre et la
+garde 30 jours dans l'onglet « Actions ». À régler une seule fois dans GitHub > Settings >
+Secrets and variables > Actions > New repository secret :
+
+- `SAUVEGARDE_DATABASE_URL` : la même valeur que `DATABASE_URL` sur Render ;
+- `SAUVEGARDE_PHRASE` : une longue phrase secrète. **Note-la ailleurs** (gestionnaire de mots
+  de passe) : sans elle, les copies sont illisibles, même pour toi.
+
+Puis Actions > « Sauvegarde de la base » > Run workflow, pour vérifier tout de suite que ça marche.
+GitHub met en pause les tâches programmées d'un dépôt sans aucun envoi pendant 60 jours :
+il suffit alors de cliquer « Enable workflow ».
+
+Restaurer une copie automatique : Actions > une exécution réussie > Artifacts > télécharger,
+dézipper, puis :
+
+```bash
+gpg --decrypt comptes-DATE.sqlite3.gpg > comptes-DATE.sqlite3      # demande la phrase secrète
+DATABASE_URL='postgresql://…' .venv/bin/python -m comptes restaurer comptes-DATE.sqlite3
+DATABASE_URL='postgresql://…' .venv/bin/python -m comptes verifier comptes-DATE.sqlite3
+```
+
+**À la main**, depuis ton ordinateur, quand tu veux :
 
 ```bash
 DATABASE_URL='postgresql://…' .venv/bin/python -m comptes sauvegarder

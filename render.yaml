@@ -28,6 +28,10 @@ services:
         sync: false
       - key: EMAIL_EXPEDITEUR  # adresse validée dans Brevo, ex. CV.express <ton.adresse@gmail.com>
         sync: false
+      - key: TURNSTILE_CLE_SITE  # facultatif : Cloudflare > Turnstile > Site Key (anti-robot de l'inscription)
+        sync: false
+      - key: TURNSTILE_SECRET    # facultatif : Cloudflare > Turnstile > Secret Key
+        sync: false
       # Petite machine (0,1 processeur, 512 Mo) : une compilation à la fois, plus de temps.
       - key: COMPILATIONS_SIMULTANEES
         value: "1"

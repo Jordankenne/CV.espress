@@ -1,0 +1,102 @@
+# Sauvegarde automatique de la base en ligne (Neon), chaque nuit, avec preuve qu'elle se restaure.
+#
+#   1. copie de la base Neon (python -m comptes sauvegarder) ;
+#   2. restauration de cette copie dans une base PostgreSQL jetable, puis vérification
+#      (python -m comptes verifier) : une sauvegarde qu'on ne sait pas restaurer ne sert à rien ;
+#   3. chiffrement (AES-256, phrase secrète), puis dépôt dans l'onglet « Actions » de GitHub,
+#      gardé 30 jours. Le fichier en clair n'est JAMAIS déposé : le dépôt est public.
+#
+# À régler une fois, dans GitHub > Settings > Secrets and variables > Actions > New repository secret :
+#   SAUVEGARDE_DATABASE_URL : la même adresse que DATABASE_URL sur Render (postgresql://…?sslmode=require) ;
+#   SAUVEGARDE_PHRASE       : une longue phrase secrète, À NOTER AILLEURS (sans elle, la copie est illisible).
+# Sans ces deux secrets, la tâche ne fait rien (elle l'indique, sans échouer).
+name: Sauvegarde de la base
+
+on:
+  schedule:
+    - cron: "17 2 * * *"          # chaque nuit, 2 h 17 UTC
+  workflow_dispatch:               # bouton « Run workflow » : une sauvegarde tout de suite
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sauvegarde
+  cancel-in-progress: false
+
+jobs:
+  sauvegarde:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: essai
+          POSTGRES_PASSWORD: essai
+          POSTGRES_DB: restauration
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U essai" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - name: Secrets présents ?
+        id: reglages
+        env:
+          ADRESSE: ${{ secrets.SAUVEGARDE_DATABASE_URL }}
+          PHRASE: ${{ secrets.SAUVEGARDE_PHRASE }}
+        run: |
+          if [ -z "$ADRESSE" ] || [ -z "$PHRASE" ]; then
+            echo "::notice::Sauvegarde non configurée : ajoute les secrets SAUVEGARDE_DATABASE_URL et SAUVEGARDE_PHRASE."
+            echo "actif=non" >> "$GITHUB_OUTPUT"
+          else
+            echo "actif=oui" >> "$GITHUB_OUTPUT"
+          fi
+          echo "DOSSIER_DONNEES=$RUNNER_TEMP/donnees" >> "$GITHUB_ENV"   # copies hors du dossier du code
+
+      - uses: actions/checkout@v4
+        if: steps.reglages.outputs.actif == 'oui'
+      - uses: actions/setup-python@v5
+        if: steps.reglages.outputs.actif == 'oui'
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - name: Dépendances
+        if: steps.reglages.outputs.actif == 'oui'
+        run: pip install -r requirements.txt
+
+      - name: 1. Copie de la base en ligne
+        if: steps.reglages.outputs.actif == 'oui'
+        env:
+          DATABASE_URL: ${{ secrets.SAUVEGARDE_DATABASE_URL }}
+        run: |
+          copie=$(python -m comptes sauvegarder)
+          echo "COPIE=$copie" >> "$GITHUB_ENV"
+
+      - name: 2. Restauration dans une base jetable, puis vérification
+        if: steps.reglages.outputs.actif == 'oui'
+        env:
+          DATABASE_URL: postgresql://essai:essai@localhost:5432/restauration
+        run: |
+          python -m comptes restaurer "$COPIE"
+          python -m comptes verifier "$COPIE"
+
+      - name: 3. Chiffrement
+        if: steps.reglages.outputs.actif == 'oui'
+        env:
+          PHRASE: ${{ secrets.SAUVEGARDE_PHRASE }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/depot"
+          nom="comptes-$(date -u +%Y%m%d-%H%M).sqlite3.gpg"
+          printf '%s' "$PHRASE" | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 \
+            --symmetric --cipher-algo AES256 --output "$RUNNER_TEMP/depot/$nom" "$COPIE"
+          shred -u "$COPIE"
+
+      - name: 4. Dépôt de la copie chiffrée (30 jours)
+        if: steps.reglages.outputs.actif == 'oui'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sauvegarde-${{ github.run_number }}
+          path: ${{ runner.temp }}/depot/*.gpg
+          retention-days: 30
+          if-no-files-found: error

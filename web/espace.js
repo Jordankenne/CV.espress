@@ -1,4 +1,6 @@
 "use strict";
+// Textes des fenêtres confirm() et alert() : le traducteur de la page ne les voit pas.
+const traduit = texte => (window.tr || (x => x))(texte);
 /*
  * « Mon espace » (/compte) : connexion ou création de compte, puis le profil du visiteur :
  * ses documents, les dates de son compte, le changement de mot de passe, ses données.
@@ -65,6 +67,8 @@ function afficherPorte() {
   for (const sel of ["#porte-noms", "#porte-confirmation-ligne", "#porte-mdp-aide"]) $(sel).hidden = !inscription;
   $("#porte-mdp").autocomplete = inscription ? "new-password" : "current-password";
   $("#porte-info").hidden = !inscription;
+  $("#porte-robot-ligne").hidden = !inscription;
+  if (inscription) window.AntiRobot?.preparer($("#porte-robot"));
 }
 $("#porte-bascule").addEventListener("click", () => { inscription = !inscription; erreur("#porte-erreur", ""); afficherPorte(); });
 // ---------- Mot de passe oublié ----------
@@ -126,8 +130,11 @@ $("#porte-form").addEventListener("submit", async e => {
     if (mdp.length < 8) return refuser("Le mot de passe doit contenir au moins 8 caractères.", "mot_de_passe");
     if (mdp !== confirmation) return refuser("Les deux mots de passe ne sont pas identiques.", "confirmation");
     $("#porte-valider").disabled = true;
-    const r = await api("POST", "/inscription", { prenom, nom, email, mot_de_passe: mdp, confirmation, langue: window.LANGUE_SITE || "fr" });
+    const r = await api("POST", "/inscription", { prenom, nom, email, mot_de_passe: mdp, confirmation, langue: window.LANGUE_SITE || "fr",
+                                                  site_web: $("#porte-site").value,
+                                                  turnstile: window.AntiRobot?.jeton($("#porte-robot")) || "" });
     $("#porte-valider").disabled = false;
+    if (!r.ok) window.AntiRobot?.reinitialiser($("#porte-robot"));
     if (!r.ok) return refuser(r.corps.erreur || "Une erreur est survenue. Réessaie.", r.corps.champ);
     $("#porte-mdp").value = $("#porte-confirmation").value = "";
     erreur("#porte-erreur", "");
@@ -373,7 +380,7 @@ function dessinerPartage(d, aUnCv) {
 }
 
 async function activerPartage(d) {
-  if (!confirm("Ton CV sera visible en ligne par toute personne qui a le lien ou scanne le QR code (nom, coordonnées, photo, parcours). Tu pourras désactiver le lien à tout moment. Continuer ?")) return;
+  if (!confirm(traduit("Ton CV sera visible en ligne par toute personne qui a le lien ou scanne le QR code (nom, coordonnées, photo, parcours). Tu pourras désactiver le lien à tout moment. Continuer ?"))) return;
   const r = await api("POST", `/documents/${d.doc}/partage`, {});
   message(r.ok ? "Le lien est activé. Pour imprimer le QR code sur ton CV, coche la case « Imprimer un QR code » dans l'éditeur (rubrique Apparence)."
                : r.corps.erreur || "Le lien n'a pas pu être créé. Réessaie.");
@@ -381,7 +388,7 @@ async function activerPartage(d) {
 }
 
 async function desactiverPartage(d) {
-  if (!confirm("Désactiver le lien ? La page de ton CV en ligne et le QR code cesseront aussitôt de fonctionner, y compris sur les CV déjà envoyés.")) return;
+  if (!confirm(traduit("Désactiver le lien ? La page de ton CV en ligne et le QR code cesseront aussitôt de fonctionner, y compris sur les CV déjà envoyés."))) return;
   const r = await api("DELETE", `/documents/${d.doc}/partage`, {});
   message(r.ok ? "Le lien est désactivé." : r.corps.erreur || "Une erreur est survenue. Réessaie.");
   await chargerDocuments();
@@ -394,7 +401,7 @@ async function copierLien(url, bouton) {
     bouton.textContent = (window.tr || (t => t))("Lien copié");
     setTimeout(() => { bouton.textContent = texte; }, 2000);
   } catch {
-    prompt("Copie ce lien :", url);
+    prompt(traduit("Copie ce lien :"), url);
   }
 }
 
@@ -419,7 +426,7 @@ async function chargerDocuments() {
 // ---------- Gérer ses documents ----------
 $("#docs-nouveau").addEventListener("click", async () => {
   message("");
-  const nom = prompt("Nom du nouveau document (par exemple le poste visé) :", "");
+  const nom = prompt(traduit("Nom du nouveau document (par exemple le poste visé) :"), "");
   if (nom === null) return;
   const r = await api("POST", "/documents", { nom });
   if (!r.ok) return message(r.corps.erreur || "Création impossible. Réessaie.");
@@ -427,7 +434,7 @@ $("#docs-nouveau").addEventListener("click", async () => {
 });
 
 async function renommer(d) {
-  const nom = prompt("Nouveau nom du document :", d.nom);
+  const nom = prompt(traduit("Nouveau nom du document :"), d.nom);
   if (nom === null || !nom.trim() || nom.trim() === d.nom) return;
   const r = await api("PATCH", "/documents/" + d.doc, { nom });
   message(r.ok ? "" : r.corps.erreur || "Changement de nom impossible. Réessaie.");
@@ -442,7 +449,7 @@ async function dupliquer(d) {
 }
 
 async function supprimer(d) {
-  if (!confirm("Supprimer définitivement ce document (son CV et sa lettre) ?")) return;
+  if (!confirm(traduit("Supprimer définitivement ce document (son CV et sa lettre) ?"))) return;
   const r = await api("DELETE", "/documents/" + d.doc, {});
   if (r.ok) {
     // Si c'était le document ouvert dans l'éditeur sur cet appareil, on l'en retire aussi.
@@ -619,7 +626,7 @@ $("#cand-form").addEventListener("submit", async e => {
   if (fait) $("#dlg-cand").close();
 });
 $("#cand-supprimer").addEventListener("click", async () => {
-  if (!candidatureOuverte || !confirm("Supprimer cette candidature de ton suivi ?")) return;
+  if (!candidatureOuverte || !confirm(traduit("Supprimer cette candidature de ton suivi ?"))) return;
   const r = await api("DELETE", `/candidatures/${candidatureOuverte.id}`, {});
   if (!r.ok) return erreur("#cand-erreur", r.corps.erreur || "Suppression impossible. Réessaie.");
   $("#dlg-cand").close();
@@ -721,7 +728,7 @@ $("#suppr-valider").addEventListener("click", async () => {
   $("#suppr-mdp").value = "";
   if (!r.ok) return erreur("#suppr-erreur", r.corps.erreur || "Suppression impossible. Réessaie.");
   try { localStorage.removeItem(CLE_SYNCHRO); } catch { /* idem */ }
-  alert("Ton compte et les documents enregistrés sur nos serveurs ont été supprimés.");
+  alert(traduit("Ton compte et les documents enregistrés sur nos serveurs ont été supprimés."));
   location.href = (window.PREFIXE_SITE || "") + "/";
 });
 

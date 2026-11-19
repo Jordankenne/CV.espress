@@ -1114,28 +1114,78 @@ function pret() {
   return "";
 }
 
-async function appeler(chemin, signal) {
-  let reponse;
-  try {
-    reponse = await fetch(chemin, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: etat.type, cv: etat.cv, lettre: etat.lettre, admin: documentAdmin(), plan: etat.plan, arbre: etat.arbre, options: etat.options }),
-      signal,
-    });
-  } catch (e) {
-    if (e.name === "AbortError") throw e;
-    throw new Error("Connexion impossible. Vérifie ta connexion Internet et réessaie.");
-  }
-  if (!reponse.ok) {
+// Réponses du serveur qui méritent un second essai automatique : serveur occupé (429, 503) ou
+// en train de se réveiller (502, 504 : l'hébergeur gratuit met le site en veille).
+const A_REESSAYER = new Set([429, 502, 503, 504]);
+const pause = ms => new Promise(ok => setTimeout(ok, ms));
+
+/** Envoie le document au serveur. essais > 1 : nouvel essai si le serveur est occupé ou injoignable.
+ *  attendu : type de fichier attendu (« application/pdf »…), vérifié avant d'utiliser la réponse. */
+async function appeler(chemin, signal, { essais = 1, attendu = "", duree = 0 } = {}) {
+  for (let essai = 1; ; essai++) {
+    let reponse;
+    const minuteur = duree && AbortSignal.timeout ? AbortSignal.timeout(duree) : null;
+    try {
+      reponse = await fetch(chemin, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: etat.type, cv: etat.cv, lettre: etat.lettre, admin: documentAdmin(), plan: etat.plan, arbre: etat.arbre, options: etat.options }),
+        signal: signal && minuteur && AbortSignal.any ? AbortSignal.any([signal, minuteur]) : signal || minuteur,
+      });
+    } catch (e) {
+      if (e.name === "AbortError" && !minuteur?.aborted) throw e;
+      const tropLong = e.name === "TimeoutError" || minuteur?.aborted;
+      if (!tropLong && essai < essais) { await pause(3000); continue; }   // coupure réseau : un autre essai
+      throw new Error(tropLong
+        ? "Le serveur met trop de temps à répondre (il vient peut-être de se réveiller). Réessaie dans une minute."
+        : "Connexion impossible. Vérifie ta connexion Internet et réessaie.");
+    }
+    if (reponse.ok) {
+      const type = reponse.headers.get("Content-Type") || "";
+      if (attendu && !type.startsWith(attendu)) {
+        if (essai < essais) { await pause(3000); continue; }
+        throw new Error("Le fichier reçu est incomplet. Réessaie dans un instant.");
+      }
+      return reponse;
+    }
     const detail = await reponse.json().catch(() => ({}));
     if (detail.compte_requis) {          // session expirée entre-temps : on se reconnecte
       compte = { connecte: false, email: null };
       afficherCompte();
     }
-    throw new Error(detail.erreur || `Erreur ${reponse.status}`);
+    if (A_REESSAYER.has(reponse.status) && essai < essais) {
+      const attente = Math.min(10, Number(reponse.headers.get("Retry-After")) || 4);
+      $("#etat").textContent = `Serveur occupé, nouvel essai dans ${attente} s…`;
+      await pause(attente * 1000);
+      continue;
+    }
+    if (detail.erreur) throw new Error(detail.erreur);
+    throw new Error(reponse.status === 502 || reponse.status === 504
+      ? "Le serveur se réveille (il était en veille). Réessaie dans une minute."
+      : `Le document n'a pas pu être fabriqué (erreur ${reponse.status}). Réessaie dans un instant.`);
   }
-  return reponse;
+}
+
+/** Fabrication d'un fichier à télécharger : deux essais, deux minutes au plus. */
+const FORMATS = {
+  pdf: { chemin: "/api/pdf", type: "application/pdf", extension: "pdf" },
+  docx: { chemin: "/api/docx", extension: "docx",
+          type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
+};
+const fichierDuServeur = (format = "pdf") =>
+  appeler(FORMATS[format].chemin, undefined, { essais: 2, attendu: FORMATS[format].type, duree: 120_000 })
+    .then(r => r.blob());
+
+// Suivi anonyme du parcours dans l'éditeur (combien commencent, voient l'aperçu, téléchargent…) :
+// chaque étape est comptée au plus une fois par onglet. Rien de personnel n'est envoyé.
+function signaler(etape) {
+  try {
+    const deja = JSON.parse(sessionStorage.getItem("cv-parcours") || "[]");
+    if (deja.includes(etape)) return;
+    sessionStorage.setItem("cv-parcours", JSON.stringify([...deja, etape]));
+  } catch { /* stockage indisponible : on compte quand même */ }
+  fetch("/api/evenement", { method: "POST", keepalive: true, headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ etape }) }).catch(() => {});
 }
 
 async function actualiser() {
@@ -1145,6 +1195,7 @@ async function actualiser() {
   $("#btn-ouvrir").disabled = !!manque;
   $("#btn-partager").disabled = !!manque;
   $("#btn-telecharger-bas").disabled = !!manque;
+  $("#btn-word").disabled = !!manque;
   if (manque) {
     $("#etat").textContent = manque;
     $("#vide").hidden = etat.type === "plan" && !window.planVoirPdf;     // la zone de dessin occupe la place
@@ -1168,6 +1219,7 @@ async function actualiser() {
     $("#vide").hidden = true;
     montrerErreur("");
     $("#etat").textContent = pages.length > 1 ? `${pages.length} pages` : "1 page";
+    signaler("apercu");
   } catch (e) {
     if (e.name === "AbortError") return;
     $("#etat").textContent = "";
@@ -1178,39 +1230,42 @@ async function actualiser() {
 /** Télécharger demande un compte : sans compte, on ouvre l'inscription, puis on reprend. */
 function compteAvant(action) {
   if (compte.connecte || !compteRequisPourPdf) return true;
+  signaler("compte_demande");
   ouvrirCompte(action, true);
   return false;
 }
 
-async function telecharger(bouton) {
-  if (!compteAvant(() => telecharger(bouton))) return;
+async function telecharger(bouton, format = "pdf") {
+  signaler("telecharger");
+  if (!compteAvant(() => telecharger(bouton, format))) return;
   const texte = bouton.textContent;
   bouton.disabled = true;
   bouton.textContent = "Préparation…";
   try {
-    const pdf = await (await appeler("/api/pdf")).blob();
-    const nom = etat.cv.nom.trim().normalize("NFD").replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "");
+    const fichier = await fichierDuServeur(format);
     const lien = document.createElement("a");
-    lien.href = URL.createObjectURL(pdf);
-    lien.download = etat.type === "arbre" ? "Arbre_genealogique.pdf" : etat.type === "plan" ? "Plan_de_localisation.pdf"
-      : `${{ lettre: "Lettre", admin: "Document" }[etat.type] || "CV"}_${nom || "document"}.pdf`;
+    lien.href = URL.createObjectURL(fichier);
+    lien.download = nomFichier(FORMATS[format].extension);
     document.body.append(lien);
     lien.click();
     lien.remove();
     setTimeout(() => URL.revokeObjectURL(lien.href), 10_000);
     montrerErreur("");
+    signaler(format === "docx" ? "telecharge_word" : "telecharge");
   } catch (e) {
+    signaler("echec_telechargement");
     montrerErreur(e.message);
   } finally {
     bouton.textContent = texte;
     bouton.disabled = false;
+    if ($("#etat").textContent.startsWith("Serveur occupé")) $("#etat").textContent = "";
   }
 }
-function nomFichier() {
+function nomFichier(extension = "pdf") {
   const nom = etat.cv.nom.trim().normalize("NFD").replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "");
   if (etat.type === "plan") return "Plan_de_localisation.pdf";
   if (etat.type === "arbre") return "Arbre_genealogique.pdf";
-  return `${{ lettre: "Lettre", admin: "Document", plan: "Plan" }[etat.type] || "CV"}_${nom || "document"}.pdf`;
+  return `${{ lettre: "Lettre", admin: "Document", plan: "Plan" }[etat.type] || "CV"}_${nom || "document"}.${extension}`;
 }
 
 /** Partage le PDF vers une autre application (WhatsApp, e-mail…), surtout utile sur téléphone. */
@@ -1226,7 +1281,7 @@ async function partager(bouton) {
   if (!compteAvant(() => partager(bouton))) return;
   bouton.disabled = true;
   try {
-    const pdf = await (await appeler("/api/pdf")).blob();
+    const pdf = await fichierDuServeur("pdf");
     const fichier = new File([pdf], nomFichier(), { type: "application/pdf" });
     await navigator.share({ files: [fichier], title: fichier.name });
     montrerErreur("");
@@ -1249,7 +1304,7 @@ async function ouvrir(bouton) {
   const onglet = window.open("", "_blank");
   bouton.disabled = true;
   try {
-    const pdf = await (await appeler("/api/pdf")).blob();
+    const pdf = await fichierDuServeur("pdf");
     const url = URL.createObjectURL(pdf);
     if (onglet) onglet.location = url;
     else location.href = url;          // fenêtres bloquées : on ouvre dans l'onglet actuel
@@ -1265,6 +1320,7 @@ async function ouvrir(bouton) {
 $("#btn-ouvrir").addEventListener("click", e => ouvrir(e.currentTarget));
 $("#btn-telecharger").addEventListener("click", e => telecharger(e.currentTarget));
 $("#btn-telecharger-bas").addEventListener("click", e => telecharger(e.currentTarget));
+$("#btn-word").addEventListener("click", e => telecharger(e.currentTarget, "docx"));
 $("#btn-voir").addEventListener("click", () => $("#apercu").scrollIntoView({ behavior: "smooth" }));
 
 /** À appeler après chaque modification : sauvegarde, puis aperçu différé (on attend la fin de la frappe). */
@@ -1275,7 +1331,9 @@ function modifie(delai = 1200) {
   minuterie = setTimeout(actualiser, delai);
 }
 
+signaler("editeur");
 $("#formulaire").addEventListener("input", e => {
+  signaler("commence");
   const el = e.target;
   if (!el.dataset.k) return;   // les champs des listes ont leur propre écouteur
   ecrire(el.dataset.k, el.type === "checkbox" ? el.checked : el.value);
@@ -1320,7 +1378,7 @@ $("#choix-formule").addEventListener("change", e => {
 });
 
 $("#btn-trame").addEventListener("click", () => {
-  if (texteLettre(etat.lettre) && !confirm("Remplacer le texte actuel de la lettre par les phrases à compléter ?")) return;
+  if (texteLettre(etat.lettre) && !confirm((window.tr || (x => x))("Remplacer le texte actuel de la lettre par les phrases à compléter ?"))) return;
   etat.lettre.parties = { ...(TEXTES_LETTRE[etat.options.langue] || TEXTES_LETTRE.fr).trame };
   remplirChamps(); modifie();
 });
@@ -1346,8 +1404,8 @@ $("#import-fichier").addEventListener("change", async e => {
   const lettre = etat.type === "lettre";
   if (fichier.size > 3 * 1024 * 1024) return messageImport("Ce fichier est trop lourd (3 Mo au maximum).");
   if ((lettre ? texteLettre(etat.lettre) : etat.cv.nom.trim())
-      && !confirm(lettre ? "Remplacer le texte actuel de ta lettre par celui du fichier ?"
-                         : "Remplacer le CV actuel par celui du fichier ?")) return;
+      && !confirm((window.tr || (x => x))(lettre ? "Remplacer le texte actuel de ta lettre par celui du fichier ?"
+                                               : "Remplacer le CV actuel par celui du fichier ?"))) return;
   messageImport("Lecture du fichier…");
   let r, resultat;
   try {
@@ -1479,7 +1537,7 @@ function traduireDocument(langue) {
 }
 
 async function chargerExemple() {
-  if (etat.cv.nom.trim() && !confirm("Remplacer tes données par l'exemple ?")) return;
+  if (etat.cv.nom.trim() && !confirm((window.tr || (x => x))("Remplacer tes données par l'exemple ?"))) return;
   try {
     const exemple = await (await fetch("/exemple.json")).json();
     // L'exemple de lettre va avec l'exemple de CV (même personne) ; on garde la lettre
@@ -1495,9 +1553,9 @@ $("#btn-exemple").addEventListener("click", chargerExemple);
 $("#btn-exemple-vide").addEventListener("click", chargerExemple);
 
 $("#btn-vider").addEventListener("click", () => {
-  if (!confirm(compte.connecte
+  if (!confirm((window.tr || (x => x))(compte.connecte
     ? "Effacer toutes les données du formulaire, sur cet appareil ET dans ton compte ?"
-    : "Effacer toutes les données du formulaire ?")) return;
+    : "Effacer toutes les données du formulaire ?"))) return;
   etat = etatVide();
   toutDessiner(); sauvegarder(); actualiser();
 });
@@ -1589,6 +1647,8 @@ function afficherCompte(message) {
   $("#compte-mdp").autocomplete = modeInscription ? "new-password" : "current-password";
   $("#compte-info-inscription").hidden = !modeInscription;
   $("#compte-oubli-ligne").hidden = modeInscription;
+  $("#compte-robot-ligne").hidden = !modeInscription;
+  if (modeInscription && !compte.connecte) window.AntiRobot?.preparer($("#compte-robot"));
   if (!compte.connecte) partageActuel = null;
   afficherQr();
 }
@@ -1633,9 +1693,9 @@ async function envoyer() {
   if (r.ok) {
     ecrireSynchro({ doc: r.corps.doc, vu: r.corps.modifie_le, version: r.corps.version, sale: false });
     afficherCompte("Ton CV est enregistré dans ton compte.");
-    if (copie) alert("Ce CV avait été modifié sur un autre appareil entre-temps. Pour ne rien perdre, "
+    if (copie) alert((window.tr || (t => t))("Ce CV avait été modifié sur un autre appareil entre-temps. Pour ne rien perdre, "
       + "tes modifications ont été enregistrées dans un nouveau document (« Version modifiée sur cet appareil »). "
-      + "Retrouve les deux versions dans « Mon espace ».");
+      + "Retrouve les deux versions dans « Mon espace »."));
   } else if (r.statut === 401) {
     compte = { connecte: false, email: null };
     afficherCompte();
@@ -1691,8 +1751,9 @@ async function synchroniser() {
   const localModifie = !estVide(etat) && (s.sale || s.vu === undefined);
   let prendreCompte = compteNouveau;
   if (compteNouveau && localModifie && JSON.stringify(fusionner(donnees)) !== JSON.stringify(etat)) {
-    prendreCompte = confirm("Ton compte contient un CV différent de celui de cet appareil.\n\n"
-      + "OK : charger le CV de ton compte.\nAnnuler : garder celui de cet appareil (il sera ajouté à ton compte).");
+    const t = window.tr || (x => x);
+    prendreCompte = confirm(t("Ton compte contient un CV différent de celui de cet appareil.") + "\n\n"
+      + t("OK : charger le CV de ton compte.") + "\n" + t("Annuler : garder celui de cet appareil (il sera ajouté à ton compte)."));
     // Garder celui de l'appareil : il devient un NOUVEAU document, rien n'est écrasé dans le compte
     // (même si cet appareil travaillait déjà sur ce document : l'autre version reste intacte).
     if (!prendreCompte) ecrireSynchro({ sale: true });
@@ -1758,8 +1819,11 @@ $("#compte-form").addEventListener("submit", async e => {
     if (mdp.length < 8) return refuser("Le mot de passe doit contenir au moins 8 caractères.", "mot_de_passe");
     if (mdp !== confirmation) return refuser("Les deux mots de passe ne sont pas identiques.", "confirmation");
     $("#compte-valider").disabled = true;
-    const r = await api("POST", "/inscription", { prenom, nom, email, mot_de_passe: mdp, confirmation, langue: LANGUE_SITE });
+    const r = await api("POST", "/inscription", { prenom, nom, email, mot_de_passe: mdp, confirmation, langue: LANGUE_SITE,
+                                                  site_web: $("#compte-site").value,
+                                                  turnstile: window.AntiRobot?.jeton($("#compte-robot")) || "" });
     $("#compte-valider").disabled = false;
+    if (!r.ok) window.AntiRobot?.reinitialiser($("#compte-robot"));
     if (!r.ok) return refuser(r.corps.erreur || "Une erreur est survenue. Réessaie.", r.corps.champ);
     $("#compte-mdp").value = $("#compte-confirmation").value = "";
     erreurCompte("#compte-erreur", "");
@@ -1808,7 +1872,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 $("#compte-deconnexion").addEventListener("click", async () => {
   // On envoie d'abord les dernières modifications, pour ne rien perdre.
   if (lireSynchro().sale && !(await envoyer())
-      && !confirm("Tes dernières modifications n'ont pas pu être enregistrées dans ton compte. Se déconnecter quand même ?")) return;
+      && !confirm((window.tr || (x => x))("Tes dernières modifications n'ont pas pu être enregistrées dans ton compte. Se déconnecter quand même ?"))) return;
   await api("POST", "/deconnexion", {});
   compte = { connecte: false, email: null };
   clearTimeout(minuterieEnvoi);
@@ -1833,7 +1897,7 @@ $("#compte-supprimer").addEventListener("click", async () => {
   modeInscription = false;
   afficherCompte();
   $("#dlg-compte").close();
-  alert("Ton compte et le CV enregistré sur nos serveurs ont été supprimés.");
+  alert((window.tr || (x => x))("Ton compte et le CV enregistré sur nos serveurs ont été supprimés."));
 });
 
 // Au chargement de la page : déjà connecté sur cet appareil ?

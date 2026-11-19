@@ -61,6 +61,18 @@
       <p class="note" id="barres-vide" hidden>Aucun document téléchargé sur cette période.</p>
     </article>
   </div>
+  <article class="carte-espace">
+    <h3>Parcours dans l'éditeur</h3>
+    <p class="note">Où les visiteurs s'arrêtent : chaque étape est comptée une fois par visite (onglet), sans rien de personnel.
+      Le pourcentage compare chaque étape à celle du dessus. Compté depuis le 19 novembre 2026.</p>
+    <div class="periodes" role="group" aria-label="Période du parcours">
+      <button type="button" data-periode-parcours="1">Aujourd'hui</button>
+      <button type="button" data-periode-parcours="7" aria-pressed="true">7 jours</button>
+      <button type="button" data-periode-parcours="30">30 jours</button>
+    </div>
+    <ul class="barres" id="barres-parcours"></ul>
+    <p class="note" id="parcours-echecs" hidden></p>
+  </article>
   <details class="carte-espace admin-details">
     <summary>Toutes les statistiques (langues, imports, CV en ligne, pages vues…)</summary>
     <p class="note">Comptes anonymes : ni personne, ni adresse IP. Mis à jour toutes les 10 minutes environ. Les robots (Google, UptimeRobot, aperçus WhatsApp…) sont reconnus et comptés à part, depuis le 17 novembre 2026 : avant, ils étaient mêlés aux pages vues.</p>

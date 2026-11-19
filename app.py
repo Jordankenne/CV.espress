@@ -34,6 +34,7 @@ import plan
 import requetes
 import statistiques
 import textes
+import word
 
 # web/ : fichiers servis tels quels (CSS, JS, images, éditeur) ; pages/ : pages HTML
 # assemblées par le serveur (accueil, guides, pages légales) avec en-tête et pied communs.
@@ -160,8 +161,14 @@ def entetes_securite(reponse):
         return reponse   # un PDF n'exécute rien ; certains lecteurs intégrés supportent mal la CSP
     reponse.headers["Content-Security-Policy"] = (
         "default-src 'self'; img-src 'self' data: blob:; object-src 'none'; "
-        "base-uri 'self'; form-action 'self'; frame-ancestors 'none'")
+        "base-uri 'self'; form-action 'self'; frame-ancestors 'none'" + CSP_TURNSTILE)
     return reponse
+
+
+# Vérification anti-robot de l'inscription (Cloudflare Turnstile) : son script et sa case viennent
+# de challenges.cloudflare.com. Autorisé seulement quand Turnstile est configuré.
+CSP_TURNSTILE = ("; script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com"
+                 if comptes.TURNSTILE_SECRET and comptes.TURNSTILE_CLE_SITE else "")
 
 
 # --------------------------------------------------------------------------
@@ -453,6 +460,7 @@ def avec_erreurs(vue):
         except moteur.ErreurDonnees as e:
             return jsonify(erreur=str(e)), 400
         except moteur.ServeurOccupe:
+            statistiques.compter(f"echec:{vue.__name__}:occupe")
             # Toutes les places de compilation sont prises depuis trop longtemps : on libère
             # ce fil tout de suite plutôt que de le laisser bloqué (les pages restent servies).
             reponse = jsonify(erreur="Beaucoup de demandes en ce moment. Réessaie dans quelques secondes.")
@@ -461,7 +469,13 @@ def avec_erreurs(vue):
         except moteur.ErreurCompilation as e:
             # Le détail (log LaTeX) va dans les logs du serveur, pas chez l'utilisateur.
             app.logger.error("%s", e)
+            statistiques.compter(f"echec:{vue.__name__}:compilation")
             return jsonify(erreur="La génération du document a échoué. Réessaie dans un instant."), 500
+        except Exception:
+            # Erreur imprévue : journalisée et comptée (tableau de bord), réponse propre au visiteur.
+            app.logger.exception("Erreur imprévue dans %s", vue.__name__)
+            statistiques.compter(f"echec:{vue.__name__}:imprevue")
+            return jsonify(erreur="Une erreur imprévue est survenue. Réessaie dans un instant."), 500
         finally:
             _sortir(fiche)
     enveloppe.__name__ = vue.__name__
@@ -506,6 +520,47 @@ def fabriquer_le_pdf():
     return Response(document, mimetype="application/pdf", headers={
         "Content-Disposition": f'attachment; filename="{nom}"',
     })
+
+
+@app.post("/api/docx")
+def docx():
+    """Le même document au format Word (.docx), à retoucher dans Word, LibreOffice ou Google Docs.
+    Mêmes conditions que le PDF : compte obligatoire, mêmes limites de demandes."""
+    if app.config["COMPTE_POUR_PDF"] and not comptes.compte_connecte():
+        return jsonify(erreur="Crée ton compte gratuit (ou connecte-toi) pour télécharger ton document.",
+                       compte_requis=True), 401
+    return fabriquer_le_docx()
+
+
+@avec_erreurs
+def fabriquer_le_docx():
+    corps = requetes.lire_json()
+    document, nom = word.fabriquer(corps)
+    genre = corps.get("type") if corps.get("type") in ("lettre", "admin") else "cv"
+    statistiques.compter(f"docx:{genre}")
+    return Response(document, mimetype=word.MIME, headers={"Content-Disposition": f'attachment; filename="{nom}"'})
+
+
+# Étapes du parcours dans l'éditeur, envoyées par le navigateur (app.js, signaler()), au plus une
+# fois par onglet : on voit où les visiteurs s'arrêtent. Liste fermée, rien de personnel.
+ETAPES_PARCOURS = ("editeur", "commence", "apercu", "telecharger", "compte_demande", "telecharge",
+                   "telecharge_word", "echec_telechargement")
+
+
+@app.post("/api/evenement")
+def evenement():
+    corps = requetes.lire_json()
+    etape = corps.get("etape") if isinstance(corps, dict) else None
+    if etape not in ETAPES_PARCOURS or not request.is_json:
+        return jsonify(erreur="Étape inconnue."), 400
+    origine = request.headers.get("Origin")
+    if origine and urlsplit(origine).netloc != request.host:
+        return jsonify(erreur="Requête refusée."), 403
+    cle = ("evenement_ip", request.remote_addr)     # limite à part : ne prend rien aux PDF
+    if not statistiques.robot(request.user_agent.string) and not comptes._bloque(cle):
+        comptes._noter(cle)
+        statistiques.compter(f"parcours:{etape}")
+    return "", 204
 
 
 @app.post("/api/importer")

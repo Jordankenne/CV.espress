@@ -20,6 +20,9 @@
     <label id="porte-confirmation-ligne" hidden>Confirme le mot de passe
       <input type="password" id="porte-confirmation" minlength="8" maxlength="200" autocomplete="new-password"></label>
     <label class="case"><input type="checkbox" id="porte-voir-mdp"> Afficher le mot de passe</label>
+    <!-- Champ piège : invisible, seul un robot le remplit. -->
+    <label class="piege" aria-hidden="true">Site web<input id="porte-site" tabindex="-1" autocomplete="off"></label>
+    <div id="porte-robot-ligne" hidden><div class="anti-robot" id="porte-robot"></div></div>
     <p class="note" id="porte-info" hidden>En créant un compte, tu acceptes que tes documents (photo comprise) soient enregistrés sur nos serveurs pour que tu puisses les retrouver (voir la <a href="{{ p }}/confidentialite">politique de confidentialité</a>).</p>
     <p id="porte-erreur" class="erreur-compte" role="alert" hidden></p>
     <button type="submit" class="bouton principal" id="porte-valider">Se connecter</button>
@@ -180,4 +183,4 @@
   </form>
 </dialog>
 {% endblock %}
-{% block scripts %}<script src="/espace.js"></script>{% endblock %}
+{% block scripts %}<script src="/anti-robot.js"></script><script src="/espace.js"></script>{% endblock %}

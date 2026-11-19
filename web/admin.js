@@ -381,10 +381,52 @@ $("#table-prec").addEventListener("click", () => { tablePage--; chargerTable(); 
 $("#table-suiv").addEventListener("click", () => { tablePage++; chargerTable(); });
 
 // ---------- Utilisation du site ----------
+const PARCOURS = [["parcours:editeur", "Ont ouvert l'éditeur"], ["parcours:commence", "Ont commencé à remplir"],
+                  ["parcours:apercu", "Ont vu l'aperçu"], ["parcours:telecharger", "Ont cliqué sur Télécharger"],
+                  ["parcours:compte_demande", "  dont invités à créer un compte"],
+                  ["parcours:telecharge", "Ont téléchargé un PDF"], ["parcours:telecharge_word", "Ont téléchargé un fichier Word"],
+                  ["parcours:echec_telechargement", "  Ont eu une erreur au téléchargement"]];
+let periodeParcours = 7;
+
+function dessinerParcours() {
+  const etapes = PARCOURS.filter(([, l]) => !l.startsWith("  ")).map(([cle, libelle]) => [libelle, somme(compteurs[cle], periodeParcours)]);
+  const max = Math.max(1, etapes[0][1]);
+  $("#barres-parcours").replaceChildren(...etapes.map(([libelle, n], i) => {
+    const li = element("li");
+    const barre = element("span", undefined, "barre-remplie");
+    barre.style.width = n ? `${Math.max(2, 100 * n / max)}%` : "0";
+    const fond = element("span", undefined, "barre-fond");
+    fond.append(barre);
+    const avant = i && i < 5 ? etapes[i - 1][1] : 0;          // le Word se compare au même « avant » que le PDF
+    const avantWord = i === 5 ? etapes[3][1] : avant;
+    const pourcent = avantWord ? ` (${Math.round(100 * n / avantWord)} %)` : "";
+    li.append(element("span", libelle, "barre-nom"), fond, element("strong", entier(n) + pourcent, "barre-valeur"));
+    return li;
+  }));
+  const demandes = somme(compteurs["parcours:compte_demande"], periodeParcours);
+  const echecs = somme(compteurs["parcours:echec_telechargement"], periodeParcours);
+  const textes = [];
+  if (demandes) textes.push(`${entier(demandes)} visite${demandes > 1 ? "s" : ""} invitée${demandes > 1 ? "s" : ""} à créer un compte avant de télécharger.`);
+  if (echecs) textes.push(`${entier(echecs)} visite${echecs > 1 ? "s" : ""} avec une erreur au téléchargement : voir « Échecs de fabrication » dans toutes les statistiques.`);
+  $("#parcours-echecs").textContent = textes.join(" ");
+  $("#parcours-echecs").hidden = !textes.length;
+  for (const b of document.querySelectorAll("[data-periode-parcours]")) b.setAttribute("aria-pressed", String(+b.dataset.periodeParcours === periodeParcours));
+}
+for (const b of document.querySelectorAll("[data-periode-parcours]")) {
+  b.addEventListener("click", () => { periodeParcours = +b.dataset.periodeParcours; dessinerParcours(); });
+}
 // [titre du groupe, [[clé, libellé], …]] ; les clés inconnues (nouvelles pages…) vont dans « Autres ».
 const GROUPES_USAGE = [
   ["PDF fabriqués", [["pdf:cv", "CV"], ["pdf:cv_avec_qr", "  dont avec QR code"], ["pdf:lettre", "Lettres de motivation"],
                      ["pdf:admin", "Documents administratifs"], ["pdf:plan", "Plans de localisation"], ["pdf:arbre", "Arbres généalogiques"]]],
+  ["Fichiers Word téléchargés", [["docx:cv", "CV"], ["docx:lettre", "Lettres de motivation"], ["docx:admin", "Documents administratifs"]]],
+  ["Parcours dans l'éditeur (une fois par visite)", PARCOURS],
+  ["Échecs de fabrication", [["echec:fabriquer_le_pdf:compilation", "PDF : erreur de compilation"],
+                             ["echec:fabriquer_le_pdf:occupe", "PDF : serveur occupé"],
+                             ["echec:fabriquer_le_pdf:imprevue", "PDF : erreur imprévue"],
+                             ["echec:fabriquer_le_docx:imprevue", "Word : erreur imprévue"],
+                             ["echec:apercu:compilation", "Aperçu : erreur de compilation"],
+                             ["echec:apercu:occupe", "Aperçu : serveur occupé"]]],
   ["Langue des CV et lettres", [["langue_document:fr", "Français"], ["langue_document:en", "Anglais"], ["langue_document:it", "Italien"]]],
   ["Autres actions", [["import:cv", "CV importés"], ["import:lettre", "Lettres importées"], ["cv_en_ligne:vue", "CV en ligne consultés"],
                       ["contact", "Messages de contact"]]],
@@ -428,6 +470,7 @@ async function chargerUsage() {
   $("#t-visites-aide").textContent = `pages vues par des personnes aujourd'hui · ${entier(sommeCles(c => c.startsWith("page:"), 7))} sur 7 jours`
     + (robots ? ` · ${entier(robots)} visite${robots > 1 ? "s" : ""} de robots en plus` : "");
   dessinerBarres();
+  dessinerParcours();
   const lignes = [];
   const ajouter = (libelle, serie, classe) => {
     const tr = element("tr", undefined, classe);

@@ -1,0 +1,47 @@
+# Tests automatiques à chaque envoi sur GitHub et à chaque pull request.
+# Deux passages : base SQLite (comme en développement) et base PostgreSQL jetable (comme Neon
+# en production). Les tests n'utilisent jamais la vraie base : aucun secret n'est nécessaire.
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        base: [sqlite, postgres]
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: cv_tests
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U test" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements*.txt
+      - name: LaTeX et poppler (mêmes paquets que le Dockerfile)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            texlive-latex-base texlive-latex-recommended texlive-latex-extra \
+            texlive-fonts-recommended texlive-pictures lmodern tex-gyre \
+            texlive-luatex fonts-dejavu-core fonts-dejavu-extra poppler-utils
+      - name: Dépendances Python
+        run: pip install -r requirements-dev.txt
+      - name: Tests
+        env:
+          CV_TESTS_POSTGRES: ${{ matrix.base == 'postgres' && 'postgresql://test:test@localhost:5432/cv_tests' || '' }}
+        run: python -m pytest tests -q
