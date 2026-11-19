@@ -92,3 +92,17 @@ def test_chaque_page_recoit_seulement_le_dictionnaire_de_sa_langue(client):
     assert tailles["fr"] < 10_000 < tailles["en"] and tailles["it"] > 10_000
     en = client.get("/traductions.js?langue=en").get_data(as_text=True)
     assert '"Ouvrir le PDF": "Open the PDF"' in en and "Apri il PDF" not in en
+
+
+def test_carte_d_identite_du_site_pour_google(client):
+    """Données structurées de l'accueil : nom du site, autres noms (le domaine), application gratuite."""
+    import json
+    for adresse in ("/", "/en/", "/it/"):
+        page = client.get(adresse).get_data(as_text=True)
+        blocs = [json.loads(b) for b in re.findall(r'<script type="application/ld\+json">(.*?)</script>', page, re.S)]
+        graphe = next(b["@graph"] for b in blocs if "@graph" in b)
+        site = next(x for x in graphe if x["@type"] == "WebSite")
+        assert site["name"] == "CV.express" and "moncvexpress" in site["alternateName"]
+        offre = next(x for x in graphe if x["@type"] == "WebApplication")["offers"]
+        assert offre["price"] == "0"
+    assert "curriculum vitae" in client.get("/it/").get_data(as_text=True).split("</title>")[0]

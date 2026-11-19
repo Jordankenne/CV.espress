@@ -14,6 +14,19 @@
   <meta property="og:description" content="{{ a.og_description }}">
   <meta property="og:url" content="{{ url_page }}">
   <meta property="og:image" content="{{ racine }}img/modele_moderne.png">
+  {#- Carte d'identité du site pour les moteurs de recherche : son nom, ses autres noms (le domaine
+      moncvexpress.com), son logo, et le fait que c'est une application gratuite. C'est ce qui aide
+      Google à afficher « CV.express » et, avec le temps, des sous-liens sous le résultat. #}
+  <script type="application/ld+json">{"@context": "https://schema.org", "@graph": [
+    {"@type": "WebSite", "@id": "{{ racine }}#site", "url": "{{ racine }}", "name": "CV.express",
+     "alternateName": ["moncvexpress", "Mon CV Express", "moncvexpress.com", "CV express"], "inLanguage": ["fr", "en", "it"],
+     "publisher": {"@id": "{{ racine }}#organisation"}},
+    {"@type": "Organization", "@id": "{{ racine }}#organisation", "name": "CV.express", "url": "{{ racine }}",
+     "logo": "{{ racine }}img/icone-512.png"},
+    {"@type": "WebApplication", "name": "CV.express", "url": {{ url_page|tojson }}, "applicationCategory": "BusinessApplication",
+     "operatingSystem": "Web", "inLanguage": {{ langue|tojson }}, "description": {{ a.description|tojson }},
+     "offers": {"@type": "Offer", "price": "0", "priceCurrency": "EUR"}}
+  ]}</script>
   {#- Les questions fréquentes, pour les moteurs de recherche. tojson protège tous les caractères. #}
   <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
     {%- for question, reponse in a.faq %}{"@type": "Question", "name": {{ question|tojson }}, "acceptedAnswer": {"@type": "Answer", "text": {{ reponse|tojson }}}}{% if not loop.last %}, {% endif %}{% endfor -%}

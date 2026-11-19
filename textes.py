@@ -62,8 +62,8 @@ COMMUN = {
 
 ACCUEIL = {
     "fr": {
-        "titre_page": "CV.express — CV, lettre de motivation et documents en PDF, gratuitement",
-        "description": "Crée ton CV, ta lettre de motivation, tes demandes et attestations, ton plan de localisation ou ton arbre généalogique en PDF. Modèles européens et africains, gratuit.",
+        "titre_page": "CV.express — Créer un CV gratuit en PDF, lettre de motivation et documents",
+        "description": "Crée ton CV gratuit en PDF en quelques minutes, avec ta lettre de motivation, tes demandes et attestations. Modèles européens et africains, sans abonnement.",
         "og_description": "CV, lettre de motivation, demandes et attestations, plan de localisation, arbre généalogique. Gratuit.",
         "badge": "Gratuit · Sans abonnement",
         "h1": "Un CV qui donne envie de te <em>rappeler</em>.",
@@ -140,7 +140,7 @@ ACCUEIL = {
         "partage_message": "Crée ton CV et ta lettre de motivation en PDF, gratuitement : ",
     },
     "en": {
-        "titre_page": "CV.express — CV, cover letter and documents as a PDF, for free",
+        "titre_page": "CV.express — Free CV maker: CV, cover letter and documents as a PDF",
         "description": "Create your CV, cover letter, location map or family tree as a PDF in a few minutes. European and African templates, free.",
         "og_description": "CV, cover letter, location map, family tree. Free.",
         "badge": "Free · No subscription",
@@ -218,8 +218,8 @@ ACCUEIL = {
         "partage_message": "Create your CV and cover letter as a PDF, for free: ",
     },
     "it": {
-        "titre_page": "CV.express — CV, lettera di presentazione e documenti in PDF, gratis",
-        "description": "Crea il tuo CV, la lettera di presentazione, una piantina o un albero genealogico in PDF in pochi minuti. Modelli europei e africani, gratis.",
+        "titre_page": "CV.express — Crea il tuo curriculum vitae gratis in PDF",
+        "description": "Crea il tuo curriculum vitae gratis e scaricalo in PDF in pochi minuti, con la lettera di presentazione. Modelli europei (Europass) e africani, senza abbonamento.",
         "og_description": "CV, lettera di presentazione, piantina, albero genealogico. Gratis.",
         "badge": "Gratis · Senza abbonamento",
         "h1": "Un CV che fa venire voglia di <em>richiamarti</em>.",
