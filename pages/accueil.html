@@ -22,12 +22,13 @@
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="apple-touch-icon" href="/img/icone-180.png">
   <link rel="manifest" href="/site.webmanifest">
-  <meta name="theme-color" content="#2d22a0">
+  <meta name="theme-color" content="#f4efe6">
+  <link rel="preload" href="/polices/fraunces-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body class="page-accueil">
 
-<header class="entete">
+<header class="entete" data-entete>
   <a href="{{ p }}/" class="logo">CV<span>.</span>express</a>
   <nav class="entete-actions" aria-label="{{ c.acces }}">
     <a href="#services" class="lien-entete">{{ a.nav_services }}</a>
@@ -37,119 +38,136 @@
   </nav>
 </header>
 
-<section class="accueil">
-  <div class="accueil-texte">
-    <p class="badge">{{ a.badge }}</p>
+<main>
+{#- ===== Une : le titre, et trois vrais CV posés sur la table ===== #}
+<section class="une">
+  <div class="une-texte">
+    <p class="surtitre">{{ a.badge }}</p>
     <h1>{{ a.h1|safe }}</h1>
     <p class="accroche">{{ a.accroche }}</p>
-    <div class="accueil-actions">
-      <a href="{{ p }}/creer" class="bouton principal grand">{{ c.creer }}</a>
-      <a href="{{ p }}/creer?exemple=1" class="bouton fantome grand">{{ a.exemple }}</a>
+    <div class="une-actions">
+      <a href="{{ p }}/creer" class="bouton principal grand fleche">{{ c.creer }}</a>
+      <a href="{{ p }}/creer?exemple=1" class="lien-souligne">{{ a.exemple }}</a>
     </div>
-    <p class="accueil-import"><a href="{{ p }}/creer?importer=1">{{ a.deja }}</a></p>
-    <p class="accueil-aussi">{{ a.aussi }}
+    <p class="une-liens"><a href="{{ p }}/creer?importer=1">{{ a.deja }}</a></p>
+    <p class="une-liens">{{ a.aussi }}
       {%- for type, nom in a.aussi_liens %} <a href="{{ p }}/creer?type={{ type }}">{{ nom }}</a>{% if not loop.last %} ·{% endif %}{% endfor %}</p>
-    <ul class="atouts">
-      {%- for atout in a.atouts %}
-      <li>{{ atout|safe }}</li>
-      {%- endfor %}
-    </ul>
   </div>
-  <div class="accueil-visuel" aria-hidden="true">
-    <img src="/img/modele_africain.png" alt="" class="feuille f1" width="480" height="679">
-    <img src="/img/modele_europeen.png" alt="" class="feuille f2" width="480" height="679">
-    <img src="/img/modele_moderne.png" alt="" class="feuille f3" width="480" height="679">
+  <div class="une-visuel" aria-hidden="true" data-parallaxe>
+    <img src="/img/modele_africain.png" alt="" class="papier papier-1" width="480" height="679" fetchpriority="high">
+    <img src="/img/modele_europeen.png" alt="" class="papier papier-2" width="480" height="679">
+    <img src="/img/modele_moderne.png" alt="" class="papier papier-3" width="480" height="679" fetchpriority="high">
   </div>
+  <ul class="atouts">
+    {%- for atout in a.atouts %}
+    <li>{{ atout|safe }}</li>
+    {%- endfor %}
+  </ul>
 </section>
 
-{#- Petites icônes des services (dessinées en traits, couleur du texte). -#}
-{% macro icone(nom) -%}
-<svg class="icone" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-{%- if nom == "cv" %}<rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="9.5" cy="9" r="2.2"/><path d="M6.5 14.5c.6-1.6 1.7-2.4 3-2.4s2.4.8 3 2.4M14 8h3M14 11h3M7 17.5h10"/>
-{%- elif nom == "lettre" %}<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 6.5 8.5 6.5 8.5-6.5"/>
-{%- elif nom == "admin" %}<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h4"/><path d="M4 8v13h3"/>
-{%- elif nom == "plan" %}<path d="M9 4 3 6.5v13.5L9 17.5l6 2.5 6-2.5V4l-6 2.5z"/><path d="M9 4v13.5M15 6.5V20"/>
-{%- elif nom == "arbre" %}<rect x="9" y="3" width="6" height="4" rx="1"/><rect x="3" y="16" width="6" height="4" rx="1"/><rect x="15" y="16" width="6" height="4" rx="1"/><path d="M12 7v4M6 16v-3h12v3"/>
-{%- elif nom == "offre" %}<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/>
-{%- elif nom == "qr" %}<rect x="3.5" y="3.5" width="6.5" height="6.5" rx="1"/><rect x="14" y="3.5" width="6.5" height="6.5" rx="1"/><rect x="3.5" y="14" width="6.5" height="6.5" rx="1"/><path d="M14 14h3v3h-3zM20.5 14v.01M17 20.5h3.5V17"/>
-{%- else %}<path d="M4 6h16M4 12h16M4 18h10"/><path d="m16 17 2 2 3.5-4"/>
-{%- endif %}</svg>
-{%- endmacro %}
-
+{#- ===== Les documents : un sommaire, avec un vrai exemple de chacun ===== #}
+{%- set images = {"cv": ("modele_moderne", 480, 679), "lettre": ("lettre_classique", 480, 679),
+                  "admin": ("exemple_demande", 480, 679), "plan": ("exemple_plan", 680, 481),
+                  "arbre": ("exemple_arbre", 680, 481)} %}
 <section class="bloc" id="services">
-  <h2>{{ a.services_titre }}</h2>
-  <p class="sous-titre">{{ a.services_texte }}</p>
-  <div class="services">
+  <div class="bloc-tete" data-revele>
+    <h2>{{ a.services_titre }}</h2>
+    <p>{{ a.services_texte }}</p>
+  </div>
+  <ol class="sommaire">
     {%- for type, titre, texte, bouton in a.services %}
-    <a class="service" href="{{ p }}/creer?type={{ type }}">
-      <span class="service-icone">{{ icone(type) }}</span>
-      <h3>{{ titre }}</h3>
-      <p>{{ texte }}</p>
-      <span class="service-action">{{ bouton }} →</span>
-    </a>
-    {%- endfor %}
-  </div>
-  <h3 class="outils-titre">{{ a.outils_titre }}</h3>
-  <div class="outils-compte">
-    {%- for nom, titre, texte, bouton, lien in a.outils %}
-    <a class="outil" href="{{ p }}{{ lien }}">
-      <span class="service-icone">{{ icone(nom) }}</span>
-      <span><strong>{{ titre }}</strong><span class="outil-texte">{{ texte }}</span><span class="service-action">{{ bouton }} →</span></span>
-    </a>
-    {%- endfor %}
-  </div>
-</section>
-
-<section class="bloc bloc-teinte" id="modeles">
-  <h2>{{ a.style_titre }}</h2>
-  <p class="sous-titre">{{ a.style_texte }}</p>
-  <div class="vitrine">
-    {%- for modele, nom, alt, texte in a.modeles %}
-    <div class="vitrine-carte">
-      <a href="/exemple/{{ modele }}.pdf" target="_blank" rel="noopener" title="{{ a.ouvrir_titre }}"><img src="/img/modele_{{ modele }}.png" alt="{{ alt }}" loading="lazy" width="480" height="679"></a>
-      <h3>{{ nom }}</h3>
-      <p>{{ texte }}</p>
-      <div class="vitrine-actions">
-        <a href="/exemple/{{ modele }}.pdf" target="_blank" rel="noopener" class="bouton">{{ a.ouvrir }}</a>
-        <a href="{{ p }}/creer?modele={{ modele }}&amp;exemple=1" class="bouton principal">{{ a.utiliser }}</a>
-      </div>
-    </div>
-    {%- endfor %}
-  </div>
-</section>
-
-<section class="bloc">
-  <h2>{{ a.etapes_titre }}</h2>
-  <ol class="etapes">
-    {%- for titre, texte in a.etapes %}
-    <li><h3>{{ titre }}</h3><p>{{ texte }}</p></li>
+    {%- set image, largeur, hauteur = images[type] %}
+    <li data-revele>
+      <a class="sommaire-ligne" href="{{ p }}/creer?type={{ type }}">
+        <span class="sommaire-num">{{ "%02d"|format(loop.index) }}</span>
+        <span class="sommaire-titre">{{ titre }}</span>
+        <span class="sommaire-texte">{{ texte }}</span>
+        <span class="sommaire-action">{{ bouton }}</span>
+        <img class="sommaire-image{% if largeur > hauteur %} paysage{% endif %}" src="/img/{{ image }}.png" alt=""
+             width="{{ largeur }}" height="{{ hauteur }}" loading="lazy" decoding="async">
+      </a>
+    </li>
     {%- endfor %}
   </ol>
-  <p class="centre"><a href="{{ p }}/creer" class="bouton principal grand">{{ a.commencer }}</a></p>
-</section>
 
-<section class="bloc bloc-teinte" id="guides">
-  <h2>{{ a.guides_titre }}</h2>
-  <p class="sous-titre">{{ a.guides_texte }}</p>
-  <div class="guides">
-    {%- for adresse, titre, texte in a.guides %}
-    <a href="{{ p }}/{{ adresse }}"><h3>{{ titre }}</h3><p>{{ texte }}</p></a>
+  <h3 class="outils-titre" data-revele>{{ a.outils_titre }}</h3>
+  <div class="outils-compte">
+    {%- for nom, titre, texte, bouton, lien in a.outils %}
+    <a class="outil" href="{{ p }}{{ lien }}" data-revele>
+      <strong>{{ titre }}</strong>
+      <span>{{ texte }}</span>
+      <span class="outil-action">{{ bouton }}</span>
+    </a>
     {%- endfor %}
   </div>
 </section>
 
-<section class="bloc" id="questions">
-  <h2>{{ a.faq_titre }}</h2>
+{#- ===== Les modèles, sur fond encre ===== #}
+<section class="bloc bloc-encre" id="modeles">
+  <div class="bloc-tete" data-revele>
+    <h2>{{ a.style_titre }}</h2>
+    <p>{{ a.style_texte }}</p>
+  </div>
+  <div class="vitrine">
+    {%- for modele, nom, alt, texte in a.modeles %}
+    <article class="vitrine-carte" data-revele>
+      <a class="vitrine-image" href="{{ p }}/creer?modele={{ modele }}&amp;exemple=1" aria-label="{{ a.utiliser }} : {{ nom }}">
+        <img src="/img/modele_{{ modele }}.png" alt="{{ alt }}" loading="lazy" decoding="async" width="480" height="679">
+      </a>
+      <h3>{{ nom }}</h3>
+      <p>{{ texte }}</p>
+      <p class="vitrine-actions">
+        <a href="{{ p }}/creer?modele={{ modele }}&amp;exemple=1" class="lien-fleche">{{ a.utiliser }}</a>
+        <a href="/exemple/{{ modele }}.pdf" target="_blank" rel="noopener" title="{{ a.ouvrir_titre }}">{{ a.ouvrir }}</a>
+      </p>
+    </article>
+    {%- endfor %}
+  </div>
+</section>
+
+{#- ===== Trois étapes ===== #}
+<section class="bloc">
+  <div class="bloc-tete" data-revele><h2>{{ a.etapes_titre }}</h2></div>
+  <ol class="etapes">
+    {%- for titre, texte in a.etapes %}
+    <li data-revele><h3>{{ titre }}</h3><p>{{ texte }}</p></li>
+    {%- endfor %}
+  </ol>
+  <p class="bloc-appel" data-revele><a href="{{ p }}/creer" class="bouton principal grand fleche">{{ a.commencer }}</a></p>
+</section>
+
+{#- ===== Guides ===== #}
+<section class="bloc bloc-bureau" id="guides">
+  <div class="bloc-tete" data-revele>
+    <h2>{{ a.guides_titre }}</h2>
+    <p>{{ a.guides_texte }}</p>
+  </div>
+  <div class="guides">
+    {%- for adresse, titre, texte in a.guides %}
+    <a href="{{ p }}/{{ adresse }}" data-revele><h3>{{ titre }}</h3><p>{{ texte }}</p></a>
+    {%- endfor %}
+  </div>
+</section>
+
+{#- ===== Questions ===== #}
+<section class="bloc bloc-questions" id="questions">
+  <div class="bloc-tete" data-revele><h2>{{ a.faq_titre }}</h2></div>
   <div class="faq">
     {%- for question, reponse in a.faq %}
     <details><summary>{{ question }}</summary><p>{{ reponse }}</p></details>
     {%- endfor %}
   </div>
-  <p class="centre">
-    <a href="{{ p }}/creer" class="bouton principal grand">{{ c.creer }}</a>
-    <a data-partage="{{ a.partage_message }}" hidden class="bouton grand" target="_blank" rel="noopener">{{ a.partager }}</a>
+</section>
+
+{#- ===== Dernier appel ===== #}
+<section class="final">
+  <p class="final-titre" data-revele>{{ a.h1|safe }}</p>
+  <p class="final-actions" data-revele>
+    <a href="{{ p }}/creer" class="bouton principal grand fleche">{{ c.creer }}</a>
+    <a data-partage="{{ a.partage_message }}" hidden class="lien-souligne" target="_blank" rel="noopener">{{ a.partager }}</a>
   </p>
 </section>
+</main>
 
 {% include "_pied.html" %}
 <script src="/partage.js"></script>

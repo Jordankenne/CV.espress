@@ -182,7 +182,7 @@ PRODUCTION = os.environ.get("DERRIERE_PROXY") == "1"
 _WEB = moteur.RACINE / "web"
 VERSION = hashlib.sha1(b"".join(f.read_bytes() for f in sorted(_WEB.glob("*.js")) + sorted(_WEB.glob("*.css")))).hexdigest()[:10]
 _LIEN_VERSIONNE = re.compile(r'((?:src|href)="/[\w.-]+\.(?:js|css))"')
-_IMAGES = (".png", ".jpg", ".svg", ".ico", ".webmanifest")
+_IMAGES = (".png", ".jpg", ".svg", ".ico", ".webmanifest", ".woff2")
 
 
 def cache_et_versions(reponse):
