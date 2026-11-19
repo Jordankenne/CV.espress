@@ -36,9 +36,12 @@ def test_restauration_complete_puis_le_site_continue(inscrire, nouveau_client):
     with pytest.raises(RuntimeError, match="déjà des comptes"):     # jamais par-dessus des comptes
         comptes.restaurer_base(copie)
     with comptes._base() as b:
-        for table in ("documents", "reinitialisations", "invitations", "comptes"):
+        for table in reversed(comptes.TABLES):                         # toutes les tables, enfants d'abord
             b.execute(f"DELETE FROM {table}")
-    assert comptes.restaurer_base(copie) == {"comptes": 1, "documents": 1, "reinitialisations": 0, "invitations": 0}
+    bilan = comptes.restaurer_base(copie)
+    assert set(bilan) == set(comptes.TABLES)                           # chaque table est restaurée
+    assert bilan["comptes"] == 1 and bilan["documents"] == 1
+    assert comptes.verifier_restauration(copie)["comptes"] == 1
     # Le compte restauré fonctionne : connexion, document retrouvé, nouveaux numéros sans collision.
     d = nouveau_client()
     assert d.post(f"{API}/connexion", json={"email": "awa@exemple.org", "mot_de_passe": "Mot-de-passe-42"}).status_code == 200
