@@ -21,6 +21,18 @@ sont écrits dans le terminal au lieu d'être envoyés.
 Sur GitHub, les tests tournent tout seuls à chaque envoi (`.github/workflows/tests.yml`),
 une fois sur SQLite et une fois sur une base PostgreSQL jetable. Résultat : onglet « Actions ».
 
+**Dans un vrai navigateur** (`tests/navigateur/verifier.mjs`, Node 22, aucune dépendance) : un robot
+pilote Chrome comme un visiteur. Il remplit un CV, attend l'aperçu, clique sur Télécharger, crée un
+compte, reçoit le PDF puis le Word, retrouve le CV dans « Mon espace ». Il ouvre ensuite chaque page à
+5 largeurs d'écran : rien ne doit dépasser, aucune erreur JavaScript, aucun fichier introuvable, et
+les bases de l'accessibilité. Il tourne aussi sur GitHub à chaque envoi (tâche « navigateur »). En local,
+avec le site lancé sur une base jetable :
+
+```bash
+DOSSIER_DONNEES=/tmp/essai .venv/bin/python -c "import app; app.app.run(port=5077, threaded=True)" &
+node tests/navigateur/verifier.mjs http://127.0.0.1:5077 /chemin/vers/chrome
+```
+
 `tests/test_traductions.py` vérifie les traductions anglaises et italiennes : pas de doublon,
 les mêmes textes dans les deux langues, tous les messages du serveur traduits, et chaque
 `confirm()` / `alert()` / `prompt()` passé par `tr()`. S'il échoue, il affiche le texte à ajouter

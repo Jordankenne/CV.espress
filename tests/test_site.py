@@ -1,4 +1,5 @@
 """Page d'erreur, cache et compression, page Contact, compteurs d'usage."""
+import re
 import gzip
 
 import app as application
@@ -19,10 +20,10 @@ def test_page_404_dans_la_langue_de_l_adresse(client):
 def test_versions_des_fichiers_et_compression(client):
     html = gzip.decompress(client.get("/", headers={"Accept-Encoding": "gzip"}).data).decode()
     assert f'/style.css?v={application.VERSION}"' in html
-    r = client.get("/app.js", headers={"Accept-Encoding": "gzip"})
+    r = client.get("/editeur-apercu.js", headers={"Accept-Encoding": "gzip"})
     assert r.headers["Content-Encoding"] == "gzip" and b"use strict" in gzip.decompress(r.data)
-    assert client.get("/app.js", headers={"If-None-Match": r.headers["ETag"], "Accept-Encoding": "gzip"}).status_code == 304
-    assert "Content-Encoding" not in client.get("/app.js").headers          # navigateur sans gzip
+    assert client.get("/editeur-apercu.js", headers={"If-None-Match": r.headers["ETag"], "Accept-Encoding": "gzip"}).status_code == 304
+    assert "Content-Encoding" not in client.get("/editeur-apercu.js").headers          # navigateur sans gzip
     assert client.get("/sante").get_data(as_text=True) == "ok"
     assert client.get("/site.webmanifest").mimetype == "application/manifest+json"
 
@@ -76,3 +77,18 @@ def test_les_robots_ne_comptent_pas_comme_des_visites(client):
     cles = statistiques.lire(1)["cles"]
     assert cles["page:accueil"] == [1] and "page:contact" not in cles
     assert cles["robot:Google"] == [1] and cles["robot:UptimeRobot"] == [1]
+
+
+def test_chaque_page_recoit_seulement_le_dictionnaire_de_sa_langue(client):
+    """traductions.js est découpé par langue : une page française ne télécharge aucun dictionnaire."""
+    tailles = {}
+    for langue, adresse in (("fr", "/creer"), ("en", "/en/creer"), ("it", "/it/")):
+        page = client.get(adresse).get_data(as_text=True)
+        lien = re.search(r'src="(/traductions\.js\?[^"]+)"', page).group(1).replace("&amp;", "&")
+        assert lien.endswith(f"langue={langue}")
+        script = client.get(lien).get_data(as_text=True)
+        tailles[langue] = len(script)
+        assert "function tr(" in script
+    assert tailles["fr"] < 10_000 < tailles["en"] and tailles["it"] > 10_000
+    en = client.get("/traductions.js?langue=en").get_data(as_text=True)
+    assert '"Ouvrir le PDF": "Open the PDF"' in en and "Apri il PDF" not in en

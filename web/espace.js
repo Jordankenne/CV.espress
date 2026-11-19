@@ -6,7 +6,7 @@ const traduit = texte => (window.tr || (x => x))(texte);
  * ses documents, les dates de son compte, le changement de mot de passe, ses données.
  * Tout passe par /api/compte… ; le serveur ne renvoie jamais que les données du compte connecté.
  */
-const CLE_STOCKAGE = "cv-saas-v1", CLE_SYNCHRO = "cv-saas-synchro";   // les mêmes que l'éditeur (app.js)
+const CLE_STOCKAGE = "cv-saas-v1", CLE_SYNCHRO = "cv-saas-synchro";   // les mêmes que l'éditeur (editeur-etat.js)
 const $ = sel => document.querySelector(sel);
 const MODELES = { moderne: "Moderne", classique: "Classique", europeen: "Européen", africain: "Africain", epure: "Épurée",
                   elegant: "Élégant", compact: "Compact", elegante: "Élégante" };

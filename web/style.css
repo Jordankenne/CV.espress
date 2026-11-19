@@ -462,7 +462,8 @@ legend { padding: 0; margin-bottom: 6px; font-size: 13px; font-weight: 500; colo
 }
 .initiale.grande { width: 60px; height: 60px; margin: 0; font-size: 27px; flex: none; }
 .espace-tete { display: flex; align-items: center; gap: 16px; margin-bottom: 22px; }
-.espace-tete h1 { margin: 0; }
+.espace-tete > div { min-width: 0; }           /* une longue adresse e-mail passe à la ligne au lieu de déborder */
+.espace-tete h1, .espace-tete .note { margin: 0; overflow-wrap: anywhere; }
 .espace-tete .note { margin: 2px 0 0; font-size: 16px; }
 .espace-message { margin: 0 0 18px; padding: 12px 16px; border-radius: 12px; background: var(--primaire-doux); color: var(--texte); font-size: 15px; }
 .espace-grille { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }

@@ -5,7 +5,7 @@
  * etat.arbre.racine = personne ; personne = {nom, sexe, naissance, deces, decede, lieu, unions: [union…]} ;
  * union = {conjoint: {nom, sexe, naissance, deces, decede, lieu} | null, enfants: [personne…]}.
  * Le serveur (arbre.py) calcule la disposition et dessine le PDF ; l'aperçu est celui de l'éditeur.
- * S'appuie sur app.js (etat, modifie, $, $$).
+ * S'appuie sur l'éditeur, editeur-*.js (etat, modifie, $, $$).
  */
 (() => {
   const t = x => (window.tr || (y => y))(x);
@@ -154,5 +154,5 @@
     if (etat.type !== "arbre") return;
     dessiner();
   };
-  arbreAfficher();      // app.js a déjà affiché l'onglet avant que ce script soit chargé
+  arbreAfficher();      // l'éditeur a déjà affiché l'onglet avant que ce script soit chargé
 })();

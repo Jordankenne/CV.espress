@@ -20,6 +20,7 @@
   document.documentElement.lang = LANGUE;
 
   const DICO = { en: {
+    "Créer mon document": "Create my document",
     "· beaucoup de monde : choisis le format A3, ou fais un arbre par branche.": "· a lot of people: choose the A3 format, or make one tree per branch.",
     "Ce document ne contient pas encore ce type de document.": "This document does not contain this type of document yet.",
     "Indique au moins le nom de l'ancêtre (la première personne de l'arbre).": "Enter at least the name of the ancestor (the first person in the tree).",
@@ -738,6 +739,7 @@
     "Aucun texte de lettre n'a été trouvé dans ce fichier.": "No letter text was found in this file.",
     "Le contenu de ce fichier n'a pas pu être reconnu comme un CV. Remplis le formulaire à la main : cela prend quelques minutes.": "The content of this file could not be recognised as a CV. Fill in the form by hand: it takes a few minutes."
   }, it: {
+    "Créer mon document": "Crea il mio documento",
     "· beaucoup de monde : choisis le format A3, ou fais un arbre par branche.": "· molte persone: scegli il formato A3, oppure fai un albero per ramo.",
     "Ce document ne contient pas encore ce type de document.": "Questo documento non contiene ancora questo tipo di documento.",
     "Indique au moins le nom de l'ancêtre (la première personne de l'arbre).": "Indica almeno il nome dell'antenato (la prima persona dell'albero).",

@@ -54,9 +54,9 @@
       {%- for type, nom in a.aussi_liens %} <a href="{{ p }}/creer?type={{ type }}">{{ nom }}</a>{% if not loop.last %} ·{% endif %}{% endfor %}</p>
   </div>
   <div class="une-visuel" aria-hidden="true" data-parallaxe>
-    <img src="/img/modele_africain.png" alt="" class="papier papier-1" width="480" height="679" fetchpriority="high">
-    <img src="/img/modele_europeen.png" alt="" class="papier papier-2" width="480" height="679">
-    <img src="/img/modele_moderne.png" alt="" class="papier papier-3" width="480" height="679" fetchpriority="high">
+    <img src="/img/modele_africain.webp" alt="" class="papier papier-1" width="480" height="679" fetchpriority="high">
+    <img src="/img/modele_europeen.webp" alt="" class="papier papier-2" width="480" height="679">
+    <img src="/img/modele_moderne.webp" alt="" class="papier papier-3" width="480" height="679" fetchpriority="high">
   </div>
   <ul class="atouts">
     {%- for atout in a.atouts %}
@@ -83,7 +83,7 @@
         <span class="sommaire-titre">{{ titre }}</span>
         <span class="sommaire-texte">{{ texte }}</span>
         <span class="sommaire-action">{{ bouton }}</span>
-        <img class="sommaire-image{% if largeur > hauteur %} paysage{% endif %}" src="/img/{{ image }}.png" alt=""
+        <img class="sommaire-image{% if largeur > hauteur %} paysage{% endif %}" src="/img/{{ image }}-petit.webp" alt=""
              width="{{ largeur }}" height="{{ hauteur }}" loading="lazy" decoding="async">
       </a>
     </li>
@@ -112,7 +112,7 @@
     {%- for modele, nom, alt, texte in a.modeles %}
     <article class="vitrine-carte" data-revele>
       <a class="vitrine-image" href="{{ p }}/creer?modele={{ modele }}&amp;exemple=1" aria-label="{{ a.utiliser }} : {{ nom }}">
-        <img src="/img/modele_{{ modele }}.png" alt="{{ alt }}" loading="lazy" decoding="async" width="480" height="679">
+        <img src="/img/modele_{{ modele }}.webp" alt="{{ alt }}" loading="lazy" decoding="async" width="480" height="679">
       </a>
       <h3>{{ nom }}</h3>
       <p>{{ texte }}</p>

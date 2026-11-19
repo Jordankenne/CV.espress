@@ -9,7 +9,7 @@
  *   interdit  {x, y}                                    texte     {x, y, nom, taille, angle, gras, couleur}
  * Coordonnées : 1000 × 500 en paysage, 700 × 820 en portrait (y vers le bas). Le serveur dessine
  * le PDF avec les mêmes règles (routes noires puis blanches par-dessus, mêmes pictogrammes).
- * S'appuie sur app.js (etat, modifie, $, $$).
+ * S'appuie sur l'éditeur, editeur-*.js (etat, modifie, $, $$).
  */
 (() => {
   const NS = "http://www.w3.org/2000/svg";
@@ -577,5 +577,5 @@
   });
   dessinerEtapes();
   choisirOutil("selection");
-  planAfficher();       // app.js a déjà affiché l'onglet avant que ce script soit chargé
+  planAfficher();       // l'éditeur a déjà affiché l'onglet avant que ce script soit chargé
 })();

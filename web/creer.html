@@ -34,6 +34,7 @@
 </header>
 
 <main class="editeur">
+  <h1 class="sr">Créer mon document</h1>
   <form id="formulaire" autocomplete="off" novalidate>
 
     <!-- Déjà un CV ou une lettre ? On le relit pour pré-remplir le formulaire. -->
@@ -84,29 +85,29 @@
       <fieldset class="choix-modele pour-cv">
         <legend>Modèle</legend>
         <label><input type="radio" name="modele" value="moderne" data-k="options.modele">
-          <img src="/img/modele_moderne.png" alt="" loading="lazy"><span>Moderne</span></label>
+          <img src="/img/modele_moderne-petit.webp" alt="" loading="lazy" width="240" height="339"><span>Moderne</span></label>
         <label><input type="radio" name="modele" value="classique" data-k="options.modele">
-          <img src="/img/modele_classique.png" alt="" loading="lazy"><span>Classique</span></label>
+          <img src="/img/modele_classique-petit.webp" alt="" loading="lazy" width="240" height="339"><span>Classique</span></label>
         <label><input type="radio" name="modele" value="europeen" data-k="options.modele">
-          <img src="/img/modele_europeen.png" alt="" loading="lazy"><span>Européen</span></label>
+          <img src="/img/modele_europeen-petit.webp" alt="" loading="lazy" width="240" height="339"><span>Européen</span></label>
         <label><input type="radio" name="modele" value="africain" data-k="options.modele">
-          <img src="/img/modele_africain.png" alt="" loading="lazy"><span>Africain</span></label>
+          <img src="/img/modele_africain-petit.webp" alt="" loading="lazy" width="240" height="339"><span>Africain</span></label>
         <label><input type="radio" name="modele" value="elegant" data-k="options.modele">
-          <img src="/img/modele_elegant.png" alt="" loading="lazy"><span>Élégant</span></label>
+          <img src="/img/modele_elegant-petit.webp" alt="" loading="lazy" width="240" height="339"><span>Élégant</span></label>
         <label><input type="radio" name="modele" value="compact" data-k="options.modele">
-          <img src="/img/modele_compact.png" alt="" loading="lazy"><span>Compact</span></label>
+          <img src="/img/modele_compact-petit.webp" alt="" loading="lazy" width="240" height="339"><span>Compact</span></label>
       </fieldset>
       <p class="conseil pour-cv" id="conseil-modele"></p>
       <fieldset class="choix-modele pour-lettre pour-admin" hidden>
         <legend>Modèle de lettre</legend>
         <label><input type="radio" name="modele_lettre" value="classique" data-k="options.modele_lettre">
-          <img src="/img/lettre_classique.png" alt="" loading="lazy"><span>Classique</span></label>
+          <img src="/img/lettre_classique-petit.webp" alt="" loading="lazy" width="240" height="339"><span>Classique</span></label>
         <label><input type="radio" name="modele_lettre" value="moderne" data-k="options.modele_lettre">
-          <img src="/img/lettre_moderne.png" alt="" loading="lazy"><span>Moderne</span></label>
+          <img src="/img/lettre_moderne-petit.webp" alt="" loading="lazy" width="240" height="339"><span>Moderne</span></label>
         <label><input type="radio" name="modele_lettre" value="epure" data-k="options.modele_lettre">
-          <img src="/img/lettre_epure.png" alt="" loading="lazy"><span>Épurée</span></label>
+          <img src="/img/lettre_epure-petit.webp" alt="" loading="lazy" width="240" height="339"><span>Épurée</span></label>
         <label><input type="radio" name="modele_lettre" value="elegante" data-k="options.modele_lettre">
-          <img src="/img/lettre_elegante.png" alt="" loading="lazy"><span>Élégante</span></label>
+          <img src="/img/lettre_elegante-petit.webp" alt="" loading="lazy" width="240" height="339"><span>Élégante</span></label>
       </fieldset>
       <p class="conseil pour-lettre" hidden>Choisis le même style et la même couleur que ton CV : les deux documents iront ensemble. Ton nom et tes coordonnées viennent de la rubrique « Identité ».</p>
       <div class="grille">
@@ -520,7 +521,7 @@
       <div class="plan-feuille"><svg id="plan-svg" xmlns="http://www.w3.org/2000/svg" aria-label="Dessin du plan"></svg></div>
     </div>
     <div id="vide" class="vide">
-      <img src="/img/modele_moderne.png" alt="">
+      <img src="/img/modele_moderne.webp" alt="" width="480" height="679">
       <p>Ton document s'affiche ici au fur et à mesure que tu remplis le formulaire.</p>
       <button type="button" id="btn-exemple-vide" class="bouton">Voir avec un exemple</button>
     </div>
@@ -596,7 +597,11 @@
 
 <script src="/traductions.js"></script>
 <script src="/anti-robot.js"></script>
-<script src="/app.js"></script>
+<script src="/editeur-etat.js"></script>
+<script src="/editeur-champs.js"></script>
+<script src="/editeur-documents.js"></script>
+<script src="/editeur-apercu.js"></script>
+<script src="/editeur-compte.js"></script>
 <script src="/plan.js"></script>
 <script src="/arbre.js"></script>
 </body>

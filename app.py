@@ -56,6 +56,7 @@ app.register_blueprint(contact.contact)
 
 # Manifeste de l'application (icône sur l'écran d'accueil du téléphone).
 mimetypes.add_type("application/manifest+json", ".webmanifest")
+mimetypes.add_type("image/webp", ".webp")    # absent de la liste de certains systèmes
 
 # Chez un hébergeur, le site est derrière un proxy : sans ceci, tous les visiteurs
 # auraient la même adresse IP (celle du proxy) et partageraient la même limite.
@@ -174,7 +175,7 @@ CSP_TURNSTILE = ("; script-src 'self' https://challenges.cloudflare.com; frame-s
 # --------------------------------------------------------------------------
 # Cache des fichiers et compression
 # --------------------------------------------------------------------------
-# Chaque page appelle style.css, app.js… avec « ?v=<version> ». La version change à chaque mise
+# Chaque page appelle style.css, editeur-*.js… avec « ?v=<version> ». La version change à chaque mise
 # en ligne d'un nouveau code (empreinte des fichiers) : le navigateur peut donc garder ces fichiers
 # un an sans jamais utiliser une version périmée. Les pages elles-mêmes sont toujours revérifiées.
 # En développement, rien n'est gardé : une modification se voit au rechargement.
@@ -182,7 +183,7 @@ PRODUCTION = os.environ.get("DERRIERE_PROXY") == "1"
 _WEB = moteur.RACINE / "web"
 VERSION = hashlib.sha1(b"".join(f.read_bytes() for f in sorted(_WEB.glob("*.js")) + sorted(_WEB.glob("*.css")))).hexdigest()[:10]
 _LIEN_VERSIONNE = re.compile(r'((?:src|href)="/[\w.-]+\.(?:js|css))"')
-_IMAGES = (".png", ".jpg", ".svg", ".ico", ".webmanifest", ".woff2")
+_IMAGES = (".png", ".jpg", ".webp", ".svg", ".ico", ".webmanifest", ".woff2")
 
 
 def cache_et_versions(reponse):
@@ -190,7 +191,11 @@ def cache_et_versions(reponse):
     if reponse.mimetype == "text/html" and reponse.status_code == 200:
         # Les adresses des scripts et des styles reçoivent la version du code.
         reponse.direct_passthrough = False
-        reponse.set_data(_LIEN_VERSIONNE.sub(rf'\1?v={VERSION}"', reponse.get_data(as_text=True)))
+        html = _LIEN_VERSIONNE.sub(rf'\1?v={VERSION}"', reponse.get_data(as_text=True))
+        # Traductions : seulement le dictionnaire de la langue de la page (aucun en français).
+        langue = chemin.split("/")[1] if chemin.startswith(("/en/", "/it/")) or chemin in ("/en", "/it") else "fr"
+        html = html.replace(f'/traductions.js?v={VERSION}"', f'/traductions.js?v={VERSION}&amp;langue={langue}"')
+        reponse.set_data(html)
         for entete in ("ETag", "Last-Modified"):        # le contenu a changé : plus de 304 sur l'ancien
             reponse.headers.pop(entete, None)
         reponse.headers.setdefault("Cache-Control", "no-cache")
@@ -218,7 +223,7 @@ def compresser(reponse):
     if len(donnees) < 1024:
         return
     fichier = request.path.endswith((".js", ".css", ".svg", ".json", ".webmanifest"))
-    cle = (request.path, VERSION, len(donnees))
+    cle = (request.full_path, VERSION, len(donnees))     # full_path : ?langue= compris
     compresse = _compresses.get(cle) if fichier else None
     if compresse is None:
         compresse = gzip.compress(donnees, compresslevel=6)
@@ -333,11 +338,41 @@ def page_traduite(langue, nom):
     abort(404)
 
 
+# traductions.js contient les dictionnaires anglais et italien (près de 140 Ko). Chaque page
+# reçoit seulement celui de sa langue (?langue=, ajouté par cache_et_versions) : une page
+# en français n'en reçoit aucun. Le fichier source reste unique, plus simple à tenir à jour.
+_DICOS = {}
+
+
+def _traductions_pour(langue):
+    source = moteur.RACINE / "web" / "traductions.js"
+    cle = (langue, source.stat().st_mtime_ns)
+    if cle not in _DICOS:
+        texte = source.read_text(encoding="utf-8")
+        for debut, milieu, fin in (("const DICO = { en: {", "\n  }, it: {", "} }[LANGUE] || {};"),
+                                   ("const MOTIFS = { en: [", "], it: [", "] }[LANGUE]")):
+            i = texte.index(debut) + len(debut)
+            j = texte.index(milieu, i)
+            k = texte.index(fin, j)
+            en, it = texte[i:j], texte[j + len(milieu):k]
+            texte = (texte[:i] + (en if langue == "en" else "") + milieu
+                     + (it if langue == "it" else "") + texte[k:])
+        _DICOS.clear() if len(_DICOS) > 6 else None
+        _DICOS[cle] = texte
+    return _DICOS[cle]
+
+
+@app.get("/traductions.js")
+def traductions():
+    langue = request.args.get("langue") if request.args.get("langue") in ("en", "it") else "fr"
+    return Response(_traductions_pour(langue), mimetype="text/javascript")
+
+
 @app.get("/<nom>")
 def page_texte(nom):
     if nom in GUIDES or nom in LEGALES:
         return page(nom)
-    # Sinon c'est un fichier de web/ (style.css, app.js…) : cette route passe avant
+    # Sinon c'est un fichier de web/ (style.css, editeur-*.js…) : cette route passe avant
     # celle des fichiers statiques, il faut donc leur passer la main.
     return app.send_static_file(nom)
 
@@ -541,7 +576,7 @@ def fabriquer_le_docx():
     return Response(document, mimetype=word.MIME, headers={"Content-Disposition": f'attachment; filename="{nom}"'})
 
 
-# Étapes du parcours dans l'éditeur, envoyées par le navigateur (app.js, signaler()), au plus une
+# Étapes du parcours dans l'éditeur, envoyées par le navigateur (editeur-apercu.js, signaler()), au plus une
 # fois par onglet : on voit où les visiteurs s'arrêtent. Liste fermée, rien de personnel.
 ETAPES_PARCOURS = ("editeur", "commence", "apercu", "telecharger", "compte_demande", "telecharge",
                    "telecharge_word", "echec_telechargement")

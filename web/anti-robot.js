@@ -1,5 +1,5 @@
 // Vérification anti-robot du formulaire d'inscription (Cloudflare Turnstile).
-// Utilisée par l'éditeur (app.js) et par « Mon espace » (espace.js).
+// Utilisée par l'éditeur (editeur-compte.js) et par « Mon espace » (espace.js).
 // Le serveur indique la clé publique dans GET /api/compte ; sans clé, rien ne s'affiche et
 // l'inscription fonctionne comme avant (développement, tests).
 (() => {

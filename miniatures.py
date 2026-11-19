@@ -2,7 +2,13 @@
 Fabrique les miniatures des modèles affichées sur le site (web/img/modele_<nom>.png).
 
 À relancer après avoir modifié ou ajouté un modèle :   .venv/bin/python miniatures.py
-Prérequis : pdftoppm (paquet poppler-utils).
+Seulement refaire les versions WebP des images déjà là : .venv/bin/python miniatures.py webp
+Prérequis : pdftoppm (paquet poppler-utils) et, pour le WebP, ImageMagick (commande convert).
+
+Chaque image existe en trois versions :
+  nom.png        : pour les aperçus de liens (WhatsApp, Facebook…), qui préfèrent le PNG ;
+  nom.webp       : la même, 3 à 4 fois plus légère, affichée sur le site ;
+  nom-petit.webp : 240 px de large, pour les vignettes (sommaire de l'accueil, choix du modèle).
 """
 import base64
 import json
@@ -57,6 +63,16 @@ def enregistrer(pdf, cible):
                         "-scale-to-x", "480", "-scale-to-y", "-1", str(source), str(cible)],
                        check=True)
     print(f"OK -> {cible}.png")
+    en_webp(Path(f"{cible}.png"))
+
+
+def en_webp(png):
+    """nom.png -> nom.webp (même taille) et nom-petit.webp (240 px de large)."""
+    base = str(png.with_suffix(""))
+    subprocess.run(["convert", str(png), "-strip", "-quality", "86", "-define", "webp:method=6",
+                    f"{base}.webp"], check=True)
+    subprocess.run(["convert", str(png), "-strip", "-resize", "240x", "-quality", "82",
+                    "-define", "webp:method=6", f"{base}-petit.webp"], check=True)
 
 
 def main():
@@ -75,4 +91,13 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    if sys.argv[1:] == ["webp"]:
+        for png in sorted(IMAGES.glob("*.png")):
+            if not png.name.startswith("icone-"):
+                en_webp(png)
+                print(f"OK -> {png.stem}.webp")
+    else:
+        main()
+        for png in sorted(IMAGES.glob("exemple_*.png")):
+            en_webp(png)
