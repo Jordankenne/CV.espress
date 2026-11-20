@@ -1347,3 +1347,28 @@ details[open] > :not(summary) { animation: apparaitre .3s var(--courbe) both; }
   .choix-modele { grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .choix-modele span { font-size: 13px; }
 }
+
+/* ----- Assistant IA (éditeur) ----- */
+body:not([data-ia="actif"]) #ia { display: none !important; }   /* seulement s'il est activé sur le serveur */
+.ia #ia-lancer { margin: 12px 0 4px; }
+.ia-resultat { margin-top: 14px; }
+.ia-note { display: flex; align-items: baseline; gap: 10px; margin: 0 0 4px; }
+.ia-note strong { font: 500 44px/1 var(--titres); color: var(--accent-texte); }
+.ia-note span { color: var(--doux); font-size: 14px; }
+.ia-avertissement { margin: 0 0 14px; font-size: 12px; color: var(--doux); }
+.ia-criteres { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 8px; }
+.ia-criteres td { padding: 6px 4px; border-top: 1px solid var(--bord); vertical-align: top; }
+.ia-criteres td:nth-child(2) { white-space: nowrap; font-weight: 700; text-align: right; }
+.ia-criteres small { display: block; color: var(--doux); }
+.ia-bloc { margin: 16px 0 0; }
+.ia-bloc h4 { margin: 0 0 6px; font: 600 15px var(--titres); }
+.ia-bloc ul { margin: 0; padding-left: 18px; font-size: 14px; }
+.ia-bloc li { margin-bottom: 4px; }
+.ia-suggestion { margin: 0 0 10px; padding: 12px; border: 1px solid var(--bord); border-radius: 10px; background: var(--champ); font-size: 14px; }
+.ia-suggestion .rubrique { font-size: 12px; font-weight: 700; color: var(--doux); text-transform: uppercase; letter-spacing: .04em; }
+.ia-suggestion del { display: block; margin: 6px 0 4px; color: var(--doux); }
+.ia-suggestion ins { display: block; text-decoration: none; font-weight: 600; }
+.ia-suggestion .raison { margin: 6px 0 0; color: var(--doux); font-size: 13px; }
+.ia-suggestion .verifier { margin: 6px 0 0; color: var(--erreur); font-size: 13px; font-weight: 600; }
+.ia-suggestion .actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.ia-suggestion.appliquee { opacity: .55; }

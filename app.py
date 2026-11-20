@@ -28,6 +28,7 @@ import admin
 import arbre
 import comptes
 import contact
+import ia
 import importer
 import moteur
 import plan
@@ -596,6 +597,55 @@ def evenement():
         comptes._noter(cle)
         statistiques.compter(f"parcours:{etape}")
     return "", 204
+
+
+# --------------------------------------------------------------------------
+# Assistant IA (ia.py) : analyse du CV, et comparaison avec une offre.
+# Compte obligatoire, accord explicite à chaque analyse, quota par compte et plafond global
+# par jour (coût maîtrisé). Seules les analyses réussies sont décomptées.
+# --------------------------------------------------------------------------
+IA_PAR_COMPTE = int(os.environ.get("IA_ANALYSES_PAR_JOUR") or 5)
+IA_MAX_JOUR = int(os.environ.get("IA_ANALYSES_MAX_JOUR") or 300)
+
+
+@app.get("/api/ia")
+def etat_ia():
+    if not ia.actif():
+        return jsonify(actif=False)
+    compte = comptes.compte_connecte()
+    restant = max(0, IA_PAR_COMPTE - comptes.usages_ia(compte[0])[0]) if compte else None
+    return jsonify(actif=True, fournisseur=ia.nom_fournisseur(), par_jour=IA_PAR_COMPTE, restant=restant)
+
+
+@app.post("/api/ia/analyse")
+def analyse_ia():
+    if not ia.actif():
+        return jsonify(erreur="L'assistant IA n'est pas activé."), 404
+    compte = comptes.compte_connecte()
+    if not compte:
+        return jsonify(erreur="Crée ton compte gratuit (ou connecte-toi) pour utiliser l'assistant IA.",
+                       compte_requis=True), 401
+    corps = requetes.lire_json()
+    corps = corps if isinstance(corps, dict) else {}
+    if corps.get("accord") is not True:
+        return jsonify(erreur="Coche la case pour accepter l'envoi de ton CV à l'assistant IA.", accord_requis=True), 400
+    if trop_de_requetes():
+        return jsonify(erreur="Trop de demandes en peu de temps. Patiente une minute."), 429
+    moi, tous = comptes.usages_ia(compte[0])
+    if moi >= IA_PAR_COMPTE:
+        return jsonify(erreur=f"Tu as utilisé tes {IA_PAR_COMPTE} analyses du jour. Reviens demain.", restant=0), 429
+    if tous >= IA_MAX_JOUR:
+        app.logger.warning("Assistant IA : plafond du jour atteint (%s analyses).", tous)
+        return jsonify(erreur="L'assistant IA est très demandé aujourd'hui. Réessaie demain."), 503
+    offre = corps.get("offre") if isinstance(corps.get("offre"), str) else ""
+    try:
+        resultat = ia.analyser(corps.get("cv"), offre, corps.get("langue"))
+    except ia.ErreurIA as e:
+        statistiques.compter(f"echec:ia:{e.code}")
+        return jsonify(erreur=str(e)), e.code
+    comptes.noter_usage_ia(compte[0])
+    statistiques.compter("ia:analyse_offre" if resultat["offre"] else "ia:analyse")
+    return jsonify(resultat=resultat, restant=max(0, IA_PAR_COMPTE - moi - 1), fournisseur=ia.nom_fournisseur())
 
 
 @app.post("/api/importer")

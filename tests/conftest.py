@@ -45,7 +45,7 @@ def etat_propre(monkeypatch):
     import statistiques
     statistiques._en_attente.clear()           # compteurs d'usage pas encore écrits en base
     with comptes._base() as b:
-        for table in ("compteurs", "candidatures", "partages", "documents", "reinitialisations", "invitations", "comptes"):
+        for table in ("usages_ia", "compteurs", "candidatures", "partages", "documents", "reinitialisations", "invitations", "comptes"):
             b.execute(f"DELETE FROM {table}")
     comptes._echecs.clear()
     comptes._emails_du_jour.update(jour="", envoyes=0)

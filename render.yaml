@@ -28,6 +28,14 @@ services:
         sync: false
       - key: EMAIL_EXPEDITEUR  # adresse validée dans Brevo, ex. CV.express <ton.adresse@gmail.com>
         sync: false
+      - key: IA_FOURNISSEUR      # facultatif : groq, cerebras ou anthropic (vide : assistant IA désactivé)
+        sync: false
+      - key: GROQ_API_KEY        # si IA_FOURNISSEUR=groq : console.groq.com > API Keys
+        sync: false
+      - key: ANTHROPIC_API_KEY   # si IA_FOURNISSEUR=anthropic : platform.claude.com > API Keys
+        sync: false
+      - key: IA_ANALYSES_PAR_JOUR  # analyses par compte et par jour (5 par défaut)
+        sync: false
       - key: TURNSTILE_CLE_SITE  # facultatif : Cloudflare > Turnstile > Site Key (anti-robot de l'inscription)
         sync: false
       - key: TURNSTILE_SECRET    # facultatif : Cloudflare > Turnstile > Secret Key

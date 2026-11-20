@@ -78,7 +78,7 @@ def _messages_du_serveur():
             nom = getattr(n.func, "id", getattr(n.func, "attr", ""))
             if nom == "jsonify":
                 textes = [k.value for k in n.keywords if k.arg == "erreur"]
-            elif nom in ("ErreurDonnees", "CaractereInconnu"):     # ErreurCompilation : journal seulement
+            elif nom in ("ErreurDonnees", "CaractereInconnu", "ErreurIA"):     # ErreurCompilation : journal seulement
                 textes = n.args[:1]
             else:
                 continue

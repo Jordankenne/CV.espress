@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-COPY app.py word.py admin.py arbre.py plan.py moteur.py comptes.py contact.py statistiques.py importer.py requetes.py textes.py miniatures.py editeur.json ./
+COPY app.py word.py ia.py admin.py arbre.py plan.py moteur.py comptes.py contact.py statistiques.py importer.py requetes.py textes.py miniatures.py editeur.json ./
 COPY templates ./templates
 COPY web ./web
 COPY pages ./pages

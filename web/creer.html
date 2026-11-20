@@ -80,6 +80,22 @@
       </div>
     </details>
 
+    <!-- Assistant IA (ia.py) : visible seulement s'il est activé sur le serveur. -->
+    <details class="offre ia pour-cv" id="ia">
+      <summary>
+        <span>Analyser mon CV avec l'IA</span>
+        <span class="offre-taux" id="ia-quota"></span>
+      </summary>
+      <div class="offre-corps">
+        <p class="note">L'assistant relit ton CV (et l'offre collée au-dessus, si tu en as une) : une note expliquée, des points forts, des alertes et des phrases mieux tournées. Il ne modifie rien sans ton accord et n'invente aucune expérience.</p>
+        <label class="case"><input type="checkbox" id="ia-accord"> <span>J'accepte que le texte de mon parcours soit envoyé à <strong id="ia-fournisseur" translate="no"></strong> pour cette analyse. Ni mon nom, ni mes coordonnées, ni ma photo ne sont envoyés.</span></label>
+        <button type="button" class="bouton principal" id="ia-lancer">Analyser mon CV</button>
+        <p id="ia-etat" class="note" role="status" hidden></p>
+        <p id="ia-erreur" class="erreur-compte" role="alert" hidden></p>
+        <div id="ia-resultat" class="ia-resultat" hidden></div>
+      </div>
+    </details>
+
     <details open>
       <summary>Apparence</summary>
       <fieldset class="choix-modele pour-cv">
@@ -602,6 +618,7 @@
 <script src="/editeur-documents.js"></script>
 <script src="/editeur-apercu.js"></script>
 <script src="/editeur-compte.js"></script>
+<script src="/editeur-ia.js"></script>
 <script src="/plan.js"></script>
 <script src="/arbre.js"></script>
 </body>

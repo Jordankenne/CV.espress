@@ -50,6 +50,24 @@ dans `web/traductions.js`.
 - Téléchargements : deux minutes au plus, un second essai automatique si le serveur est occupé ou
   se réveille, et un message clair dans chaque cas.
 
+## Assistant IA (analyse du CV)
+
+Dans l'éditeur, « Analyser mon CV avec l'IA » donne une note expliquée (5 critères pondérés, calculée
+par le serveur), les points forts, les alertes, des réécritures à appliquer d'un clic et, si une offre
+est collée, la correspondance avec l'offre. Code : `ia.py` (serveur) et `web/editeur-ia.js`.
+
+Réglages (Render > Environment) — sans eux, l'assistant est simplement caché :
+- `IA_FOURNISSEUR` : `groq` ou `cerebras` pour tester gratuitement, `anthropic` (Claude Haiku) pour le lancement ;
+- la clé correspondante : `GROQ_API_KEY`, `CEREBRAS_API_KEY` ou `ANTHROPIC_API_KEY` ;
+- `IA_MODELE` (facultatif) : un autre modèle. Liste des modèles de ta clé :
+  `IA_FOURNISSEUR=groq GROQ_API_KEY=… .venv/bin/python -m ia modeles` ;
+- `IA_ANALYSES_PAR_JOUR` (5 par défaut, par compte) et `IA_ANALYSES_MAX_JOUR` (300, tous comptes) : coût maîtrisé.
+
+Garde-fous : compte obligatoire et accord coché ; seul le parcours est envoyé (ni nom, ni
+coordonnées, ni photo, ni état civil, ni références) ; les consignes cachées dans un CV ou une offre
+sont traitées comme du texte ; une réécriture qui contient un chiffre absent du CV est marquée
+« à vérifier » ; rien n'est modifié sans clic sur « Appliquer » ; seules les analyses réussies comptent.
+
 ## Inscriptions protégées contre les robots
 
 - Champ piège invisible dans le formulaire, et 10 inscriptions au plus par quart d'heure et par adresse IP.

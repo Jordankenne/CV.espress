@@ -107,7 +107,7 @@ comptes = Blueprint("comptes", __name__, url_prefix="/api/compte")
 # Base de données
 # --------------------------------------------------------------------------
 TABLES = ("comptes", "documents", "reinitialisations", "invitations",    # ordre des clés étrangères
-          "partages", "candidatures", "compteurs")
+          "partages", "candidatures", "compteurs", "usages_ia")
 # Erreurs « base injoignable ou occupée » : réponse 503 (réessayer), jamais une erreur 500.
 ERREURS_BASE = (sqlite3.OperationalError,)
 if POSTGRES:
@@ -226,6 +226,12 @@ def _schema(postgres):
             cle    TEXT NOT NULL,
             nombre {entier} NOT NULL,
             PRIMARY KEY (jour, cle))""",
+        # Analyses par l'assistant IA : combien par compte et par jour (quotas, coût maîtrisé).
+        f"""CREATE TABLE IF NOT EXISTS usages_ia (
+            compte_id {entier} NOT NULL REFERENCES comptes(id) ON DELETE CASCADE,
+            jour      TEXT NOT NULL,
+            nombre    {entier} NOT NULL,
+            PRIMARY KEY (compte_id, jour))""",
     ]
 
 
@@ -1448,8 +1454,32 @@ def supprimer():
     return jsonify(connecte=False)
 
 
+# --------------------------------------------------------------------------
+# Quotas de l'assistant IA
+# --------------------------------------------------------------------------
+def _jour():
+    return time.strftime("%Y-%m-%d", time.gmtime())
+
+
+def usages_ia(compte_id):
+    """(analyses faites aujourd'hui par ce compte, analyses faites aujourd'hui par tous les comptes)."""
+    with _base() as b:
+        moi = b.execute("SELECT nombre FROM usages_ia WHERE compte_id = ? AND jour = ?", (compte_id, _jour())).fetchone()
+        tous = b.execute("SELECT COALESCE(SUM(nombre), 0) FROM usages_ia WHERE jour = ?", (_jour(),)).fetchone()
+    return (moi[0] if moi else 0), tous[0]
+
+
+def noter_usage_ia(compte_id):
+    """Une analyse réussie de plus pour ce compte, aujourd'hui (seules les réussites comptent)."""
+    with _base() as b:
+        b.execute("""INSERT INTO usages_ia (compte_id, jour, nombre) VALUES (?, ?, 1)
+                     ON CONFLICT (compte_id, jour) DO UPDATE SET nombre = usages_ia.nombre + 1""",
+                  (compte_id, _jour()))
+
+
 _CONTROLE = {"comptes": "MAX(id)", "documents": "MAX(id) + SUM(version)", "candidatures": "MAX(id)",
-             "partages": "SUM(doc_id)", "reinitialisations": "SUM(compte_id)", "compteurs": "SUM(nombre)"}
+             "partages": "SUM(doc_id)", "reinitialisations": "SUM(compte_id)", "compteurs": "SUM(nombre)",
+             "usages_ia": "SUM(nombre)"}
 
 
 def verifier_restauration(fichier):
