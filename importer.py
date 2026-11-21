@@ -46,7 +46,29 @@ def extraire_texte(octets, mise_en_page=False):
     return _nettoyer(texte)
 
 
+# PDF faits avec LaTeX (pdfTeX) et des polices « Type 3 » sans table Unicode : pdftotext rend les
+# ligatures et les tirets par leur numéro dans le codage de LaTeX, des caractères invisibles qui
+# seraient supprimés plus bas (« definire » deviendrait « denire »). On remet les vraies lettres.
+#   codage T1  : 0x1B ff, 0x1C fi, 0x1D fl, 0x1E ffi, 0x1F ffl, 0x15 –, 0x16 —
+#   codage OT1 : 0x0B ff, 0x0C fi, 0x0D fl, 0x0E ffi, 0x0F ffl (0x0C seul est aussi un saut de page)
+_LIGATURES = {"\x1b": "ff", "\x1c": "fi", "\x1d": "fl", "\x1e": "ffi", "\x1f": "ffl",
+              "\x0b": "ff", "\x0c": "fi", "\x0d": "fl", "\x0e": "ffi", "\x0f": "ffl"}
+_LETTRE = r"[^\W\d_]"
+_LIGATURE_DANS_UN_MOT = re.compile(
+    rf"(?<={_LETTRE})\x0c(?={_LETTRE})"                                 # 0x0C : aussi un saut de page -> entre deux lettres seulement
+    rf"|(?<={_LETTRE})[\x0b\x0d-\x0f\x1b-\x1f](?![\n\x0c]|$)"            # fin ou milieu de mot (« sta\x1b » = staff)
+    r"|[\x0b\x0d-\x0f\x1b-\x1f](?=[a-zà-ÿ])")                             # début de mot (« \x1cnanza » = finanza)
+_PUCE_INVISIBLE = re.compile(r"^[\x80-\x9f\x0f\x1e\x1f](?= )", re.M)      # puce de liste sans équivalent Unicode
+
+
+def _caracteres_latex(texte):
+    texte = _LIGATURE_DANS_UN_MOT.sub(lambda m: _LIGATURES[m.group()], texte)
+    texte = _PUCE_INVISIBLE.sub("•", texte)
+    return texte.replace("\x15", "–").replace("\x16", "—")
+
+
 def _nettoyer(texte):
+    texte = _caracteres_latex(texte)
     texte = unicodedata.normalize("NFC", texte)
     # Caractères de contrôle retirés, sauf saut de ligne et tabulation.
     texte = "".join(c for c in texte if c in "\n\t" or unicodedata.category(c)[0] != "C")
@@ -490,12 +512,16 @@ def analyser_cv(texte):
     cv["profil"] = _phrases(blocs.get("profil", []))[:2500]
     cv["interets"] = " ".join(_propre(l) for l in blocs.get("interets", []))[:500]
     cv["experiences"] = [
-        {"poste": e["titre"], **_employeur_et_lieu(e["sous_titre"]), "dates": e["dates"],
-         "points": "\n".join(e["details"])}
+        {"poste": e["titre"], **_employeur_et_lieu(e["sous_titre"]), **({"lieu": e["lieu"]} if e["lieu"] else {}),
+         "dates": e["dates"], "points": "\n".join(e["details"])}
         for e in _entrees(blocs.get("experiences", []))][:25]
-    cv["formations"] = [
-        {"diplome": e["titre"], "ecole": e["sous_titre"], "dates": e["dates"], "details": " ".join(e["details"])[:500]}
-        for e in _entrees(blocs.get("formations", []))][:20]
+    cv["formations"] = []
+    for e in _entrees(blocs.get("formations", []))[:20]:
+        diplome, ecole = e["titre"], e["sous_titre"]
+        if not ecole and "," in diplome and len(diplome.rpartition(",")[2].split()) <= 5:
+            diplome, _, ecole = (x.strip() for x in diplome.rpartition(","))   # « Laurea…, UNIMORE »
+        cv["formations"].append({"diplome": diplome, "ecole": ecole, "dates": e["dates"],
+                                 "details": " ".join(e["details"])[:500]})
 
     # ---- Certifications : « Intitulé, organisme – 2025 » ; projets : comme les expériences ----
     date_avant = ""
@@ -583,6 +609,39 @@ def _phrases(lignes):
     return " ".join(_propre(l) for l in lignes)
 
 
+# « (in corso) », « (en cours) »… : l'expérience est en cours ; on l'ajoute aux dates.
+_EN_COURS = re.compile(r"^\(?\s*(in corso|en cours|ongoing|in progress|current|attuale|actuel(?:lement)?|à ce jour|ad oggi)"
+                       r"\s*\)?\s*(?::\s*|\s{2,}|$)", re.I)
+# Pays courants des CV (Europe, Afrique francophone…) : « Lombardia, Italia » est un lieu, pas un intitulé.
+_PAYS = {"italia", "italy", "italie", "france", "francia", "senegal", "sénégal", "cameroun", "cameroon", "camerun",
+         "cote d'ivoire", "côte d'ivoire", "belgique", "belgio", "belgium", "suisse", "svizzera", "switzerland",
+         "canada", "maroc", "marocco", "morocco", "tunisie", "tunisia", "algerie", "algérie", "algeria", "gabon",
+         "congo", "rdc", "mali", "benin", "bénin", "togo", "burkina faso", "niger", "guinee", "guinée", "madagascar",
+         "germania", "allemagne", "germany", "deutschland", "espagne", "spagna", "spain", "españa", "portugal",
+         "portogallo", "royaume-uni", "regno unito", "united kingdom", "uk", "usa", "etats-unis", "états-unis",
+         "stati uniti", "luxembourg", "lussemburgo", "pays-bas", "paesi bassi", "netherlands", "nigeria", "ghana",
+         "tchad", "centrafrique", "rwanda", "burundi", "haiti", "haïti", "mauritanie", "djibouti", "comores"}
+
+
+def _lieu(ligne):
+    """« Lombardia, Italia » / « Dakar, Sénégal » -> la ligne si c'est un lieu, sinon ""."""
+    avant, virgule, pays = ligne.rpartition(",")
+    if virgule and len(ligne.split()) <= 5 and not re.search(r"\d", ligne) and pays.strip().lower() in _PAYS:
+        return ligne.strip()
+    return ""
+
+
+def _sans_libelle_repete(lignes):
+    """Mise en page à deux colonnes : « Progetto : Diabetes Classifier », « Universitario : Modello… ».
+    Un libellé court qui revient en tête de plusieurs lignes est la colonne de gauche : on le retire."""
+    libelles = [m.group(1) for l in lignes if (m := re.match(r"^\s*([^\W\d][\w'’ ]{1,20}?)\s*(?::\s+|\s{3,})\S", l))]
+    repetes = {x for x in libelles if libelles.count(x) >= 2}
+    if not repetes:
+        return lignes
+    motif = re.compile(r"^\s*(?:" + "|".join(map(re.escape, repetes)) + r")\s*(?::\s+|\s{3,})")
+    return [motif.sub("", l) for l in lignes if l.strip() not in repetes]
+
+
 def _entrees(lignes):
     """Découpe une rubrique « expériences » ou « formation » en entrées
     {titre, sous_titre, dates, details}. Le repère : chaque entrée a une période.
@@ -598,6 +657,9 @@ def _entrees(lignes):
         if m:
             reste = (_propre(l)[:m.start()] + _propre(l)[m.end():]).strip(" -–—|,:;()")
             avec_texte, seules = avec_texte + bool(len(reste) > 3), seules + bool(len(reste) <= 3)
+    sans_dates = not any(periode_de(l) for l in lignes)
+    if sans_dates:
+        lignes = _sans_libelle_repete(lignes)
     premiere = next((l for l in lignes if not _PUCE.match(l)), "")
     m = periode_de(premiere)
     if avec_texte > seules:
@@ -610,13 +672,41 @@ def _entrees(lignes):
 
     def nouvelle():
         nonlocal e
-        e = {"titre": "", "sous_titre": "", "dates": "", "details": []}
+        e = {"titre": "", "sous_titre": "", "dates": "", "lieu": "", "details": []}
         entrees.append(e)
 
     for i, brute in enumerate(lignes):
         puce = bool(_PUCE.match(brute))
         ligne = _propre(brute)
         periode = periode_de(brute)
+        # « Laurea prevista: : Laurea Triennale… » : libellé de la colonne de gauche, retiré.
+        ligne = re.sub(r"^[^:\d]{2,30}:\s*:\s+", "", ligne)
+        # « (in corso) » seul ou en tête de ligne : ajouté aux dates de l'entrée en cours.
+        statut = _EN_COURS.match(ligne)
+        if statut and e is not None:
+            if e["dates"] and statut.group(1).lower() not in e["dates"].lower():
+                e["dates"] = f"{e['dates']} ({statut.group(1)})"
+            ligne = ligne[statut.end():].strip()
+            if not ligne:
+                continue
+            puce = True                         # le reste de la ligne est la première mission
+        # « Lombardia, Italia » : le lieu de l'entrée.
+        lieu = _lieu(ligne) if not puce and not periode else ""
+        if lieu and e is not None and not e["lieu"]:
+            e["lieu"] = lieu
+            continue
+        # Ligne qui continue la phrase précédente (retour à la ligne de la mise en page).
+        if not puce and not periode and e is not None and e["details"] and ligne \
+                and (ligne[:1].islower() or not re.search(r"[.!?;:]$", e["details"][-1])) \
+                and not (sans_dates and len(ligne.split()) <= 8 and not re.search(r"[.:]", ligne)):
+            e["details"][-1] = f"{e['details'][-1]} {ligne}"
+            continue
+        # Projets sans dates : une ligne courte, sans point, après des détails = un nouveau projet.
+        if sans_dates and e is not None and not puce and (e["details"] or e["sous_titre"]) \
+                and len(ligne.split()) <= 8 and not re.search(r"[.:]", ligne):
+            nouvelle()
+            e["titre"] = ligne
+            continue
         if mode != "apres":
             debute = bool(periode)
         else:

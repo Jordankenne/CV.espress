@@ -178,7 +178,7 @@ def test_une_date_changee_n_est_jamais_proposee():
 
 def test_la_consigne_donne_la_date_du_jour_et_interdit_les_ajouts():
     c = ia.consigne("fr", False)
-    assert "Nous sommes le" in c and "même entre parenthèses" in c and "jamais une date" in c
+    assert "Nous sommes le" in c and "même entre parenthèses" in c and "jamais un fait : date" in c
 
 
 def test_tiret_du_debut_retire_pour_retrouver_la_ligne_du_cv():
@@ -186,3 +186,41 @@ def test_tiret_du_debut_retire_pour_retrouver_la_ligne_du_cv():
                                            "apres": "- Préparer les déclarations de TVA", "raison": "Verbe d'action."}]}
     s = ia.nettoyer(reponse, ia.texte_du_cv(CV), avec_offre=False)["suggestions"][0]
     assert (s["avant"], s["apres"]) == ("Préparation des déclarations de TVA", "Préparer les déclarations de TVA")
+
+
+def test_titres_de_rubriques_dans_la_langue_du_document_et_jamais_de_traduction():
+    """Un CV en italien analysé depuis le site en français : titres en italien, réécritures non traduites."""
+    texte = ia.texte_du_cv(CV, "it")
+    assert "[ESPERIENZE PROFESSIONALI]" in texte and "[FORMAZIONE]" not in texte or "[ISTRUZIONE E FORMAZIONE]" in texte
+    assert "[EXPÉRIENCES" not in texte
+    consigne = ia.consigne("fr", False)
+    assert "NE TRADUIS JAMAIS" in consigne and "langue de la ligne d'origine" in consigne
+    assert "année d'études" in consigne
+
+
+def test_la_route_transmet_la_langue_du_document(fournisseur, inscrire):
+    c = inscrire("awa@exemple.org")
+    assert analyser(c, langue_document="it").status_code == 200
+    assert "[ESPERIENZE PROFESSIONALI]" in fournisseur[0][1]
+
+
+@pytest.mark.parametrize("texte, langue", [
+    ("Persona organizada con tres años de experiencia en atención al cliente y gestión de archivos", "es"),
+    ("Studente all'ultimo anno di Ingegneria Informatica, appassionato di automazione per le aziende", "it"),
+    ("Recent graduate in statistics with experience in reporting and data cleaning for the team", "en"),
+    ("Formado em administração com experiência em atendimento ao cliente e gestão de documentos", "pt"),
+    ("Erfahrene Bürokauffrau mit Kenntnissen in der Buchhaltung und für die Verwaltung", "de"),
+    ("Titulaire d'une licence en comptabilité et à l'aise avec les outils dans un cabinet", "fr"),
+])
+def test_langue_du_cv_devinee(texte, langue):
+    assert ia.langue_du_texte(texte) == langue
+
+
+def test_un_cv_espagnol_n_est_pas_traduit(fournisseur, inscrire):
+    cv = {"profil": "Persona organizada con tres años de experiencia en atención al cliente y gestión de archivos.",
+          "experiences": [{"poste": "Recepcionista", "entreprise": "Hotel Ejemplo", "dates": "2022 -- 2025",
+                           "points": ["Atención telefónica y presencial a los clientes"]}]}
+    assert analyser(inscrire("awa@exemple.org"), cv=cv, langue_document="fr").status_code == 200
+    systeme, demande = fournisseur[0]
+    assert "Il est écrit en espagnol" in systeme and "réécriture (« apres ») est en espagnol" in systeme
+    assert "2022 – 2025" in demande and "--" not in demande          # notation interne du site retirée

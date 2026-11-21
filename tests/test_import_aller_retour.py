@@ -80,3 +80,44 @@ def test_etat_civil_coupe_en_fin_de_ligne():
                               ": Célibataire | Permis de conduire : B |\nDate de naissance : 12 mars 1999")
     assert cv["etat_civil"] == {"date_naissance": "12 mars 1999", "nationalite": "Sénégalaise",
                                 "situation": "Célibataire", "permis": "B"}
+
+
+# ---------------------------------------------------------------------------
+# PDF LaTeX à polices « Type 3 » : ligatures, tirets et puces sans table Unicode
+# ---------------------------------------------------------------------------
+def test_ligatures_tirets_et_puces_latex_retrouves():
+    import importer
+    brut = ("intelligenza arti\x1cciale, per de\x1cnire, Classi\x1cer, e\x1ecace, \x1dusso, di\x1eciles, sta\x1b team\n"
+            "08/2026 \x15 10/2026\n\x88 Applicazione web\nfin de page\x0c")
+    t = importer._nettoyer(brut)
+    for mot in ("artificiale", "definire", "Classifier", "efficace", "flusso", "difficiles", "staff team", "08/2026 – 10/2026",
+                "• Applicazione web", "fin de page"):
+        assert mot in t, mot
+    assert "pagefi" not in t
+    assert not any(ord(c) < 32 and c not in "\n\t" for c in t)          # saut de page retiré, pas changé en « fi »
+
+
+def test_colonne_de_gauche_statut_lieu_et_lignes_recollees():
+    import importer
+    lignes = ["08/2026 – 10/2026 : Tirocinante Sviluppatore Python, Azienda Esempio S.r.l.",
+              "(in corso) :  Sviluppo di un agente in Python per la contabilizzazione di",
+              "Lombardia, Italia",
+              "fatture elettroniche.",
+              "• Analisi delle regole contabili per definire la logica",
+              "del modulo.",
+              "• Test del processo end-to-end."]
+    e = importer._entrees(lignes)
+    assert len(e) == 1
+    assert e[0]["dates"] == "08/2026 – 10/2026 (in corso)" and e[0]["lieu"] == "Lombardia, Italia"
+    assert e[0]["details"] == ["Sviluppo di un agente in Python per la contabilizzazione di fatture elettroniche.",
+                               "Analisi delle regole contabili per definire la logica del modulo.",
+                               "Test del processo end-to-end."]
+
+
+def test_projets_sans_dates_avec_libelle_repete():
+    import importer
+    lignes = ["Progetto : Sistema di Monitoraggio", "Universitario :  Applicazione con backend in Flask.",
+              "Progetto : Diabetes Classifier", "Universitario :  Modello di classificazione, sviluppato in",
+              "Python con scikit-learn.", "Stack: Python · pandas", "Progetto : Agenda", "Universitario :  Applicazione web."]
+    titres = [x["titre"] for x in importer._entrees(lignes)]
+    assert titres == ["Sistema di Monitoraggio", "Diabetes Classifier", "Agenda"]

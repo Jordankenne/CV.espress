@@ -162,7 +162,8 @@
       const r = await fetch("/api/ia/analyse", {
         method: "POST", credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cv: etat.cv, offre: etat.offre || "", langue: window.LANGUE_SITE || "fr", accord: true }),
+        body: JSON.stringify({ cv: etat.cv, offre: etat.offre || "", langue: window.LANGUE_SITE || "fr",
+                               langue_document: etat.options.langue, accord: true }),
         signal: AbortSignal.timeout ? AbortSignal.timeout(120_000) : undefined,
       });
       const corps = await r.json().catch(() => ({}));

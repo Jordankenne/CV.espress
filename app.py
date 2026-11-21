@@ -639,7 +639,7 @@ def analyse_ia():
         return jsonify(erreur="L'assistant IA est très demandé aujourd'hui. Réessaie demain."), 503
     offre = corps.get("offre") if isinstance(corps.get("offre"), str) else ""
     try:
-        resultat = ia.analyser(corps.get("cv"), offre, corps.get("langue"))
+        resultat = ia.analyser(corps.get("cv"), offre, corps.get("langue"), corps.get("langue_document"))
     except ia.ErreurIA as e:
         statistiques.compter(f"echec:ia:{e.code}")
         return jsonify(erreur=str(e)), e.code
