@@ -19,6 +19,9 @@ let vue = "connexion";      // ce que montre la porte d'entrée : "connexion", "
 let jetonRecu = new URLSearchParams(location.search).get("jeton");
 if (jetonRecu) { vue = "jeton"; history.replaceState(null, "", location.pathname); }
 else if (new URLSearchParams(location.search).get("oubli")) vue = "oubli";
+// Arrivée par le lien de confirmation de l'adresse (e-mail de bienvenue) : /compte?confirmer=…
+const confirmationRecue = new URLSearchParams(location.search).get("confirmer");
+if (confirmationRecue) history.replaceState(null, "", location.pathname);
 // Arrivée par « Créer mon compte » (/compte?inscription=1) : le formulaire d'inscription d'emblée.
 if (new URLSearchParams(location.search).get("inscription")) inscription = true;
 
@@ -212,6 +215,7 @@ function afficherEspace(compte) {
   $("#profil-email").textContent = compte.email;
   $("#profil-cree").textContent = date(compte.cree_le);
   $("#profil-vu").textContent = date(compte.vu_le, true);
+  afficherConfirmation(!!compte.adresse_confirmee);
 
   dessinerDocuments();
 }
@@ -227,7 +231,6 @@ function dessinerDocuments() {
   const remplis = documents.filter(d => d.donnees && d.donnees.cv && texte(d.donnees.cv.nom));
   $("#docs-vide").hidden = documents.length > 0;
   $("#docs-creer").hidden = documents.length > 0;
-  $("#donnees-copie").disabled = !documents.length;
   $("#docs").replaceChildren(...documents.map(dessinerDocument));
   return remplis.length;
 }
@@ -462,7 +465,28 @@ async function supprimer(d) {
   await chargerDocuments();
 }
 
+// ---------- Confirmation de l'adresse e-mail ----------
+function afficherConfirmation(confirmee) {
+  $("#profil-confirmation").textContent = confirmee ? "Confirmée" : "Pas encore confirmée";
+  $("#profil-confirmation").className = confirmee ? "statut-ok" : "statut-attente";
+  $("#confirmation-renvoyer").hidden = confirmee;
+}
+$("#confirmation-renvoyer").addEventListener("click", async () => {
+  const bouton = $("#confirmation-renvoyer");
+  bouton.disabled = true;
+  const r = await api("POST", "/confirmation", { langue: window.LANGUE_SITE || "fr" });
+  bouton.disabled = false;
+  if (r.ok && r.corps.adresse_confirmee) return afficherConfirmation(true);
+  message(r.ok ? "Un lien de confirmation vient de t'être envoyé. Pense à regarder dans les courriers indésirables."
+               : r.corps.erreur || "Une erreur est survenue. Réessaie.");
+});
+async function confirmerAdresse() {
+  const r = await api("POST", "/confirmer", { jeton: confirmationRecue });
+  return r.ok ? "Merci : ton adresse e-mail est confirmée." : r.corps.erreur || "Une erreur est survenue. Réessaie.";
+}
+
 async function charger() {
+  const confirmation = confirmationRecue ? await confirmerAdresse() : "";
   const r = await api("GET", "");
   $("#espace-attente").hidden = true;
   // Lien reçu par e-mail : on l'utilise, même si un compte est déjà connecté sur cet appareil
@@ -470,8 +494,13 @@ async function charger() {
   const connecte = r.ok && r.corps.connecte && !jetonRecu;
   $("#espace-porte").hidden = connecte;
   $("#espace").hidden = !connecte;
-  if (!connecte) { afficherPorte(); return; }
+  if (!connecte) {
+    afficherPorte();
+    if (confirmation) { $("#porte-erreur").textContent = confirmation; $("#porte-erreur").hidden = false; }
+    return;
+  }
   afficherEspace(r.corps);
+  if (confirmation) message(confirmation);
   await chargerDocuments();
   await chargerCandidatures();
   // L'en-tête (entete.js) a pu être dessiné avant la connexion : on le met à jour.
@@ -659,12 +688,24 @@ function enregistrer(blob, nom) {
   document.body.append(lien); lien.click(); lien.remove();
   setTimeout(() => URL.revokeObjectURL(lien.href), 1000);
 }
-// Copie de toutes les données du compte : chaque document en entier, photo comprise.
+// Copie de toutes les données du compte (profil, documents avec photo, liens publics, candidatures) :
+// fabriquée par le serveur (GET /api/compte/export), le seul à tout connaître.
 $("#donnees-copie").addEventListener("click", async () => {
-  const copie = [];
-  for (const d of documents) {
-    const r = await api("GET", "/donnees?doc=" + d.doc);
-    if (r.ok) copie.push({ nom: r.corps.nom, modifie_le: r.corps.modifie_le, ...r.corps.donnees });
+  const bouton = $("#donnees-copie");
+  bouton.disabled = true;
+  try {
+    const r = await fetch("/api/compte/export", { credentials: "same-origin" });
+    if (!r.ok) {
+      const corps = await r.json().catch(() => ({}));
+      return message(corps.erreur || "Une erreur est survenue. Réessaie.");
+    }
+    enregistrer(await r.blob(), "mes-donnees-moncvexpress.json");
+  } catch {
+    message("Connexion impossible. Vérifie ta connexion Internet.");
+  } finally {
+    bouton.disabled = false;
+  }
+});
   }
   enregistrer(new Blob([JSON.stringify({ documents: copie }, null, 2)], { type: "application/json" }), "mes-donnees-cv.json");
 });

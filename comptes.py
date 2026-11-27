@@ -495,7 +495,7 @@ def _sauvegardes_regulieres(journal):
 # limités par adresse visée et par adresse IP, pour qu'on ne puisse pas inonder une boîte.
 FENETRE_S = 15 * 60
 LIMITES = {"paire": 8, "ip": 20, "email": 100, "lien_email": 3, "lien_ip": 10, "jeton_ip": 10,
-           "inscription_ip": 10, "evenement_ip": 60}
+           "inscription_ip": 10, "evenement_ip": 60, "verification": 3, "export": 10}
 _echecs = defaultdict(deque)
 _verrou = threading.Lock()
 
@@ -614,11 +614,11 @@ def etat():
                        turnstile=TURNSTILE_CLE_SITE if TURNSTILE_SECRET else "")
     # Pour la page « Mon espace » : dates du compte et de la dernière sauvegarde du CV.
     with _base() as b:
-        cree_le, vu_le, prenom, nom = b.execute("SELECT cree_le, vu_le, prenom, nom FROM comptes WHERE id = ?",
-                                                (compte[0],)).fetchone()
+        cree_le, vu_le, prenom, nom, verifie_le = b.execute(
+            "SELECT cree_le, vu_le, prenom, nom, verifie_le FROM comptes WHERE id = ?", (compte[0],)).fetchone()
         sauvegarde = b.execute("SELECT MAX(modifie_le) FROM documents WHERE compte_id = ?", (compte[0],)).fetchone()
     return jsonify(connecte=True, email=compte[1], cree_le=cree_le, vu_le=vu_le, prenom=prenom, nom=nom,
-                   compte_requis_pour_pdf=requis,
+                   compte_requis_pour_pdf=requis, adresse_confirmee=bool(verifie_le),
                    modifie_le=sauvegarde[0] if sauvegarde else None)
 
 
@@ -688,7 +688,8 @@ def inscription():
     sujet, texte = _TEXTES_BIENVENUE[langue]
     prefixe = {"en": "/en", "it": "/it"}.get(langue, "")
     texte = texte.format(prenom=prenom, email=email, lien=f"{racine_site()}{prefixe}/compte",
-                         oubli=f"{racine_site()}{prefixe}/compte?oubli=1")
+                         oubli=f"{racine_site()}{prefixe}/compte?oubli=1",
+                         confirmer=lien_de_confirmation(cid, email, prefixe), jours=CONFIRMATION_JOURS)
     threading.Thread(target=envoyer_email, args=(email, sujet, texte, "bienvenue", current_app.logger),
                      daemon=True).start()
     return jsonify(connecte=True, email=email, prenom=prenom, nom=nom, nouveau_compte=True), 201
@@ -716,20 +717,23 @@ def _humain_verifie(reponse):
 
 _TEXTES_BIENVENUE = {
     "fr": ("Bienvenue sur MonCVexpress.com : ton compte est créé",
-           "Bonjour {prenom},\n\nTon compte MonCVexpress.com est créé avec l'adresse {email}.\n"
+           "Bonjour {prenom},\n\nTon compte MonCVexpress.com est créé avec l'adresse {email}.\n\n"
+           "Confirme ton adresse en ouvrant ce lien (valable {jours} jours) :\n\n{confirmer}\n\n"
            "Tes documents sont enregistrés dans ton compte : tu les retrouves depuis n'importe quel appareil, "
            "dans « Mon espace » :\n\n{lien}\n\n"
            "Si tu n'as pas créé ce compte, quelqu'un a utilisé ton adresse : choisis un nouveau mot de passe ici "
            "pour en reprendre le contrôle, puis supprime-le depuis « Mon espace » si tu le souhaites :\n\n{oubli}\n\n"
            "À bientôt,\nMonCVexpress.com\n"),
     "en": ("Welcome to MonCVexpress.com: your account has been created",
-           "Hello {prenom},\n\nYour MonCVexpress.com account has been created with the address {email}.\n"
+           "Hello {prenom},\n\nYour MonCVexpress.com account has been created with the address {email}.\n\n"
+           "Confirm your address by opening this link (valid for {jours} days):\n\n{confirmer}\n\n"
            "Your documents are saved in your account: you can find them on any device, in “My space”:\n\n{lien}\n\n"
            "If you did not create this account, someone used your address: choose a new password here to take "
            "control of it, then delete it from “My space” if you wish:\n\n{oubli}\n\n"
            "See you soon,\nMonCVexpress.com\n"),
     "it": ("Benvenuto su MonCVexpress.com: il tuo account è stato creato",
-           "Ciao {prenom},\n\nIl tuo account MonCVexpress.com è stato creato con l'indirizzo {email}.\n"
+           "Ciao {prenom},\n\nIl tuo account MonCVexpress.com è stato creato con l'indirizzo {email}.\n\n"
+           "Conferma il tuo indirizzo aprendo questo link (valido {jours} giorni):\n\n{confirmer}\n\n"
            "I tuoi documenti sono salvati nel tuo account: li ritrovi da qualsiasi dispositivo, in «Il mio spazio»:\n\n{lien}\n\n"
            "Se non hai creato tu questo account, qualcuno ha usato il tuo indirizzo: scegli qui una nuova password per "
            "riprenderne il controllo, poi eliminalo da «Il mio spazio» se lo desideri:\n\n{oubli}\n\n"
@@ -1452,6 +1456,132 @@ def supprimer():
     session.clear()
     current_app.logger.info("Compte supprimé.")       # sans l'adresse : rien de personnel dans les journaux
     return jsonify(connecte=False)
+
+
+# --------------------------------------------------------------------------
+# Confirmation de l'adresse e-mail
+# --------------------------------------------------------------------------
+# Le compte s'ouvre tout de suite (on télécharge son CV sans attendre un e-mail), mais l'e-mail
+# de bienvenue contient un lien qui prouve que l'adresse appartient bien au titulaire.
+# Le lien est signé avec CLE_SECRETE (rien à stocker en base) et ne vaut que pour cette adresse.
+CONFIRMATION_JOURS = 7
+
+
+def _signataire():
+    from itsdangerous import URLSafeTimedSerializer
+    return URLSafeTimedSerializer(current_app.secret_key, salt="confirmation-adresse")
+
+
+def lien_de_confirmation(compte_id, email, prefixe=""):
+    jeton = _signataire().dumps({"c": compte_id, "e": email})
+    return f"{racine_site()}{prefixe}/compte?confirmer={jeton}"
+
+
+_TEXTES_CONFIRMATION = {
+    "fr": ("MonCVexpress.com : confirme ton adresse e-mail",
+           "Bonjour,\n\nPour confirmer l'adresse de ton compte MonCVexpress.com, ouvre ce lien "
+           "(valable {jours} jours) :\n\n{lien}\n\nSi tu n'as rien demandé, ignore ce message.\n\nMonCVexpress.com\n"),
+    "en": ("MonCVexpress.com: confirm your e-mail address",
+           "Hello,\n\nTo confirm the address of your MonCVexpress.com account, open this link "
+           "(valid for {jours} days):\n\n{lien}\n\nIf you did not ask for anything, ignore this message.\n\nMonCVexpress.com\n"),
+    "it": ("MonCVexpress.com: conferma il tuo indirizzo e-mail",
+           "Ciao,\n\nPer confermare l'indirizzo del tuo account MonCVexpress.com, apri questo link "
+           "(valido {jours} giorni):\n\n{lien}\n\nSe non hai chiesto nulla, ignora questo messaggio.\n\nMonCVexpress.com\n"),
+}
+
+
+@comptes.post("/confirmation")
+def renvoyer_confirmation():
+    """« Renvoyer le lien de confirmation » (Mon espace). Au plus 3 par quart d'heure et par compte."""
+    compte = compte_connecte()
+    if not compte:
+        return _non_connecte()
+    cle = ("verification", compte[0])
+    if _bloque(cle):
+        return jsonify(erreur="Trop de demandes. Réessaie dans un quart d'heure."), 429
+    _noter(cle)
+    corps = _corps()
+    langue = corps.get("langue") if corps.get("langue") in _DUREES else "fr"
+    with _base() as b:
+        deja = b.execute("SELECT verifie_le FROM comptes WHERE id = ?", (compte[0],)).fetchone()
+    if deja and deja[0]:
+        return jsonify(adresse_confirmee=True)
+    prefixe = {"en": "/en", "it": "/it"}.get(langue, "")
+    sujet, texte = _TEXTES_CONFIRMATION[langue]
+    texte = texte.format(lien=lien_de_confirmation(compte[0], compte[1], prefixe), jours=CONFIRMATION_JOURS)
+    threading.Thread(target=envoyer_email, args=(compte[1], sujet, texte, "confirmation", current_app.logger),
+                     daemon=True).start()
+    return jsonify(envoye=True)
+
+
+@comptes.post("/confirmer")
+def confirmer_adresse():
+    """Ouverture du lien reçu par e-mail. Marche même sans être connecté (lien ouvert sur un autre appareil)."""
+    from itsdangerous import BadSignature, SignatureExpired
+    limite = ("jeton_ip", request.remote_addr)
+    if _bloque(limite):
+        return jsonify(erreur="Trop de tentatives. Réessaie dans un quart d'heure."), 429
+    jeton = _corps().get("jeton")
+    try:
+        if not isinstance(jeton, str) or len(jeton) > 500:
+            raise BadSignature("jeton")
+        contenu = _signataire().loads(jeton, max_age=CONFIRMATION_JOURS * 86400)
+        numero, email = int(contenu["c"]), str(contenu["e"])
+    except SignatureExpired:
+        return jsonify(erreur="Ce lien de confirmation a expiré. Demande-en un nouveau depuis Mon espace."), 400
+    except (BadSignature, KeyError, TypeError, ValueError):
+        _noter(limite)
+        return jsonify(erreur="Ce lien de confirmation n'est pas valable."), 400
+    with _base() as b:
+        modifies = b.execute("UPDATE comptes SET verifie_le = ? WHERE id = ? AND email = ? AND verifie_le = 0",
+                             (int(time.time()), numero, email)).rowcount
+        existe = b.execute("SELECT 1 FROM comptes WHERE id = ? AND email = ?", (numero, email)).fetchone()
+    if not existe:
+        return jsonify(erreur="Ce lien de confirmation n'est pas valable."), 400
+    return jsonify(adresse_confirmee=True, deja=not modifies)
+
+
+# --------------------------------------------------------------------------
+# Copie de toutes les données du compte (droit d'accès et de portabilité, RGPD art. 15 et 20)
+# --------------------------------------------------------------------------
+@comptes.get("/export")
+def exporter():
+    """Tout ce que la base garde sur ce compte, dans un fichier JSON lisible. Jamais l'empreinte
+    du mot de passe ni le jeton de session : ils protègent le compte, et un fichier se perd."""
+    compte = compte_connecte()
+    if not compte:
+        return _non_connecte()
+    cle = ("export", compte[0])
+    if _bloque(cle):
+        return jsonify(erreur="Trop de demandes. Réessaie dans un quart d'heure."), 429
+    _noter(cle)
+    date = lambda s: time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(s)) if s else None
+    with _base() as b:
+        email, cree_le, vu_le, prenom, nom, verifie_le = b.execute(
+            "SELECT email, cree_le, vu_le, prenom, nom, verifie_le FROM comptes WHERE id = ?", (compte[0],)).fetchone()
+        documents = b.execute("""SELECT d.id, d.nom, d.contenu, d.modifie_le, d.version, p.code, p.cree_le, p.vues
+                                 FROM documents d LEFT JOIN partages p ON p.doc_id = d.id
+                                 WHERE d.compte_id = ? ORDER BY d.id""", (compte[0],)).fetchall()
+        candidatures = b.execute(f"""SELECT {', '.join(_COLONNES_CANDIDATURE)} FROM candidatures
+                                     WHERE compte_id = ? ORDER BY id""", (compte[0],)).fetchall()
+        usages = b.execute("SELECT jour, nombre FROM usages_ia WHERE compte_id = ? ORDER BY jour",
+                           (compte[0],)).fetchall()
+    copie = {
+        "site": racine_site(),
+        "exporte_le": date(int(time.time())),
+        "compte": {"email": email, "prenom": prenom, "nom": nom, "cree_le": date(cree_le),
+                   "derniere_connexion": date(vu_le), "adresse_confirmee_le": date(verifie_le)},
+        "documents": [{"numero": n, "nom": nom_doc, "modifie_le": date(modifie), "version": version,
+                       "lien_public": ({"adresse": f"{racine_site()}/cv/{code}", "cree_le": date(partage_le), "vues": vues}
+                                       if code else None),
+                       "contenu": json.loads(contenu)}
+                      for n, nom_doc, contenu, modifie, version, code, partage_le, vues in documents],
+        "candidatures": [{**_lire_candidature(l), "modifie_le": date(l[-1])} for l in candidatures],
+        "analyses_ia_par_jour": [{"jour": jour, "nombre": nombre} for jour, nombre in usages],
+    }
+    reponse = current_app.response_class(json.dumps(copie, ensure_ascii=False, indent=2), mimetype="application/json")
+    reponse.headers["Content-Disposition"] = 'attachment; filename="mes-donnees-moncvexpress.json"'
+    return reponse
 
 
 # --------------------------------------------------------------------------

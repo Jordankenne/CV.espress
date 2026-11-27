@@ -1372,3 +1372,8 @@ body:not([data-ia="actif"]) #ia { display: none !important; }   /* seulement s'i
 .ia-suggestion .verifier { margin: 6px 0 0; color: var(--erreur); font-size: 13px; font-weight: 600; }
 .ia-suggestion .actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .ia-suggestion.appliquee { opacity: .55; }
+
+/* Confirmation de l'adresse e-mail (Mon espace) */
+.statut-ok { color: #2e6b3a; font-weight: 600; }
+.statut-attente { color: var(--accent-texte); font-weight: 600; margin-right: 8px; }
+@media (prefers-color-scheme: dark) { .statut-ok { color: #8fd19e; } }

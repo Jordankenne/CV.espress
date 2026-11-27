@@ -656,7 +656,6 @@
     "Changer mon mot de passe": "Change my password",
     "Tes autres appareils seront déconnectés.": "Your other devices will be logged out.",
     "Mes données": "My data",
-    "Tu gardes le contrôle : tu peux récupérer une copie de tout ce qui est enregistré dans ton compte, ou tout supprimer.": "You stay in control: you can get a copy of everything saved in your account, or delete it all.",
     "Télécharger une copie de mes données": "Download a copy of my data",
     "Ton compte et les documents enregistrés sur nos serveurs seront effacés définitivement.": "Your account and the documents stored on our servers will be erased permanently.",
     "Expérience": "Experience",
@@ -775,7 +774,16 @@
     "Document trop volumineux.": "Document too large.",
     "Ce fichier n'est pas un document Word (.docx) lisible.": "This file is not a readable Word (.docx) document.",
     "Aucun texte de lettre n'a été trouvé dans ce fichier.": "No letter text was found in this file.",
-    "Le contenu de ce fichier n'a pas pu être reconnu comme un CV. Remplis le formulaire à la main : cela prend quelques minutes.": "The content of this file could not be recognised as a CV. Fill in the form by hand: it takes a few minutes."
+    "Le contenu de ce fichier n'a pas pu être reconnu comme un CV. Remplis le formulaire à la main : cela prend quelques minutes.": "The content of this file could not be recognised as a CV. Fill in the form by hand: it takes a few minutes.",
+    "Tu gardes le contrôle : tu peux récupérer une copie de tout ce qui est enregistré dans ton compte (profil, documents, liens publics, candidatures), ou tout supprimer.": "You stay in control: you can get a copy of everything saved in your account (profile, documents, public links, applications), or delete it all.",
+    "Confirmation de l'adresse": "Address confirmation",
+    "Confirmée": "Confirmed",
+    "Pas encore confirmée": "Not confirmed yet",
+    "Renvoyer le lien": "Send the link again",
+    "Un lien de confirmation vient de t'être envoyé. Pense à regarder dans les courriers indésirables.": "A confirmation link has just been sent to you. Remember to check your spam folder.",
+    "Merci : ton adresse e-mail est confirmée.": "Thank you: your e-mail address is confirmed.",
+    "Ce lien de confirmation a expiré. Demande-en un nouveau depuis Mon espace.": "This confirmation link has expired. Ask for a new one from My space.",
+    "Ce lien de confirmation n'est pas valable.": "This confirmation link is not valid."
   }, it: {
     "Analyser mon CV avec l'IA": "Analizza il mio CV con l'IA",
     "L'assistant relit ton CV (et l'offre collée au-dessus, si tu en as une) : une note expliquée, des points forts, des alertes et des phrases mieux tournées. Il ne modifie rien sans ton accord et n'invente aucune expérience.": "L'assistente rilegge il tuo CV (e l'annuncio incollato sopra, se ne hai uno): un punteggio spiegato, punti di forza, avvisi e frasi formulate meglio. Non modifica nulla senza il tuo consenso e non inventa nessuna esperienza.",
@@ -1413,7 +1421,6 @@
     "Changer mon mot de passe": "Cambia la mia password",
     "Tes autres appareils seront déconnectés.": "Gli altri tuoi dispositivi saranno disconnessi.",
     "Mes données": "I miei dati",
-    "Tu gardes le contrôle : tu peux récupérer une copie de tout ce qui est enregistré dans ton compte, ou tout supprimer.": "Il controllo resta a te: puoi ottenere una copia di tutto ciò che è salvato nel tuo account, oppure eliminare tutto.",
     "Télécharger une copie de mes données": "Scarica una copia dei miei dati",
     "Ton compte et les documents enregistrés sur nos serveurs seront effacés définitivement.": "Il tuo account e i documenti salvati sui nostri server saranno cancellati definitivamente.",
     "Expérience": "Esperienza",
@@ -1532,7 +1539,16 @@
     "Document trop volumineux.": "Documento troppo voluminoso.",
     "Ce fichier n'est pas un document Word (.docx) lisible.": "Questo file non è un documento Word (.docx) leggibile.",
     "Aucun texte de lettre n'a été trouvé dans ce fichier.": "In questo file non è stato trovato alcun testo di lettera.",
-    "Le contenu de ce fichier n'a pas pu être reconnu comme un CV. Remplis le formulaire à la main : cela prend quelques minutes.": "Il contenuto di questo file non è stato riconosciuto come un CV. Compila il modulo a mano: bastano pochi minuti."
+    "Le contenu de ce fichier n'a pas pu être reconnu comme un CV. Remplis le formulaire à la main : cela prend quelques minutes.": "Il contenuto di questo file non è stato riconosciuto come un CV. Compila il modulo a mano: bastano pochi minuti.",
+    "Tu gardes le contrôle : tu peux récupérer une copie de tout ce qui est enregistré dans ton compte (profil, documents, liens publics, candidatures), ou tout supprimer.": "Il controllo resta a te: puoi ottenere una copia di tutto ciò che è salvato nel tuo account (profilo, documenti, link pubblici, candidature), oppure eliminare tutto.",
+    "Confirmation de l'adresse": "Conferma dell'indirizzo",
+    "Confirmée": "Confermato",
+    "Pas encore confirmée": "Non ancora confermato",
+    "Renvoyer le lien": "Invia di nuovo il link",
+    "Un lien de confirmation vient de t'être envoyé. Pense à regarder dans les courriers indésirables.": "Ti è appena stato inviato un link di conferma. Ricordati di controllare la posta indesiderata.",
+    "Merci : ton adresse e-mail est confirmée.": "Grazie: il tuo indirizzo e-mail è confermato.",
+    "Ce lien de confirmation a expiré. Demande-en un nouveau depuis Mon espace.": "Questo link di conferma è scaduto. Richiedine uno nuovo da Il mio spazio.",
+    "Ce lien de confirmation n'est pas valable.": "Questo link di conferma non è valido."
   } }[LANGUE] || {};
   const MOTIFS = { en: [
     [/^(\d+) analyses par jour$/, "$1 analyses per day"],

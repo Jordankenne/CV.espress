@@ -307,7 +307,10 @@ def infos_editeur():
             return escape(valeur.strip())
         return Markup("<mark>[À COMPLÉTER dans editeur.json : {}]</mark>").format(a_completer)
 
-    return {"editeur": infos, "champ": champ, "annee": time.strftime("%Y")}
+    # La politique de confidentialité décrit ce qui est vraiment actif : assistant IA, anti-robot.
+    return {"editeur": infos, "champ": champ, "annee": time.strftime("%Y"),
+            "ia_fournisseur": ia.nom_fournisseur() if ia.actif() else "",
+            "turnstile_actif": bool(comptes.TURNSTILE_SECRET and comptes.TURNSTILE_CLE_SITE)}
 
 
 @app.get("/")
