@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block titre %}{% endblock %} · CV.express</title>
+  <title>{% block titre %}{% endblock %} · MonCVexpress.com</title>
   <meta name="description" content="{% block description %}{% endblock %}">
   <link rel="canonical" href="{{ url_page }}">
   {%- for code, _, _, adresse in versions %}
@@ -17,6 +17,7 @@
   {% block tete %}{% endblock %}
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" href="/img/icone-192.png" type="image/png" sizes="192x192">
   <link rel="apple-touch-icon" href="/img/icone-180.png">
   <link rel="manifest" href="/site.webmanifest">
   <meta name="theme-color" content="#f4efe6">
@@ -26,7 +27,7 @@
 <body class="page-texte">
 
 <header class="entete entete-page">
-  <a href="{{ p }}/" class="logo">CV<span>.</span>express</a>
+  <a href="{{ p }}/" class="logo">MonCVexpress<span>.com</span></a>
   <nav class="entete-actions" aria-label="{{ c.acces }}">
     {% include "_langues.html" %}
     <a href="{{ p }}/compte" class="bouton" data-lien-compte>{{ c.connexion }}</a>

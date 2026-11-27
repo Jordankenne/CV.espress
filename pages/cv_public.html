@@ -6,9 +6,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
-  <title>{% if cv %}{{ x.titre.format(cv.nom) }}{% else %}{{ x.absent }}{% endif %} · CV.express</title>
+  <title>{% if cv %}{{ x.titre.format(cv.nom) }}{% else %}{{ x.absent }}{% endif %} · MonCVexpress.com</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" href="/img/icone-192.png" type="image/png" sizes="192x192">
   <link rel="apple-touch-icon" href="/img/icone-180.png">
   <link rel="manifest" href="/site.webmanifest">
   <meta name="theme-color" content="#f4efe6">
@@ -17,7 +18,7 @@
 <body class="page-texte page-cv-public">
 
 <header class="entete entete-page">
-  <a href="{{ racine }}{{ p }}/" class="logo" translate="no">CV<span>.</span>express</a>
+  <a href="{{ racine }}{{ p }}/" class="logo" translate="no">MonCVexpress<span>.com</span></a>
   {% if cv %}<nav class="entete-actions"><a class="bouton principal" href="/cv/{{ code }}/pdf">{{ x.pdf }}</a></nav>{% endif %}
 </header>
 
@@ -114,7 +115,7 @@
 
   <p class="cv-public-pied">
     <a class="bouton principal" href="/cv/{{ code }}/pdf">{{ x.pdf }}</a>
-    <span class="note">{{ x.cree }} <a href="{{ racine }}{{ p }}/">CV.express</a> · <a href="{{ racine }}{{ p }}/creer">{{ x.creer }}</a></span>
+    <span class="note">{{ x.cree }} <a href="{{ racine }}{{ p }}/">MonCVexpress.com</a> · <a href="{{ racine }}{{ p }}/creer">{{ x.creer }}</a></span>
   </p>
 {% endif %}
 </main>

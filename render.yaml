@@ -26,7 +26,7 @@ services:
         sync: false
       - key: ADMINS          # adresse(s) des comptes administrateurs (page /admin), séparées par des virgules
         sync: false
-      - key: EMAIL_EXPEDITEUR  # adresse validée dans Brevo, ex. CV.express <ton.adresse@gmail.com>
+      - key: EMAIL_EXPEDITEUR  # adresse validée dans Brevo, ex. MonCVexpress.com <ton.adresse@gmail.com>
         sync: false
       - key: IA_FOURNISSEUR      # facultatif : groq, cerebras ou anthropic (vide : assistant IA désactivé)
         sync: false

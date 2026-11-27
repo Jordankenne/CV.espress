@@ -50,7 +50,7 @@ def envoyer():
     statistiques.compter("contact")
     a_qui = destinataire()
     langue = corps.get("langue") if corps.get("langue") in ("fr", "en", "it") else "fr"
-    contenu = (f"Message reçu depuis la page Contact de CV.express\n\n"
+    contenu = (f"Message reçu depuis la page Contact de MonCVexpress.com\n\n"
                f"Sujet : {SUJETS[sujet]}\nNom : {nom or '(non indiqué)'}\n"
                f"Adresse e-mail : {email or '(non indiquée : impossible de répondre)'}\nLangue du site : {langue}\n"
                f"\n{message}\n")
@@ -58,6 +58,6 @@ def envoyer():
         current_app.logger.warning("Message de contact reçu mais aucune adresse où l'envoyer (CONTACT_EMAIL).")
         return jsonify(envoye=True)
     threading.Thread(target=c.envoyer_email, daemon=True, args=(
-        a_qui, f"[CV.express] {SUJETS[sujet]}" + (f" – {nom}" if nom else ""), contenu, "contact",
+        a_qui, f"[MonCVexpress.com] {SUJETS[sujet]}" + (f" – {nom}" if nom else ""), contenu, "contact",
         current_app.logger, email or None)).start()
     return jsonify(envoye=True)

@@ -670,13 +670,13 @@ def importer_document():
 TEXTES_PUBLICS = {
     "fr": {"titre": "CV de {}", "pdf": "Télécharger le CV en PDF", "cree": "CV créé avec",
            "creer": "Crée le tien gratuitement", "absent": "Ce CV n'est pas ou plus en ligne.",
-           "absent_detail": "Son titulaire a peut-être désactivé le lien.", "accueil": "Aller sur CV.express"},
+           "absent_detail": "Son titulaire a peut-être désactivé le lien.", "accueil": "Aller sur MonCVexpress.com"},
     "en": {"titre": "CV of {}", "pdf": "Download the CV as PDF", "cree": "CV made with",
            "creer": "Make yours for free", "absent": "This CV is not online (or no longer).",
-           "absent_detail": "Its owner may have turned the link off.", "accueil": "Go to CV.express"},
+           "absent_detail": "Its owner may have turned the link off.", "accueil": "Go to MonCVexpress.com"},
     "it": {"titre": "CV di {}", "pdf": "Scarica il CV in PDF", "cree": "CV creato con",
            "creer": "Crea il tuo gratis", "absent": "Questo CV non è (più) online.",
-           "absent_detail": "Il titolare potrebbe aver disattivato il link.", "accueil": "Vai su CV.express"},
+           "absent_detail": "Il titolare potrebbe aver disattivato il link.", "accueil": "Vai su MonCVexpress.com"},
 }
 
 

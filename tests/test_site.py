@@ -102,7 +102,7 @@ def test_carte_d_identite_du_site_pour_google(client):
         blocs = [json.loads(b) for b in re.findall(r'<script type="application/ld\+json">(.*?)</script>', page, re.S)]
         graphe = next(b["@graph"] for b in blocs if "@graph" in b)
         site = next(x for x in graphe if x["@type"] == "WebSite")
-        assert site["name"] == "CV.express" and "moncvexpress" in site["alternateName"]
+        assert site["name"] == "MonCVexpress.com" and "moncvexpress" in site["alternateName"]
         offre = next(x for x in graphe if x["@type"] == "WebApplication")["offers"]
         assert offre["price"] == "0"
     assert "curriculum vitae" in client.get("/it/").get_data(as_text=True).split("</title>")[0]

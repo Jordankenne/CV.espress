@@ -1,6 +1,6 @@
 {
-  "name": "CV.express",
-  "short_name": "CV.express",
+  "name": "MonCVexpress.com",
+  "short_name": "MonCVexpress.com",
   "description": "CV, lettre de motivation et documents en PDF, gratuitement.",
   "start_url": "/",
   "display": "standalone",

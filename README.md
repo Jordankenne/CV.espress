@@ -1,4 +1,4 @@
-# CV.express
+# MonCVexpress.com
 
 Générateur de CV et de lettres de motivation en PDF (français, anglais, italien).
 
@@ -133,7 +133,7 @@ base des comptes, **Brevo** envoie les e-mails (inscription, mot de passe oubli�
    - `DATABASE_URL` : la chaîne de connexion Neon ;
    - `BREVO_CLE_API` : la clé Brevo ;
    - `EMAIL_EXPEDITEUR` : l'adresse validée dans Brevo, par exemple
-     `CV.express <ton.adresse@gmail.com>`.
+     `MonCVexpress.com <ton.adresse@gmail.com>`.
 5. Vérifier : créer un compte sur le site ; l'e-mail d'inscription doit arriver (regarder
    aussi les indésirables). En cas de problème, **Logs** dans Render.
 

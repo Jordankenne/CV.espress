@@ -360,7 +360,7 @@ _RELS_RACINE = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
 _CORE = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
          f'<cp:coreProperties xmlns:cp="{_PKG}/metadata/core-properties" '
          'xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title>{titre}</dc:title>'
-         '<dc:creator>CV.express</dc:creator></cp:coreProperties>')
+         '<dc:creator>MonCVexpress.com</dc:creator></cp:coreProperties>')
 
 
 def _style(identifiant, nom, ppr="", rpr="", base="Normal"):

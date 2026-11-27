@@ -112,7 +112,7 @@ def test_e_mail_envoye_par_brevo(monkeypatch):
     envoyes = []
     monkeypatch.setattr(comptes, "BREVO_CLE_API", "cle-de-test")
     monkeypatch.setattr(comptes, "SMTP_HOTE", "")
-    monkeypatch.setattr(comptes, "EMAIL_EXPEDITEUR", "CV.express <bonjour@cv.exemple>")
+    monkeypatch.setattr(comptes, "EMAIL_EXPEDITEUR", "MonCVexpress.com <bonjour@cv.exemple>")
     monkeypatch.setattr(comptes.urllib.request, "urlopen",
                         lambda demande, timeout: envoyes.append((demande, timeout)) or _Reponse())
     comptes._envoyer_lien("awa@exemple.org", "invitation", "it", "https://cv.exemple/it/compte?jeton=abc",
@@ -121,9 +121,9 @@ def test_e_mail_envoye_par_brevo(monkeypatch):
     corps = json.loads(demande.data)
     assert demande.full_url == "https://api.brevo.com/v3/smtp/email" and demande.get_method() == "POST"
     assert demande.get_header("Api-key") == "cle-de-test" and delai == 20
-    assert corps["sender"] == {"email": "bonjour@cv.exemple", "name": "CV.express"}
+    assert corps["sender"] == {"email": "bonjour@cv.exemple", "name": "MonCVexpress.com"}
     assert corps["to"] == [{"email": "awa@exemple.org"}]
-    assert corps["subject"].startswith("CV.express: conferma")
+    assert corps["subject"].startswith("MonCVexpress.com: conferma")
     assert "https://cv.exemple/it/compte?jeton=abc" in corps["textContent"] and "24 ore" in corps["textContent"]
 
 

@@ -5,7 +5,7 @@ import comptes
 from conftest import _FilImmediat
 from test_securite_comptes import API, inscription
 
-SUJETS = {"fr": "Bienvenue sur CV.express", "en": "Welcome to CV.express", "it": "Benvenuto su CV.express"}
+SUJETS = {"fr": "Bienvenue sur MonCVexpress.com", "en": "Welcome to MonCVexpress.com", "it": "Benvenuto su MonCVexpress.com"}
 
 
 @pytest.mark.parametrize("langue, prefixe", [("fr", ""), ("en", "/en"), ("it", "/it")])

@@ -62,7 +62,7 @@ COMMUN = {
 
 ACCUEIL = {
     "fr": {
-        "titre_page": "CV.express — Créer un CV gratuit en PDF, lettre de motivation et documents",
+        "titre_page": "MonCVexpress.com — Créer un CV gratuit en PDF, lettre de motivation et documents",
         "description": "Crée ton CV gratuit en PDF en quelques minutes, avec ta lettre de motivation, tes demandes et attestations. Modèles européens et africains, sans abonnement.",
         "og_description": "CV, lettre de motivation, demandes et attestations, plan de localisation, arbre généalogique. Gratuit.",
         "badge": "Gratuit · Sans abonnement",
@@ -140,7 +140,7 @@ ACCUEIL = {
         "partage_message": "Crée ton CV et ta lettre de motivation en PDF, gratuitement : ",
     },
     "en": {
-        "titre_page": "CV.express — Free CV maker: CV, cover letter and documents as a PDF",
+        "titre_page": "MonCVexpress.com — Free CV maker: CV, cover letter and documents as a PDF",
         "description": "Create your CV, cover letter, location map or family tree as a PDF in a few minutes. European and African templates, free.",
         "og_description": "CV, cover letter, location map, family tree. Free.",
         "badge": "Free · No subscription",
@@ -218,7 +218,7 @@ ACCUEIL = {
         "partage_message": "Create your CV and cover letter as a PDF, for free: ",
     },
     "it": {
-        "titre_page": "CV.express — Crea il tuo curriculum vitae gratis in PDF",
+        "titre_page": "MonCVexpress.com — Crea il tuo curriculum vitae gratis in PDF",
         "description": "Crea il tuo curriculum vitae gratis e scaricalo in PDF in pochi minuti, con la lettera di presentazione. Modelli europei (Europass) e africani, senza abbonamento.",
         "og_description": "CV, lettera di presentazione, piantina, albero genealogico. Gratis.",
         "badge": "Gratis · Senza abbonamento",

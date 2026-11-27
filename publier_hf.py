@@ -26,7 +26,7 @@ RACINE = Path(__file__).resolve().parent
 IGNORES = {"COMPILATIONS_SIMULTANEES", "DUREE_COMPILATION_MAX", "DELAI_SERVEUR", "MEMOIRE_PROCESSUS_MO", "PORT"}
 
 PRESENTATION = """---
-title: CV.express
+title: MonCVexpress.com
 emoji: 📄
 colorFrom: indigo
 colorTo: blue
@@ -36,7 +36,7 @@ pinned: false
 short_description: CV et lettres de motivation en PDF (FR, EN, IT)
 ---
 
-# CV.express
+# MonCVexpress.com
 
 Générateur de CV et de lettres de motivation en PDF, en français, anglais et italien.
 """

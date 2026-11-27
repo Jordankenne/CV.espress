@@ -715,25 +715,25 @@ def _humain_verifie(reponse):
 
 
 _TEXTES_BIENVENUE = {
-    "fr": ("Bienvenue sur CV.express : ton compte est créé",
-           "Bonjour {prenom},\n\nTon compte CV.express est créé avec l'adresse {email}.\n"
+    "fr": ("Bienvenue sur MonCVexpress.com : ton compte est créé",
+           "Bonjour {prenom},\n\nTon compte MonCVexpress.com est créé avec l'adresse {email}.\n"
            "Tes documents sont enregistrés dans ton compte : tu les retrouves depuis n'importe quel appareil, "
            "dans « Mon espace » :\n\n{lien}\n\n"
            "Si tu n'as pas créé ce compte, quelqu'un a utilisé ton adresse : choisis un nouveau mot de passe ici "
            "pour en reprendre le contrôle, puis supprime-le depuis « Mon espace » si tu le souhaites :\n\n{oubli}\n\n"
-           "À bientôt,\nCV.express\n"),
-    "en": ("Welcome to CV.express: your account has been created",
-           "Hello {prenom},\n\nYour CV.express account has been created with the address {email}.\n"
+           "À bientôt,\nMonCVexpress.com\n"),
+    "en": ("Welcome to MonCVexpress.com: your account has been created",
+           "Hello {prenom},\n\nYour MonCVexpress.com account has been created with the address {email}.\n"
            "Your documents are saved in your account: you can find them on any device, in “My space”:\n\n{lien}\n\n"
            "If you did not create this account, someone used your address: choose a new password here to take "
            "control of it, then delete it from “My space” if you wish:\n\n{oubli}\n\n"
-           "See you soon,\nCV.express\n"),
-    "it": ("Benvenuto su CV.express: il tuo account è stato creato",
-           "Ciao {prenom},\n\nIl tuo account CV.express è stato creato con l'indirizzo {email}.\n"
+           "See you soon,\nMonCVexpress.com\n"),
+    "it": ("Benvenuto su MonCVexpress.com: il tuo account è stato creato",
+           "Ciao {prenom},\n\nIl tuo account MonCVexpress.com è stato creato con l'indirizzo {email}.\n"
            "I tuoi documenti sono salvati nel tuo account: li ritrovi da qualsiasi dispositivo, in «Il mio spazio»:\n\n{lien}\n\n"
            "Se non hai creato tu questo account, qualcuno ha usato il tuo indirizzo: scegli qui una nuova password per "
            "riprenderne il controllo, poi eliminalo da «Il mio spazio» se lo desideri:\n\n{oubli}\n\n"
-           "A presto,\nCV.express\n"),
+           "A presto,\nMonCVexpress.com\n"),
 }
 
 
@@ -815,49 +815,49 @@ def changer_mot_de_passe():
 #   - « oubli »      : mot de passe oublié -> lien pour en choisir un nouveau.
 _TEXTES = {
     "invitation": {
-        "fr": ("CV.express : confirme ton adresse",
-               "Bonjour,\n\nPour créer ton compte CV.express, ouvre ce lien et choisis ton mot de passe "
+        "fr": ("MonCVexpress.com : confirme ton adresse",
+               "Bonjour,\n\nPour créer ton compte MonCVexpress.com, ouvre ce lien et choisis ton mot de passe "
                "(valable {duree}, utilisable une seule fois) :\n\n{lien}\n\n"
-               "Si tu n'as pas demandé à créer de compte, ignore ce message : aucun compte ne sera créé.\n\nCV.express\n"),
-        "en": ("CV.express: confirm your address",
-               "Hello,\n\nTo create your CV.express account, open this link and choose your password "
+               "Si tu n'as pas demandé à créer de compte, ignore ce message : aucun compte ne sera créé.\n\nMonCVexpress.com\n"),
+        "en": ("MonCVexpress.com: confirm your address",
+               "Hello,\n\nTo create your MonCVexpress.com account, open this link and choose your password "
                "(valid for {duree}, usable only once):\n\n{lien}\n\n"
-               "If you did not ask to create an account, ignore this message: no account will be created.\n\nCV.express\n"),
-        "it": ("CV.express: conferma il tuo indirizzo",
-               "Ciao,\n\nPer creare il tuo account CV.express, apri questo link e scegli la tua password "
+               "If you did not ask to create an account, ignore this message: no account will be created.\n\nMonCVexpress.com\n"),
+        "it": ("MonCVexpress.com: conferma il tuo indirizzo",
+               "Ciao,\n\nPer creare il tuo account MonCVexpress.com, apri questo link e scegli la tua password "
                "(valido {duree}, utilizzabile una sola volta):\n\n{lien}\n\n"
-               "Se non hai chiesto di creare un account, ignora questo messaggio: nessun account verrà creato.\n\nCV.express\n"),
+               "Se non hai chiesto di creare un account, ignora questo messaggio: nessun account verrà creato.\n\nMonCVexpress.com\n"),
     },
     "deja": {
-        "fr": ("CV.express : tu as déjà un compte",
-               "Bonjour,\n\nQuelqu'un (sans doute toi) a demandé à créer un compte CV.express avec cette adresse. "
+        "fr": ("MonCVexpress.com : tu as déjà un compte",
+               "Bonjour,\n\nQuelqu'un (sans doute toi) a demandé à créer un compte MonCVexpress.com avec cette adresse. "
                "Tu as déjà un compte : connecte-toi simplement avec ton mot de passe.\n\n"
                "Si tu l'as oublié, ce lien te permet d'en choisir un nouveau (valable {duree}, utilisable une seule fois) :\n\n{lien}\n\n"
-               "Si tu n'es pas à l'origine de cette demande, ignore ce message : rien ne change.\n\nCV.express\n"),
-        "en": ("CV.express: you already have an account",
-               "Hello,\n\nSomeone (probably you) asked to create a CV.express account with this address. "
+               "Si tu n'es pas à l'origine de cette demande, ignore ce message : rien ne change.\n\nMonCVexpress.com\n"),
+        "en": ("MonCVexpress.com: you already have an account",
+               "Hello,\n\nSomeone (probably you) asked to create a MonCVexpress.com account with this address. "
                "You already have an account: just log in with your password.\n\n"
                "If you have forgotten it, this link lets you choose a new one (valid for {duree}, usable only once):\n\n{lien}\n\n"
-               "If you did not make this request, ignore this message: nothing changes.\n\nCV.express\n"),
-        "it": ("CV.express: hai già un account",
-               "Ciao,\n\nQualcuno (probabilmente tu) ha chiesto di creare un account CV.express con questo indirizzo. "
+               "If you did not make this request, ignore this message: nothing changes.\n\nMonCVexpress.com\n"),
+        "it": ("MonCVexpress.com: hai già un account",
+               "Ciao,\n\nQualcuno (probabilmente tu) ha chiesto di creare un account MonCVexpress.com con questo indirizzo. "
                "Hai già un account: accedi semplicemente con la tua password.\n\n"
                "Se l'hai dimenticata, questo link ti permette di sceglierne una nuova (valido {duree}, utilizzabile una sola volta):\n\n{lien}\n\n"
-               "Se non hai fatto tu questa richiesta, ignora questo messaggio: non cambia nulla.\n\nCV.express\n"),
+               "Se non hai fatto tu questa richiesta, ignora questo messaggio: non cambia nulla.\n\nMonCVexpress.com\n"),
     },
     "oubli": {
-        "fr": ("CV.express : choisis un nouveau mot de passe",
-               "Bonjour,\n\nTu as demandé à changer le mot de passe de ton compte CV.express.\n"
+        "fr": ("MonCVexpress.com : choisis un nouveau mot de passe",
+               "Bonjour,\n\nTu as demandé à changer le mot de passe de ton compte MonCVexpress.com.\n"
                "Ouvre ce lien pour en choisir un nouveau (valable {duree}, utilisable une seule fois) :\n\n{lien}\n\n"
-               "Si tu n'es pas à l'origine de cette demande, ignore ce message : ton mot de passe ne change pas.\n\nCV.express\n"),
-        "en": ("CV.express: choose a new password",
-               "Hello,\n\nYou asked to change the password of your CV.express account.\n"
+               "Si tu n'es pas à l'origine de cette demande, ignore ce message : ton mot de passe ne change pas.\n\nMonCVexpress.com\n"),
+        "en": ("MonCVexpress.com: choose a new password",
+               "Hello,\n\nYou asked to change the password of your MonCVexpress.com account.\n"
                "Open this link to choose a new one (valid for {duree}, usable only once):\n\n{lien}\n\n"
-               "If you did not make this request, ignore this message: your password does not change.\n\nCV.express\n"),
-        "it": ("CV.express: scegli una nuova password",
-               "Ciao,\n\nHai chiesto di cambiare la password del tuo account CV.express.\n"
+               "If you did not make this request, ignore this message: your password does not change.\n\nMonCVexpress.com\n"),
+        "it": ("MonCVexpress.com: scegli una nuova password",
+               "Ciao,\n\nHai chiesto di cambiare la password del tuo account MonCVexpress.com.\n"
                "Apri questo link per sceglierne una nuova (valido {duree}, utilizzabile una sola volta):\n\n{lien}\n\n"
-               "Se non hai fatto tu questa richiesta, ignora questo messaggio: la tua password non cambia.\n\nCV.express\n"),
+               "Se non hai fatto tu questa richiesta, ignora questo messaggio: la tua password non cambia.\n\nMonCVexpress.com\n"),
     },
 }
 _DUREES = {"fr": ("{} minutes", "{} heures"), "en": ("{} minutes", "{} hours"), "it": ("{} minuti", "{} ore")}

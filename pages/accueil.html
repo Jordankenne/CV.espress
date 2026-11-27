@@ -16,14 +16,14 @@
   <meta property="og:image" content="{{ racine }}img/modele_moderne.png">
   {#- Carte d'identité du site pour les moteurs de recherche : son nom, ses autres noms (le domaine
       moncvexpress.com), son logo, et le fait que c'est une application gratuite. C'est ce qui aide
-      Google à afficher « CV.express » et, avec le temps, des sous-liens sous le résultat. #}
+      Google à afficher « MonCVexpress.com » et, avec le temps, des sous-liens sous le résultat. #}
   <script type="application/ld+json">{"@context": "https://schema.org", "@graph": [
-    {"@type": "WebSite", "@id": "{{ racine }}#site", "url": "{{ racine }}", "name": "CV.express",
-     "alternateName": ["moncvexpress", "Mon CV Express", "moncvexpress.com", "CV express"], "inLanguage": ["fr", "en", "it"],
+    {"@type": "WebSite", "@id": "{{ racine }}#site", "url": "{{ racine }}", "name": "MonCVexpress.com",
+     "alternateName": ["MonCVexpress", "moncvexpress", "moncvexpress.com", "Mon CV Express"], "inLanguage": ["fr", "en", "it"],
      "publisher": {"@id": "{{ racine }}#organisation"}},
-    {"@type": "Organization", "@id": "{{ racine }}#organisation", "name": "CV.express", "url": "{{ racine }}",
+    {"@type": "Organization", "@id": "{{ racine }}#organisation", "name": "MonCVexpress.com", "url": "{{ racine }}",
      "logo": "{{ racine }}img/icone-512.png"},
-    {"@type": "WebApplication", "name": "CV.express", "url": {{ url_page|tojson }}, "applicationCategory": "BusinessApplication",
+    {"@type": "WebApplication", "name": "MonCVexpress.com", "url": {{ url_page|tojson }}, "applicationCategory": "BusinessApplication",
      "operatingSystem": "Web", "inLanguage": {{ langue|tojson }}, "description": {{ a.description|tojson }},
      "offers": {"@type": "Offer", "price": "0", "priceCurrency": "EUR"}}
   ]}</script>
@@ -33,6 +33,7 @@
   ]}</script>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" href="/img/icone-192.png" type="image/png" sizes="192x192">
   <link rel="apple-touch-icon" href="/img/icone-180.png">
   <link rel="manifest" href="/site.webmanifest">
   <meta name="theme-color" content="#f4efe6">
@@ -42,7 +43,7 @@
 <body class="page-accueil">
 
 <header class="entete" data-entete>
-  <a href="{{ p }}/" class="logo">CV<span>.</span>express</a>
+  <a href="{{ p }}/" class="logo">MonCVexpress<span>.com</span></a>
   <nav class="entete-actions" aria-label="{{ c.acces }}">
     <a href="#services" class="lien-entete">{{ a.nav_services }}</a>
     {% include "_langues.html" %}
