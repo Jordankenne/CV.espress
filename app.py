@@ -289,6 +289,11 @@ def page(nom, langue="fr", chemin=None, **extra):
                   for code in PREFIXES], **extra)
 
 
+# Lien « Soutenir le site » du pied de page (PayPal.me, Ko-fi, Buy Me a Coffee…), réglage DON_LIEN chez
+# l'hébergeur. Vide : aucun lien. Seulement une adresse https (jamais un « javascript: » glissé là).
+DON_LIEN = os.environ.get("DON_LIEN", "").strip()
+DON_LIEN = DON_LIEN if re.fullmatch(r"https://[^\s\"'<>]+", DON_LIEN) else ""
+
 # Informations légales (éditeur, hébergeur…) : un seul fichier, editeur.json, lu par les
 # pages légales. Relu à chaque affichage : une modification s'applique sans redémarrer.
 FICHIER_EDITEUR = moteur.RACINE / "editeur.json"
@@ -311,7 +316,8 @@ def infos_editeur():
     # La politique de confidentialité décrit ce qui est vraiment actif : assistant IA, anti-robot.
     return {"editeur": infos, "champ": champ, "annee": time.strftime("%Y"),
             "ia_fournisseur": ia.nom_fournisseur() if ia.actif() else "",
-            "turnstile_actif": bool(comptes.TURNSTILE_SECRET and comptes.TURNSTILE_CLE_SITE)}
+            "turnstile_actif": bool(comptes.TURNSTILE_SECRET and comptes.TURNSTILE_CLE_SITE),
+            "don_lien": DON_LIEN}
 
 
 @app.get("/")

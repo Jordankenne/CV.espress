@@ -68,6 +68,35 @@ coordonnées, ni photo, ni état civil, ni références) ; les consignes cachée
 sont traitées comme du texte ; une réécriture qui contient un chiffre absent du CV est marquée
 « à vérifier » ; rien n'est modifié sans clic sur « Appliquer » ; seules les analyses réussies comptent.
 
+## Lettre rédigée par l'IA, confirmation de l'adresse, copie des données, hors ligne
+
+- **Lettre par l'IA** (onglet Lettre, « Rédiger ma lettre avec l'IA », route `/api/ia/lettre`) : les quatre
+  paragraphes d'après le CV, le poste, l'entreprise et l'offre. Mêmes garde-fous que l'analyse (rien de
+  personnel envoyé, chiffres absents du CV signalés) ; une lettre compte comme une analyse dans le quota.
+- **Confirmation de l'adresse** : l'e-mail de bienvenue contient un lien signé (7 jours) qui remplit
+  `verifie_le` ; « Mon espace » montre l'état et peut renvoyer le lien. Le compte reste utilisable sans.
+- **Copie des données** (`/api/compte/export`) : profil, documents (photo comprise), liens publics,
+  candidatures, en JSON ; jamais l'empreinte du mot de passe ni le jeton de session.
+- **Hors ligne** (`web/sw.js`) : les pages déjà ouvertes et l'éditeur marchent sans réseau ; sinon la page
+  `web/hors-ligne.html`. Jamais l'API, les CV en ligne ni l'administration.
+- **Modèles** : 8 CV (dont Minimaliste et Créatif). Après une modification d'un modèle, refaire sa miniature
+  (`.venv/bin/python miniatures.py`) ; `tests/test_import_aller_retour.py` vérifie que chaque modèle se réimporte.
+- **Don** : `DON_LIEN` (https://paypal.me/…, https://ko-fi.com/…) ajoute « Soutenir le site » dans le pied de page.
+
+## À régler chez les hébergeurs (rien à coder)
+
+1. **Turnstile** (anti-robot de l'inscription) : `TURNSTILE_CLE_SITE` et `TURNSTILE_SECRET` sur Render.
+2. **E-mails moins souvent dans les indésirables** : dans Brevo, *Senders, Domains* > ajouter le domaine
+   `moncvexpress.com` et copier ses enregistrements DNS (DKIM, DMARC) dans Cloudflare ; puis
+   `EMAIL_EXPEDITEUR=MonCVexpress.com <contact@moncvexpress.com>`. Pour recevoir les réponses :
+   Cloudflare > Email Routing, `contact@moncvexpress.com` vers ta boîte Gmail.
+3. **Assistant IA** : `IA_FOURNISSEUR` + la clé ; `IA_ANALYSES_PAR_JOUR` (2 aujourd'hui en ligne).
+4. **Réveil** : un service gratuit (cron-job.org, UptimeRobot) qui appelle `/sante` toutes les 10 minutes.
+5. **Sauvegardes** : secrets GitHub `SAUVEGARDE_DATABASE_URL` et `SAUVEGARDE_PHRASE` (voir plus bas).
+6. **Google** : Search Console > ajouter `https://www.moncvexpress.com`, puis envoyer `/sitemap.xml`.
+7. **Informations légales** : compléter `editeur.json` (nom, adresse, directeur de la publication, adresse
+   de l'hébergeur, durée des journaux, droit applicable).
+
 ## Inscriptions protégées contre les robots
 
 - Champ piège invisible dans le formulaire, et 10 inscriptions au plus par quart d'heure et par adresse IP.
@@ -174,7 +203,9 @@ le port 5432 de Neon : le signaler sur discuss.huggingface.co, ou héberger aill
 
 Page `/admin` : nombre de comptes, inscriptions et activité, stockage utilisé, liste des
 comptes avec recherche, et suppression d'un compte (mot de passe de l'administrateur
-redemandé). Le contenu des CV et des lettres n'y est jamais affiché.
+redemandé). L'administrateur peut aussi consulter et corriger un compte et ses documents
+(annoncé dans la politique de confidentialité) ; chaque action est écrite dans le journal du
+serveur, sans contenu personnel. Mots de passe, empreintes et jetons restent masqués.
 
 Pour y accéder : créer un compte normal sur le site, puis mettre son adresse dans le réglage
 `ADMINS` chez l'hébergeur (plusieurs adresses : séparées par des virgules). Pour tous les

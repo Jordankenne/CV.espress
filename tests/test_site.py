@@ -121,3 +121,10 @@ def test_image_de_partage_propre_a_chaque_page(client):
     assert 'og:image" content="http://localhost/img/exemple_plan.png"' in client.get("/plan-de-localisation").get_data(as_text=True)
     for nom in application.IMAGES_PARTAGE.values():
         assert (application.moteur.RACINE / "web" / "img" / f"{nom}.png").is_file()
+
+
+def test_lien_de_don_seulement_s_il_est_regle(client, monkeypatch):
+    assert "soutenir" not in client.get("/").get_data(as_text=True)
+    monkeypatch.setattr(application, "DON_LIEN", "https://ko-fi.com/exemple")
+    html = client.get("/it/cv-ats").get_data(as_text=True)
+    assert 'href="https://ko-fi.com/exemple"' in html and "Sostieni il sito" in html

@@ -36,6 +36,8 @@ services:
         sync: false
       - key: IA_ANALYSES_PAR_JOUR  # analyses par compte et par jour (5 par défaut)
         sync: false
+      - key: DON_LIEN            # facultatif : lien de don (https://paypal.me/…, https://ko-fi.com/…) dans le pied de page
+        sync: false
       - key: TURNSTILE_CLE_SITE  # facultatif : Cloudflare > Turnstile > Site Key (anti-robot de l'inscription)
         sync: false
       - key: TURNSTILE_SECRET    # facultatif : Cloudflare > Turnstile > Secret Key

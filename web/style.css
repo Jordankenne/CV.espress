@@ -1377,3 +1377,4 @@ body:not([data-ia="actif"]) #ia, body:not([data-ia="actif"]) #ia-lettre { displa
 .statut-ok { color: #2e6b3a; font-weight: 600; }
 .statut-attente { color: var(--accent-texte); font-weight: 600; margin-right: 8px; }
 @media (prefers-color-scheme: dark) { .statut-ok { color: #8fd19e; } }
+.pied .soutenir { font-size: 14px; padding: 6px 14px; }

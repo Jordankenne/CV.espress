@@ -2,6 +2,9 @@
   <div class="pied-haut">
     <span class="logo">MonCVexpress<span>.com</span></span>
     <span>{{ c.pied }}</span>
+    {%- if don_lien %}
+    <a class="bouton soutenir" href="{{ don_lien }}" target="_blank" rel="noopener">{{ c.soutenir }}</a>
+    {%- endif %}
   </div>
   <nav class="pied-liens" aria-label="{{ c.pied_nav }}">
     {%- for adresse, libelle in c.liens %}
