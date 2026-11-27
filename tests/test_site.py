@@ -106,3 +106,18 @@ def test_carte_d_identite_du_site_pour_google(client):
         offre = next(x for x in graphe if x["@type"] == "WebApplication")["offers"]
         assert offre["price"] == "0"
     assert "curriculum vitae" in client.get("/it/").get_data(as_text=True).split("</title>")[0]
+
+
+def test_plan_du_site_avec_les_versions_dans_chaque_langue(client):
+    plan = client.get("/sitemap.xml").get_data(as_text=True)
+    assert plan.count("<url>") == 3 * (1 + len(application.GUIDES))
+    assert '<xhtml:link rel="alternate" hreflang="it" href="http://localhost/it/cv-europass"/>' in plan
+    assert 'hreflang="x-default" href="http://localhost/cv-europass"' in plan
+    assert "/creer" not in plan                                  # l'éditeur n'est pas à indexer
+
+
+def test_image_de_partage_propre_a_chaque_page(client):
+    assert 'og:image" content="http://localhost/img/modele_europeen.png"' in client.get("/en/cv-europass").get_data(as_text=True)
+    assert 'og:image" content="http://localhost/img/exemple_plan.png"' in client.get("/plan-de-localisation").get_data(as_text=True)
+    for nom in application.IMAGES_PARTAGE.values():
+        assert (application.moteur.RACINE / "web" / "img" / f"{nom}.png").is_file()

@@ -7,14 +7,14 @@ itsdangerous==2.2.0
 click==8.5.1
 blinker==1.9.0
 gunicorn==27.0.1
-packaging==26.3
+packaging==26.4
 # Base PostgreSQL en ligne (Neon), utilisée seulement si DATABASE_URL est défini.
 psycopg[binary]==3.3.9
 psycopg-binary==3.3.9
 psycopg-pool==3.3.3
 typing_extensions==4.16.0
 # Assistant IA avec Claude (IA_FOURNISSEUR=anthropic) : le SDK officiel d'Anthropic et ses dépendances.
-anthropic==2.11.0
+anthropic==2.14.0
 annotated-types==0.8.0
 anyio==4.16.0
 docstring_parser==0.18.0

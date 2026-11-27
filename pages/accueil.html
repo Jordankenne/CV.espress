@@ -9,6 +9,7 @@
   {%- for code, _, _, adresse in versions %}
   <link rel="alternate" hreflang="{{ code }}" href="{{ adresse }}">
   {%- endfor %}
+  <link rel="alternate" hreflang="x-default" href="{{ versions[0][3] }}">
   <meta property="og:type" content="website">
   <meta property="og:title" content="{{ a.titre_page }}">
   <meta property="og:description" content="{{ a.og_description }}">

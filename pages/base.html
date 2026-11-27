@@ -9,11 +9,12 @@
   {%- for code, _, _, adresse in versions %}
   <link rel="alternate" hreflang="{{ code }}" href="{{ adresse }}">
   {%- endfor %}
+  <link rel="alternate" hreflang="x-default" href="{{ versions[0][3] }}">
   <meta property="og:type" content="article">
   <meta property="og:title" content="{{ self.titre() }}">
   <meta property="og:description" content="{{ self.description() }}">
   <meta property="og:url" content="{{ url_page }}">
-  <meta property="og:image" content="{{ racine }}img/modele_moderne.png">
+  <meta property="og:image" content="{{ image_partage }}">
   {% block tete %}{% endblock %}
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="/favicon.ico" sizes="any">

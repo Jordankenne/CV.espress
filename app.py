@@ -254,6 +254,12 @@ GUIDES = ["modele-cv-afrique", "cv-europass", "cv-sans-experience", "lettre-de-m
           # Pages des autres services (plan, arbre, documents administratifs), pour les moteurs de recherche.
           "plan-de-localisation", "arbre-genealogique", "demande-administrative", "attestation-sur-l-honneur"]
 LEGALES = ["mentions-legales", "confidentialite", "conditions", "contact"]
+# Image montrée quand une page est partagée (WhatsApp, Facebook, LinkedIn…) : le modèle dont parle la page.
+IMAGES_PARTAGE = {"modele-cv-afrique": "modele_africain", "cv-europass": "modele_europeen",
+                  "cv-sans-experience": "modele_compact", "lettre-de-motivation": "lettre_moderne",
+                  "cv-ats": "modele_classique", "cv-infirmier": "modele_elegant", "cv-commercial": "modele_moderne",
+                  "plan-de-localisation": "exemple_plan", "arbre-genealogique": "exemple_arbre",
+                  "demande-administrative": "exemple_demande", "attestation-sur-l-honneur": "exemple_attestation"}
 
 
 # Le site existe en trois langues : français à la racine, anglais sous /en/, italien sous /it/.
@@ -276,6 +282,7 @@ def page(nom, langue="fr", chemin=None, **extra):
     return render_template(
         fichier, racine=racine + "/", url_page=racine + request.path,
         langue=langue, p=PREFIXES[langue], c=textes.COMMUN[langue], a=textes.ACCUEIL[langue],
+        image_partage=f"{racine}/img/{IMAGES_PARTAGE.get(nom, 'modele_moderne')}.png",
         # La même page dans chaque langue : sélecteur de langue et balises hreflang.
         versions=[(code, textes.LANGUES_SITE[code], PREFIXES[code] + chemin, racine + PREFIXES[code] + chemin)
                   for code in PREFIXES], **extra)
@@ -386,14 +393,18 @@ def robots():
 
 @app.get("/sitemap.xml")
 def plan_du_site():
-    """La liste des pages à faire connaître aux moteurs de recherche."""
+    """La liste des pages à faire connaître aux moteurs de recherche, chacune avec ses versions
+    dans les autres langues (balises hreflang) : Google montre ainsi la bonne langue à chacun."""
     racine = comptes.racine_site()
-    adresses = [racine + prefixe + chemin for prefixe in PREFIXES.values()
-                for chemin in ["/"] + ["/" + nom for nom in GUIDES]]
-    corps = "".join(f"<url><loc>{a}</loc></url>" for a in adresses)
+    corps = []
+    for chemin in ["/"] + ["/" + nom for nom in GUIDES]:      # pas /creer : l'éditeur est en noindex
+        versions = [(code, racine + prefixe + chemin) for code, prefixe in PREFIXES.items()]
+        liens = "".join(f'<xhtml:link rel="alternate" hreflang="{code}" href="{adresse}"/>' for code, adresse in versions)
+        liens += f'<xhtml:link rel="alternate" hreflang="x-default" href="{versions[0][1]}"/>'
+        corps += [f"<url><loc>{adresse}</loc>{liens}</url>" for _, adresse in versions]
     return Response('<?xml version="1.0" encoding="UTF-8"?>'
-                    f'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{corps}</urlset>',
-                    mimetype="application/xml")
+                    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">'
+                    f'{"".join(corps)}</urlset>', mimetype="application/xml")
 
 
 @app.get("/creer")
