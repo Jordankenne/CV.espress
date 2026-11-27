@@ -89,7 +89,7 @@
       </summary>
       <div class="offre-corps">
         <p class="note">L'assistant relit ton CV (et l'offre collée au-dessus, si tu en as une) : une note expliquée, des points forts, des alertes et des phrases mieux tournées. Il ne modifie rien sans ton accord et n'invente aucune expérience.</p>
-        <label class="case"><input type="checkbox" id="ia-accord"> <span>J'accepte que le texte de mon parcours soit envoyé à <strong id="ia-fournisseur" translate="no"></strong> pour cette analyse. Ni mon nom, ni mes coordonnées, ni ma photo ne sont envoyés.</span></label>
+        <label class="case"><input type="checkbox" id="ia-accord" class="ia-accord"> <span>J'accepte que le texte de mon parcours soit envoyé à <strong id="ia-fournisseur" translate="no"></strong> pour cette analyse. Ni mon nom, ni mes coordonnées, ni ma photo ne sont envoyés.</span></label>
         <button type="button" class="bouton principal" id="ia-lancer">Analyser mon CV</button>
         <p id="ia-etat" class="note" role="status" hidden></p>
         <p id="ia-erreur" class="erreur-compte" role="alert" hidden></p>
@@ -216,6 +216,23 @@
 
     <!-- ===================== Lettre ===================== -->
     <div class="pour-lettre" hidden>
+      <!-- Lettre rédigée par l'assistant IA (ia.py, rediger_lettre) : visible seulement s'il est activé. -->
+      <details class="offre ia" id="ia-lettre">
+        <summary>
+          <span>Rédiger ma lettre avec l'IA</span>
+          <span class="offre-taux" id="ia-lettre-quota"></span>
+        </summary>
+        <div class="offre-corps">
+          <p class="note">L'assistant écrit les quatre paragraphes de ta lettre à partir de ton CV, du poste et de l'offre. Il n'invente rien : relis la lettre et complète-la avant de l'envoyer.</p>
+          <label>Texte de l'offre <small>facultatif, mais la lettre sera bien plus précise</small>
+            <textarea data-k="offre" rows="4" maxlength="10000" placeholder="Colle ici l'annonce : missions, profil recherché, compétences…"></textarea></label>
+          <label class="case"><input type="checkbox" id="ia-lettre-accord" class="ia-accord"> <span>J'accepte que le texte de mon parcours, l'offre, le poste et le nom de l'entreprise soient envoyés à <strong id="ia-lettre-fournisseur" translate="no"></strong> pour rédiger ma lettre. Ni mon nom, ni mes coordonnées, ni ma photo ne sont envoyés.</span></label>
+          <button type="button" class="bouton principal" id="ia-lettre-lancer">Rédiger ma lettre</button>
+          <p id="ia-lettre-etat" class="note" role="status" hidden></p>
+          <p id="ia-lettre-erreur" class="erreur-compte" role="alert" hidden></p>
+          <div id="ia-lettre-resultat" class="ia-resultat" hidden></div>
+        </div>
+      </details>
       <details open>
         <summary>Destinataire <small>à qui tu écris</small></summary>
         <div class="grille">

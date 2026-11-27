@@ -706,9 +706,6 @@ $("#donnees-copie").addEventListener("click", async () => {
     bouton.disabled = false;
   }
 });
-  }
-  enregistrer(new Blob([JSON.stringify({ documents: copie }, null, 2)], { type: "application/json" }), "mes-donnees-cv.json");
-});
 
 // ---------- Prénom et nom ----------
 $("#profil-form").addEventListener("submit", async e => {

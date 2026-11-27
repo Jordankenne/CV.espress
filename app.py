@@ -631,26 +631,36 @@ def etat_ia():
     return jsonify(actif=True, fournisseur=ia.nom_fournisseur(), par_jour=IA_PAR_COMPTE, restant=restant)
 
 
-@app.post("/api/ia/analyse")
-def analyse_ia():
+def _verifier_ia():
+    """Conditions communes à l'analyse et à la lettre : (compte, corps, usages du compte aujourd'hui),
+    ou une réponse d'erreur toute prête."""
     if not ia.actif():
-        return jsonify(erreur="L'assistant IA n'est pas activé."), 404
+        return None, jsonify(erreur="L'assistant IA n'est pas activé."), 404
     compte = comptes.compte_connecte()
     if not compte:
-        return jsonify(erreur="Crée ton compte gratuit (ou connecte-toi) pour utiliser l'assistant IA.",
-                       compte_requis=True), 401
+        return None, jsonify(erreur="Crée ton compte gratuit (ou connecte-toi) pour utiliser l'assistant IA.",
+                             compte_requis=True), 401
     corps = requetes.lire_json()
     corps = corps if isinstance(corps, dict) else {}
     if corps.get("accord") is not True:
-        return jsonify(erreur="Coche la case pour accepter l'envoi de ton CV à l'assistant IA.", accord_requis=True), 400
+        return None, jsonify(erreur="Coche la case pour accepter l'envoi de ton CV à l'assistant IA.", accord_requis=True), 400
     if trop_de_requetes():
-        return jsonify(erreur="Trop de demandes en peu de temps. Patiente une minute."), 429
+        return None, jsonify(erreur="Trop de demandes en peu de temps. Patiente une minute."), 429
     moi, tous = comptes.usages_ia(compte[0])
     if moi >= IA_PAR_COMPTE:
-        return jsonify(erreur=f"Tu as utilisé tes {IA_PAR_COMPTE} analyses du jour. Reviens demain.", restant=0), 429
+        return None, jsonify(erreur=f"Tu as utilisé tes {IA_PAR_COMPTE} analyses du jour. Reviens demain.", restant=0), 429
     if tous >= IA_MAX_JOUR:
         app.logger.warning("Assistant IA : plafond du jour atteint (%s analyses).", tous)
-        return jsonify(erreur="L'assistant IA est très demandé aujourd'hui. Réessaie demain."), 503
+        return None, jsonify(erreur="L'assistant IA est très demandé aujourd'hui. Réessaie demain."), 503
+    return (compte, corps, moi), None, None
+
+
+@app.post("/api/ia/analyse")
+def analyse_ia():
+    ok, erreur, code = _verifier_ia()
+    if not ok:
+        return erreur, code
+    compte, corps, moi = ok
     offre = corps.get("offre") if isinstance(corps.get("offre"), str) else ""
     try:
         resultat = ia.analyser(corps.get("cv"), offre, corps.get("langue"), corps.get("langue_document"))
@@ -659,6 +669,26 @@ def analyse_ia():
         return jsonify(erreur=str(e)), e.code
     comptes.noter_usage_ia(compte[0])
     statistiques.compter("ia:analyse_offre" if resultat["offre"] else "ia:analyse")
+    return jsonify(resultat=resultat, restant=max(0, IA_PAR_COMPTE - moi - 1), fournisseur=ia.nom_fournisseur())
+
+
+@app.post("/api/ia/lettre")
+def lettre_ia():
+    """Le corps d'une lettre de motivation (accroche, parcours, entreprise, conclusion) rédigé d'après
+    le CV et l'offre. Même quota que l'analyse : une lettre compte pour une analyse."""
+    ok, erreur, code = _verifier_ia()
+    if not ok:
+        return erreur, code
+    compte, corps, moi = ok
+    chaine = lambda cle: corps.get(cle) if isinstance(corps.get(cle), str) else ""
+    try:
+        resultat = ia.rediger_lettre(corps.get("cv"), chaine("offre"), chaine("entreprise"), chaine("poste"),
+                                     corps.get("langue"), corps.get("langue_document"))
+    except ia.ErreurIA as e:
+        statistiques.compter(f"echec:ia_lettre:{e.code}")
+        return jsonify(erreur=str(e)), e.code
+    comptes.noter_usage_ia(compte[0])
+    statistiques.compter("ia:lettre")
     return jsonify(resultat=resultat, restant=max(0, IA_PAR_COMPTE - moi - 1), fournisseur=ia.nom_fournisseur())
 
 

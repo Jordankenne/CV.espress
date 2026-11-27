@@ -1,5 +1,5 @@
 "use strict";
-// Éditeur (page /creer) : l'assistant IA (POST /api/ia/analyse, voir ia.py).
+// Éditeur (page /creer) : l'assistant IA (POST /api/ia/analyse et /api/ia/lettre, voir ia.py).
 // Chargé après les fichiers editeur-*.js : il s'appuie sur etat, compte, ouvrirCompte, toutDessiner, modifie.
 // Le texte écrit par l'IA est toujours inséré comme du texte (textContent), jamais comme du HTML.
 (() => {
@@ -17,9 +17,11 @@
 
   function afficherQuota() {
     if (!infos?.actif) return;
-    $("#ia-quota").textContent = infos.restant == null
+    const texte = infos.restant == null
       ? `${infos.par_jour} analyses par jour`
       : `${infos.restant}/${infos.par_jour} aujourd'hui`;
+    $("#ia-quota").textContent = texte;
+    $("#ia-lettre-quota").textContent = texte;       // la lettre compte comme une analyse
   }
 
   async function chargerInfos() {
@@ -30,15 +32,23 @@
     document.body.dataset.ia = infos?.actif ? "actif" : "";
     if (!infos?.actif) return;
     $("#ia-fournisseur").textContent = infos.fournisseur;
+    $("#ia-lettre-fournisseur").textContent = infos.fournisseur;
     afficherQuota();
   }
 
   // L'accord est redemandé tant que la case n'a pas été cochée une fois sur cet appareil.
-  try { $("#ia-accord").checked = localStorage.getItem(CLE_ACCORD) === "1"; } catch { /* stockage indisponible */ }
-  $("#ia-accord").addEventListener("change", e => {
-    try { localStorage.setItem(CLE_ACCORD, e.target.checked ? "1" : "0"); } catch { /* stockage indisponible */ }
-    if (e.target.checked) montrer("#ia-erreur", "");
-  });
+  // Les deux cases (analyse, lettre) n'en font qu'une : cocher ou décocher l'une change l'autre.
+  const cases = document.querySelectorAll(".ia-accord");
+  let accord = false;
+  try { accord = localStorage.getItem(CLE_ACCORD) === "1"; } catch { /* stockage indisponible */ }
+  for (const c of cases) {
+    c.checked = accord;
+    c.addEventListener("change", e => {
+      for (const autre of cases) autre.checked = e.target.checked;
+      try { localStorage.setItem(CLE_ACCORD, e.target.checked ? "1" : "0"); } catch { /* stockage indisponible */ }
+      if (e.target.checked) { montrer("#ia-erreur", ""); montrer("#ia-lettre-erreur", ""); }
+    });
+  }
 
   // ---------- Appliquer une proposition : seulement si le passage « avant » est trouvé une seule fois ----------
   function emplacements(objet, avant, trouves = []) {
@@ -185,6 +195,76 @@
     // L'assistant demande toujours un compte (quota par compte), même si le téléchargement n'en demande pas.
     if (compte.connecte) lancer();
     else ouvrirCompte(async () => { await chargerInfos(); lancer(); }, true);
+  });
+
+  // ---------- Rédiger la lettre ----------
+  // Le texte de l'offre existe en deux endroits (onglet CV et onglet Lettre) : les deux cases restent égales.
+  for (const zone of document.querySelectorAll("[data-k='offre']")) {
+    zone.addEventListener("input", () => {
+      for (const autre of document.querySelectorAll("[data-k='offre']")) if (autre !== zone) autre.value = zone.value;
+    });
+  }
+
+  function insererLettre(r) {
+    const l = etat.lettre;
+    l.parties ??= {};
+    for (const p of PARTIES_LETTRE) l.parties[p] = r.parties[p] || "";
+    if (!(l.objet || "").trim() && r.objet) l.objet = r.objet;
+    toutDessiner();
+    modifie(0);
+  }
+
+  function afficherLettre(r) {
+    const morceaux = [element("p", t("Ta lettre a été écrite dans les cases ci-dessous. Relis-la, corrige-la et ajoute ce qui te ressemble : un recruteur repère vite une lettre toute faite."), "espace-message")];
+    if (r.a_verifier.length) {
+      const alerte = element("p", undefined, "verifier");
+      alerte.append(t("Chiffres à vérifier (absents de ton CV et de l'offre) :"), " ", element("strong", r.a_verifier.join(", ")));
+      alerte.lastChild.setAttribute("translate", "no");
+      morceaux.push(alerte);
+    }
+    const q = liste("Pour une lettre plus convaincante, réponds à ces questions", r.questions);
+    if (q) morceaux.push(q);
+    $("#ia-lettre-resultat").replaceChildren(...morceaux);
+    $("#ia-lettre-resultat").hidden = false;
+  }
+
+  async function lancerLettre() {
+    montrer("#ia-lettre-erreur", "");
+    if (!$("#ia-lettre-accord").checked) return montrer("#ia-lettre-erreur", t("Coche la case pour accepter l'envoi de ton CV à l'assistant IA."));
+    const dejaEcrite = PARTIES_LETTRE.some(p => (etat.lettre.parties?.[p] || "").trim());
+    if (dejaEcrite && !confirm(t("Ta lettre contient déjà du texte. Le remplacer par la lettre rédigée par l'IA ?"))) return;
+    const bouton = $("#ia-lettre-lancer");
+    bouton.disabled = true;
+    montrer("#ia-lettre-etat", t("Rédaction en cours… (10 à 30 secondes)"));
+    try {
+      const r = await fetch("/api/ia/lettre", {
+        method: "POST", credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cv: etat.cv, offre: etat.offre || "", accord: true,
+                               entreprise: etat.lettre.destinataire?.entreprise || "",
+                               poste: (etat.lettre.objet || "").trim() || etat.cv.titre || "",
+                               langue: window.LANGUE_SITE || "fr", langue_document: etat.options.langue }),
+        signal: AbortSignal.timeout ? AbortSignal.timeout(120_000) : undefined,
+      });
+      const corps = await r.json().catch(() => ({}));
+      if (typeof corps.restant === "number" && infos) { infos.restant = corps.restant; afficherQuota(); }
+      if (!r.ok) {
+        if (corps.compte_requis) { compte = { connecte: false, email: null }; return ouvrirCompte(lancerLettre, true); }
+        return montrer("#ia-lettre-erreur", corps.erreur || t("L'assistant IA n'a pas pu rédiger cette lettre. Réessaie."));
+      }
+      insererLettre(corps.resultat);
+      afficherLettre(corps.resultat);
+    } catch {
+      montrer("#ia-lettre-erreur", t("Connexion impossible. Vérifie ta connexion Internet et réessaie."));
+    } finally {
+      montrer("#ia-lettre-etat", "");
+      bouton.disabled = false;
+    }
+  }
+  $("#ia-lettre-lancer").addEventListener("click", () => {
+    if (!$("#ia-lettre-accord").checked) return montrer("#ia-lettre-erreur", t("Coche la case pour accepter l'envoi de ton CV à l'assistant IA."));
+    if (compte.connecte) lancerLettre();
+    else ouvrirCompte(async () => { await chargerInfos(); lancerLettre(); }, true);
   });
 
   chargerInfos();

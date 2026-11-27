@@ -783,7 +783,20 @@
     "Un lien de confirmation vient de t'être envoyé. Pense à regarder dans les courriers indésirables.": "A confirmation link has just been sent to you. Remember to check your spam folder.",
     "Merci : ton adresse e-mail est confirmée.": "Thank you: your e-mail address is confirmed.",
     "Ce lien de confirmation a expiré. Demande-en un nouveau depuis Mon espace.": "This confirmation link has expired. Ask for a new one from My space.",
-    "Ce lien de confirmation n'est pas valable.": "This confirmation link is not valid."
+    "Ce lien de confirmation n'est pas valable.": "This confirmation link is not valid.",
+    "Rédiger ma lettre avec l'IA": "Write my letter with AI",
+    "L'assistant écrit les quatre paragraphes de ta lettre à partir de ton CV, du poste et de l'offre. Il n'invente rien : relis la lettre et complète-la avant de l'envoyer.": "The assistant writes the four paragraphs of your letter from your CV, the position and the job advert. It invents nothing: reread the letter and complete it before sending it.",
+    "facultatif, mais la lettre sera bien plus précise": "optional, but the letter will be much more precise",
+    "J'accepte que le texte de mon parcours, l'offre, le poste et le nom de l'entreprise soient envoyés à": "I agree that the text of my background, the job advert, the position and the company name are sent to",
+    "pour rédiger ma lettre. Ni mon nom, ni mes coordonnées, ni ma photo ne sont envoyés.": "to write my letter. My name, contact details and photo are never sent.",
+    "Rédiger ma lettre": "Write my letter",
+    "Ta lettre a été écrite dans les cases ci-dessous. Relis-la, corrige-la et ajoute ce qui te ressemble : un recruteur repère vite une lettre toute faite.": "Your letter has been written in the boxes below. Reread it, correct it and add what makes it yours: a recruiter quickly spots a ready-made letter.",
+    "Chiffres à vérifier (absents de ton CV et de l'offre) :": "Figures to check (not in your CV or the job advert):",
+    "Pour une lettre plus convaincante, réponds à ces questions": "For a more convincing letter, answer these questions",
+    "Ta lettre contient déjà du texte. Le remplacer par la lettre rédigée par l'IA ?": "Your letter already contains text. Replace it with the letter written by AI?",
+    "Rédaction en cours… (10 à 30 secondes)": "Writing… (10 to 30 seconds)",
+    "L'assistant IA n'a pas pu rédiger cette lettre. Réessaie.": "The AI assistant could not write this letter. Try again.",
+    "Remplis au moins ton profil ou une expérience dans l'onglet CV avant de rédiger ta lettre.": "Fill in at least your profile or one experience in the CV tab before writing your letter."
   }, it: {
     "Analyser mon CV avec l'IA": "Analizza il mio CV con l'IA",
     "L'assistant relit ton CV (et l'offre collée au-dessus, si tu en as une) : une note expliquée, des points forts, des alertes et des phrases mieux tournées. Il ne modifie rien sans ton accord et n'invente aucune expérience.": "L'assistente rilegge il tuo CV (e l'annuncio incollato sopra, se ne hai uno): un punteggio spiegato, punti di forza, avvisi e frasi formulate meglio. Non modifica nulla senza il tuo consenso e non inventa nessuna esperienza.",
@@ -1548,7 +1561,20 @@
     "Un lien de confirmation vient de t'être envoyé. Pense à regarder dans les courriers indésirables.": "Ti è appena stato inviato un link di conferma. Ricordati di controllare la posta indesiderata.",
     "Merci : ton adresse e-mail est confirmée.": "Grazie: il tuo indirizzo e-mail è confermato.",
     "Ce lien de confirmation a expiré. Demande-en un nouveau depuis Mon espace.": "Questo link di conferma è scaduto. Richiedine uno nuovo da Il mio spazio.",
-    "Ce lien de confirmation n'est pas valable.": "Questo link di conferma non è valido."
+    "Ce lien de confirmation n'est pas valable.": "Questo link di conferma non è valido.",
+    "Rédiger ma lettre avec l'IA": "Scrivi la mia lettera con l'IA",
+    "L'assistant écrit les quatre paragraphes de ta lettre à partir de ton CV, du poste et de l'offre. Il n'invente rien : relis la lettre et complète-la avant de l'envoyer.": "L'assistente scrive i quattro paragrafi della tua lettera a partire dal tuo CV, dalla posizione e dall'annuncio. Non inventa nulla: rileggi la lettera e completala prima di inviarla.",
+    "facultatif, mais la lettre sera bien plus précise": "facoltativo, ma la lettera sarà molto più precisa",
+    "J'accepte que le texte de mon parcours, l'offre, le poste et le nom de l'entreprise soient envoyés à": "Accetto che il testo del mio percorso, l'annuncio, la posizione e il nome dell'azienda vengano inviati a",
+    "pour rédiger ma lettre. Ni mon nom, ni mes coordonnées, ni ma photo ne sont envoyés.": "per scrivere la mia lettera. Il mio nome, i miei recapiti e la mia foto non vengono inviati.",
+    "Rédiger ma lettre": "Scrivi la mia lettera",
+    "Ta lettre a été écrite dans les cases ci-dessous. Relis-la, corrige-la et ajoute ce qui te ressemble : un recruteur repère vite une lettre toute faite.": "La tua lettera è stata scritta nelle caselle qui sotto. Rileggila, correggila e aggiungi ciò che ti somiglia: un selezionatore riconosce subito una lettera preconfezionata.",
+    "Chiffres à vérifier (absents de ton CV et de l'offre) :": "Cifre da verificare (assenti dal tuo CV e dall'annuncio):",
+    "Pour une lettre plus convaincante, réponds à ces questions": "Per una lettera più convincente, rispondi a queste domande",
+    "Ta lettre contient déjà du texte. Le remplacer par la lettre rédigée par l'IA ?": "La tua lettera contiene già del testo. Sostituirlo con la lettera scritta dall'IA?",
+    "Rédaction en cours… (10 à 30 secondes)": "Stesura in corso… (da 10 a 30 secondi)",
+    "L'assistant IA n'a pas pu rédiger cette lettre. Réessaie.": "L'assistente IA non è riuscito a scrivere questa lettera. Riprova.",
+    "Remplis au moins ton profil ou une expérience dans l'onglet CV avant de rédiger ta lettre.": "Compila almeno il tuo profilo o un'esperienza nella scheda CV prima di scrivere la lettera."
   } }[LANGUE] || {};
   const MOTIFS = { en: [
     [/^(\d+) analyses par jour$/, "$1 analyses per day"],
@@ -1740,3 +1766,9 @@
     window[nom] = message => origine(tr(message));
   }
 })();
+
+// Utilisation sans connexion (web/sw.js). Ce fichier est chargé par toutes les pages : c'est donc
+// ici que le service worker est installé. Sans prise en charge (ancien navigateur), rien ne change.
+if ("serviceWorker" in navigator && (location.protocol === "https:" || ["localhost", "127.0.0.1"].includes(location.hostname))) {
+  addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => { /* refusé : le site marche quand même */ }));
+}

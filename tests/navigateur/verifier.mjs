@@ -10,6 +10,8 @@
 //    fenêtre -> le PDF arrive, puis le Word ; le document est dans « Mon espace ».
 // 2. Chaque page, à 5 largeurs d'écran : rien ne dépasse sur le côté, aucune erreur JavaScript,
 //    aucun fichier introuvable, bases d'accessibilité (textes alternatifs, champs nommés, un titre).
+// 3. Sans connexion (service worker, web/sw.js) : l'éditeur déjà ouvert se rouvre, une page jamais
+//    ouverte affiche la page « Hors ligne ».
 // Code de sortie 1 s'il y a un problème.
 import { spawn } from "node:child_process";
 import { mkdtempSync, readdirSync, rmSync } from "node:fs";
@@ -130,7 +132,7 @@ async function parcours() {
 // ---------- 2. Chaque page, à plusieurs largeurs ----------
 const PAGES = ["/", "/creer", "/creer?exemple=1", "/creer?type=plan", "/creer?type=arbre", "/creer?type=admin", "/compte",
                "/contact", "/cv-ats", "/modele-cv-afrique", "/plan-de-localisation", "/confidentialite", "/en/", "/en/creer",
-               "/it/compte", "/page-qui-n-existe-pas"];
+               "/it/compte", "/hors-ligne.html", "/page-qui-n-existe-pas"];
 const LARGEURS = [[360, 740, true], [390, 844, true], [768, 1024, true], [1280, 900, false], [1920, 1080, false]];
 const CONTROLE = `(() => {
   const r = { debord: [], alt: [], champs: [], boutons: [], h1: [...document.querySelectorAll("h1")].filter(h => h.closest("[hidden]") === null).length, lang: document.documentElement.lang, titre: document.title };
@@ -182,9 +184,41 @@ async function pages() {
   }
 }
 
+// ---------- 3. Sans connexion ----------
+async function horsLigne() {
+  console.log("\nSans connexion (service worker)");
+  const o = await nouvelOnglet(412, 860, true);
+  const ou = "hors ligne";
+  try {
+    await o.aller("/creer");
+    await o.jusqua(`navigator.serviceWorker.ready.then(() => true)`, 15000, "le service worker s'installe");
+    await o.aller("/creer");                         // deuxième visite : la page passe par le service worker
+    await o.jusqua(`!!navigator.serviceWorker.controller`, 10000, "le service worker contrôle la page");
+    // Coupé pour la page ET pour le service worker (Chrome le traite comme une cible à part).
+    const coupe = { offline: true, latency: 0, downloadThroughput: -1, uploadThroughput: -1 };
+    await cdp("Network.emulateNetworkConditions", coupe, o.sessionId);
+    const { targetInfos } = await cdp("Target.getTargets");
+    for (const cible of targetInfos.filter(t => t.type === "service_worker")) {
+      const { sessionId } = await cdp("Target.attachToTarget", { targetId: cible.targetId, flatten: true });
+      await cdp("Network.enable", {}, sessionId);
+      await cdp("Network.emulateNetworkConditions", coupe, sessionId);
+    }
+    await o.aller("/creer");
+    (await o.js(`!!document.querySelector("#formulaire [data-k='cv.nom']")`))
+      ? console.log("  ✓ l'éditeur s'ouvre sans connexion") : noter(ou, "l'éditeur ne s'ouvre pas sans connexion");
+    await o.aller("/cv-commercial");
+    (await o.js(`document.body.textContent.includes("Pas de connexion Internet")`))
+      ? console.log("  ✓ page jamais ouverte : la page « Hors ligne »") : noter(ou, "pas de page « Hors ligne » : " + await o.js("document.title"));
+    (await o.js(`getComputedStyle(document.body).backgroundColor !== "rgba(0, 0, 0, 0)"`))
+      ? console.log("  ✓ la page « Hors ligne » a son style") : noter(ou, "la page « Hors ligne » n'a pas de style");
+  } catch (e) { noter(ou, e.message); }
+  await o.fermer();
+}
+
 try {
   await parcours();
   await pages();
+  await horsLigne();
 } finally {
   ws.close(); chrome.kill();
   try { rmSync(profil, { recursive: true, force: true }); } catch { /* sans importance */ }
