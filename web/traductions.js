@@ -796,7 +796,11 @@
     "Ta lettre contient déjà du texte. Le remplacer par la lettre rédigée par l'IA ?": "Your letter already contains text. Replace it with the letter written by AI?",
     "Rédaction en cours… (10 à 30 secondes)": "Writing… (10 to 30 seconds)",
     "L'assistant IA n'a pas pu rédiger cette lettre. Réessaie.": "The AI assistant could not write this letter. Try again.",
-    "Remplis au moins ton profil ou une expérience dans l'onglet CV avant de rédiger ta lettre.": "Fill in at least your profile or one experience in the CV tab before writing your letter."
+    "Remplis au moins ton profil ou une expérience dans l'onglet CV avant de rédiger ta lettre.": "Fill in at least your profile or one experience in the CV tab before writing your letter.",
+    "Minimaliste": "Minimalist",
+    "Créatif": "Creative",
+    "En-tête centré, filets fins et beaucoup d'air : un CV calme et moderne, une seule colonne, très bien lu par les logiciels de tri (ATS).": "Centred header, fine rules and plenty of white space: a calm, modern CV in a single column, very well read by screening software (ATS).",
+    "Grand nom en couleur, rubriques en étiquettes et compétences en pastilles : pour la communication, le marketing, la vente ou les métiers créatifs.": "Large coloured name, sections as labels and skills as tags: for communication, marketing, sales or creative jobs."
   }, it: {
     "Analyser mon CV avec l'IA": "Analizza il mio CV con l'IA",
     "L'assistant relit ton CV (et l'offre collée au-dessus, si tu en as une) : une note expliquée, des points forts, des alertes et des phrases mieux tournées. Il ne modifie rien sans ton accord et n'invente aucune expérience.": "L'assistente rilegge il tuo CV (e l'annuncio incollato sopra, se ne hai uno): un punteggio spiegato, punti di forza, avvisi e frasi formulate meglio. Non modifica nulla senza il tuo consenso e non inventa nessuna esperienza.",
@@ -1574,7 +1578,11 @@
     "Ta lettre contient déjà du texte. Le remplacer par la lettre rédigée par l'IA ?": "La tua lettera contiene già del testo. Sostituirlo con la lettera scritta dall'IA?",
     "Rédaction en cours… (10 à 30 secondes)": "Stesura in corso… (da 10 a 30 secondi)",
     "L'assistant IA n'a pas pu rédiger cette lettre. Réessaie.": "L'assistente IA non è riuscito a scrivere questa lettera. Riprova.",
-    "Remplis au moins ton profil ou une expérience dans l'onglet CV avant de rédiger ta lettre.": "Compila almeno il tuo profilo o un'esperienza nella scheda CV prima di scrivere la lettera."
+    "Remplis au moins ton profil ou une expérience dans l'onglet CV avant de rédiger ta lettre.": "Compila almeno il tuo profilo o un'esperienza nella scheda CV prima di scrivere la lettera.",
+    "Minimaliste": "Minimalista",
+    "Créatif": "Creativo",
+    "En-tête centré, filets fins et beaucoup d'air : un CV calme et moderne, une seule colonne, très bien lu par les logiciels de tri (ATS).": "Intestazione centrata, linee sottili e molto spazio: un CV calmo e moderno, a una colonna, letto molto bene dai software di selezione (ATS).",
+    "Grand nom en couleur, rubriques en étiquettes et compétences en pastilles : pour la communication, le marketing, la vente ou les métiers créatifs.": "Nome grande a colori, sezioni come etichette e competenze come bollini: per comunicazione, marketing, vendita o professioni creative."
   } }[LANGUE] || {};
   const MOTIFS = { en: [
     [/^(\d+) analyses par jour$/, "$1 analyses per day"],

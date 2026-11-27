@@ -24,7 +24,7 @@ RACINE = Path(__file__).parent
 IMAGES = RACINE / "web" / "img"
 # Une couleur par modèle : la galerie est plus parlante.
 COULEURS = {"moderne": "1E5F4B", "classique": "1F4E79", "europeen": "5B3A8C", "africain": "7A1F1F",
-            "elegant": "7A5C2E", "compact": "0F6E7A"}
+            "elegant": "7A5C2E", "compact": "0F6E7A", "minimal": "2F3E46", "creatif": "C2410C"}
 
 
 def avatar(cote=360):

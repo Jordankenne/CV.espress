@@ -20,7 +20,7 @@ let modeInscription = false;
 let actionApresConnexion = null;   // ce qu'il faut faire une fois connecté (télécharger le PDF…)
 let compteRequisPourPdf = true;    // réglage du serveur (COMPTE_OBLIGATOIRE), lu à l'ouverture de la page
 let minuterieEnvoi = null;
-const MODELES = ["moderne", "classique", "europeen", "africain", "elegant", "compact"];
+const MODELES = ["moderne", "classique", "europeen", "africain", "elegant", "compact", "minimal", "creatif"];
 
 // Description des listes répétables : [champ, libellé, type]
 const LISTES = {
@@ -238,6 +238,8 @@ const CONSEILS = {
   africain: "Présentation courante en Afrique : bloc d'état civil complet, photo, références et mention de certification sur l'honneur.",
   elegant: "Police à empattements et dates dans une colonne à gauche : un CV sobre et raffiné, très lisible, pour les métiers du droit, de la finance, de l'enseignement ou de la culture.",
   compact: "Bandeau de couleur et rubriques serrées pour tout faire tenir sur une page : idéal quand on a beaucoup à dire, ou pour un premier emploi.",
+  minimal: "En-tête centré, filets fins et beaucoup d'air : un CV calme et moderne, une seule colonne, très bien lu par les logiciels de tri (ATS).",
+  creatif: "Grand nom en couleur, rubriques en étiquettes et compétences en pastilles : pour la communication, le marketing, la vente ou les métiers créatifs.",
 };
 
 // Ce qui compte dans la jauge « CV complété à … % » : [test, conseil si manquant]

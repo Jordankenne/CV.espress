@@ -100,6 +100,8 @@ ACCUEIL = {
             ("africain", "Africain", "Aperçu du modèle africain", "État civil complet, photo, références, mention sur l'honneur."),
             ("elegant", "Élégant", "Aperçu du modèle élégant", "Police à empattements, dates dans une colonne à gauche. Sobre et raffiné."),
             ("compact", "Compact", "Aperçu du modèle compact", "Bandeau de couleur, rubriques serrées : tout tient sur une page."),
+            ("minimal", "Minimaliste", "Aperçu du modèle minimaliste", "En-tête centré, beaucoup d'air, filets fins. Lisible par les logiciels de tri."),
+            ("creatif", "Créatif", "Aperçu du modèle créatif", "Grand nom en couleur, rubriques en étiquettes, compétences en pastilles."),
         ],
         "etapes_titre": "Trois étapes, c'est tout",
         "etapes": [
@@ -178,6 +180,8 @@ ACCUEIL = {
             ("africain", "African", "Preview of the African template", "Full personal details, photo, references, declaration of accuracy."),
             ("elegant", "Elegant", "Preview of the elegant template", "Serif typeface, dates in a left-hand column. Understated and refined."),
             ("compact", "Compact", "Preview of the compact template", "Colour banner, tight sections: everything fits on one page."),
+            ("minimal", "Minimalist", "Preview of the minimalist template", "Centred header, plenty of white space, fine rules. Readable by screening software."),
+            ("creatif", "Creative", "Preview of the creative template", "Large coloured name, sections as labels, skills as tags."),
         ],
         "etapes_titre": "Three steps, that's all",
         "etapes": [
@@ -256,6 +260,8 @@ ACCUEIL = {
             ("africain", "Africano", "Anteprima del modello africano", "Dati personali completi, foto, referenze, dichiarazione di veridicità."),
             ("elegant", "Elegante", "Anteprima del modello elegante", "Carattere con grazie, date in una colonna a sinistra. Sobrio e raffinato."),
             ("compact", "Compatto", "Anteprima del modello compatto", "Fascia colorata, sezioni ravvicinate: tutto sta in una pagina."),
+            ("minimal", "Minimalista", "Anteprima del modello minimalista", "Intestazione centrata, molto spazio, linee sottili. Leggibile dai software di selezione."),
+            ("creatif", "Creativo", "Anteprima del modello creativo", "Nome grande a colori, sezioni come etichette, competenze come bollini."),
         ],
         "etapes_titre": "Tre passaggi, tutto qui",
         "etapes": [

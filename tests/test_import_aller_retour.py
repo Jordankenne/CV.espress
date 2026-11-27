@@ -28,7 +28,7 @@ def plat(valeur):
 
 
 @pytest.mark.parametrize("langue", ["fr", "en", "it"])
-@pytest.mark.parametrize("modele", ["moderne", "classique", "europeen", "africain", "elegant", "compact"])
+@pytest.mark.parametrize("modele", ["moderne", "classique", "europeen", "africain", "elegant", "compact", "minimal", "creatif"])
 def test_cv_du_site_reimporte_a_l_identique(modele, langue):
     lu = importer.importer(moteur.generer_cv(CV, {"modele": modele, "langue": langue}), "cv")["cv"]
     ecarts = [champ for champ in ("nom", "titre", "email", "telephone", "ville", "profil", "interets")

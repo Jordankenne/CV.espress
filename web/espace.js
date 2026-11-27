@@ -9,7 +9,7 @@ const traduit = texte => (window.tr || (x => x))(texte);
 const CLE_STOCKAGE = "cv-saas-v1", CLE_SYNCHRO = "cv-saas-synchro";   // les mêmes que l'éditeur (editeur-etat.js)
 const $ = sel => document.querySelector(sel);
 const MODELES = { moderne: "Moderne", classique: "Classique", europeen: "Européen", africain: "Africain", epure: "Épurée",
-                  elegant: "Élégant", compact: "Compact", elegante: "Élégante" };
+                  elegant: "Élégant", compact: "Compact", elegante: "Élégante", minimal: "Minimaliste", creatif: "Créatif" };
 const PARTIES = ["accroche", "parcours", "entreprise", "conclusion"];
 let documents = [];         // les documents du compte : { doc, nom, modifie_le, donnees (sans la photo) }
 let inscription = false;

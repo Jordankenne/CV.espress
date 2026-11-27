@@ -63,6 +63,8 @@ MODELES_CV = {
     "africain": "Africain (état civil, photo, références)",
     "elegant": "Élégant (empattements, dates dans une colonne à gauche)",
     "compact": "Compact (bandeau de couleur, tient sur une page)",
+    "minimal": "Minimaliste (en-tête centré, beaucoup d'air, compatible ATS)",
+    "creatif": "Créatif (grand nom en couleur, rubriques en étiquettes, compétences en pastilles)",
 }
 MODELES_LETTRE = {
     "moderne": "Moderne (bandeau de couleur en haut)",

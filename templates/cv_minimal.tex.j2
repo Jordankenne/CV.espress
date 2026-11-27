@@ -1,0 +1,120 @@
+\#{ Modele minimaliste : en-tete centre (nom en grand, poste, contact), filets gris fins, beaucoup
+    d'air, une seule colonne. La couleur ne sert qu'au nom et aux titres. Lisible par les ATS. }
+\BLOCK{include "_preambule.tex.j2"}
+\policesans
+\geometry{margin=2cm, top=1.6cm}
+\hypersetup{pdftitle={CV - \VAR{cv.nom}}, pdfauthor={\VAR{cv.nom}}}
+\definecolor{gris}{HTML}{6B6B6B}
+\definecolor{filet}{HTML}{CFCFCF}
+\titleformat{\section}{\color{accent}\footnotesize\bfseries}{}{0pt}{\MakeUppercase}[{\color{filet}\vspace{2pt}\titlerule}]
+\titlespacing{\section}{0pt}{14pt}{7pt}
+\setlist[itemize]{leftmargin=1em, itemsep=1pt, topsep=2pt, label={\color{gris}--}}
+% Une ligne « intitulé · organisme ........ dates », les dates en gris.
+\newcommand{\ligne}[2]{#1\hfill{\small\color{gris}#2}\par}
+
+\begin{document}
+
+% ---------- En-tête centré ----------
+\begin{center}
+\BLOCK{if cv.photo}
+  \includegraphics[width=2.3cm,height=2.9cm,keepaspectratio]{\VAR{cv.photo}}\par\vspace{8pt}
+\BLOCK{endif}
+  {\fontsize{24}{28}\selectfont\color{accent}\VAR{cv.nom}\par}
+\BLOCK{if cv.titre}
+  \vspace{4pt}{\large\color{gris}\VAR{cv.titre}\par}
+\BLOCK{endif}
+\BLOCK{if cv.contact_tex}
+  \vspace{8pt}{\small \VAR{cv.contact_tex}\par}
+\BLOCK{endif}
+\BLOCK{if cv.etat_civil}
+  \vspace{3pt}{\footnotesize\color{gris}
+\BLOCK{for ligne in cv.etat_civil}
+  \VAR{ligne[0]} : \VAR{ligne[1]}\BLOCK{if not loop.last} \textbar{}\BLOCK{endif}
+
+\BLOCK{endfor}
+  \par}
+\BLOCK{endif}
+\end{center}
+
+\BLOCK{if cv.profil}
+\section{\VAR{t.profil}}
+\VAR{cv.profil}\par
+\BLOCK{endif}
+
+\BLOCK{if cv.experiences}
+\section{\VAR{t.experiences}}
+\BLOCK{for exp in cv.experiences}
+\ligne{\textbf{\VAR{exp.poste}}\BLOCK{if exp.entreprise or exp.lieu} {\color{gris}·} \VAR{[exp.entreprise, exp.lieu]|select|join(", ")}\BLOCK{endif}}{\VAR{exp.dates}}
+\BLOCK{if exp.points}
+\begin{itemize}
+  \BLOCK{for point in exp.points}
+  \item {}\VAR{point}
+  \BLOCK{endfor}
+\end{itemize}
+\BLOCK{endif}
+\BLOCK{if not loop.last}\vspace{6pt}\BLOCK{endif}
+\BLOCK{endfor}
+\BLOCK{endif}
+
+\BLOCK{if cv.formations}
+\section{\VAR{t.formations}}
+\BLOCK{for f in cv.formations}
+\ligne{\textbf{\VAR{f.diplome}}\BLOCK{if f.ecole} {\color{gris}·} \VAR{f.ecole}\BLOCK{endif}}{\VAR{f.dates}}
+\BLOCK{if f.details}
+{\small\color{gris}\VAR{f.details}\par}
+\BLOCK{endif}
+\BLOCK{if not loop.last}\vspace{4pt}\BLOCK{endif}
+\BLOCK{endfor}
+\BLOCK{endif}
+
+\BLOCK{if cv.competences}
+\section{\VAR{t.competences}}
+\BLOCK{for c in cv.competences}
+\BLOCK{if c.categorie}\textbf{\VAR{c.categorie}} : \BLOCK{endif}\VAR{c.liste}\par\vspace{2pt}
+\BLOCK{endfor}
+\BLOCK{endif}
+
+\BLOCK{if cv.langues}
+\section{\VAR{t.langues}}
+\BLOCK{for l in cv.langues}
+\textbf{\VAR{l.langue}}\BLOCK{if l.niveau} : \VAR{l.niveau}\BLOCK{endif}\BLOCK{if not loop.last} {\color{filet}\textbar} \BLOCK{endif}
+\BLOCK{endfor}
+\par
+\BLOCK{endif}
+
+\BLOCK{if cv.certifications}
+\section{\VAR{t.certifications}}
+\BLOCK{for c in cv.certifications}
+\ligne{\textbf{\VAR{c.titre}}\BLOCK{if c.organisme} {\color{gris}·} \VAR{c.organisme}\BLOCK{endif}}{\VAR{c.date}}
+\BLOCK{endfor}
+\BLOCK{endif}
+
+\BLOCK{if cv.projets}
+\section{\VAR{t.projets}}
+\BLOCK{for pr in cv.projets}
+\ligne{\textbf{\VAR{pr.titre}}}{\VAR{pr.dates}}
+\BLOCK{if pr.details}
+\VAR{pr.details}\par
+\BLOCK{endif}
+\BLOCK{if not loop.last}\vspace{4pt}\BLOCK{endif}
+\BLOCK{endfor}
+\BLOCK{endif}
+
+\BLOCK{if cv.interets}
+\section{\VAR{t.interets}}
+\VAR{cv.interets}\par
+\BLOCK{endif}
+
+\BLOCK{if cv.references}
+\section{\VAR{t.references}}
+\BLOCK{for r in cv.references}
+\textbf{\VAR{r.nom}}\BLOCK{if r.fonction}, \VAR{r.fonction}\BLOCK{endif}\BLOCK{if r.contact} -- \VAR{r.contact}\BLOCK{endif}\par
+\BLOCK{endfor}
+\BLOCK{endif}
+
+\BLOCK{if o.certifier}
+\vspace{12pt}
+{\small\itshape\color{gris}\VAR{t.certif}\par}
+\BLOCK{endif}
+
+\end{document}

@@ -1,0 +1,148 @@
+\#{ Modele creatif : nom tres grand en couleur, une barre de couleur epaisse a gauche de l'en-tete,
+    photo ronde a droite, titres de rubriques dans des etiquettes de couleur, competences et
+    langues en pastilles. Pour les metiers ou la personnalite compte (communication, vente, design). }
+\BLOCK{include "_preambule.tex.j2"}
+\policesans
+\usepackage{tikz}
+\geometry{margin=1.6cm, top=1.4cm}
+\hypersetup{pdftitle={CV - \VAR{cv.nom}}, pdfauthor={\VAR{cv.nom}}}
+\definecolor{gris}{HTML}{5F6672}
+\colorlet{clair}{accent!12}
+% Titre de rubrique : une étiquette de couleur, texte blanc.
+\titleformat{\section}{\normalsize\bfseries}{}{0pt}{\etiquette}
+\newcommand{\etiquette}[1]{\colorbox{accent}{\color{white}\strut\hspace{2pt}\MakeUppercase{#1}\hspace{2pt}}}
+\titlespacing{\section}{0pt}{13pt}{6pt}
+\setlist[itemize]{leftmargin=1.1em, itemsep=1pt, topsep=2pt, label={\color{accent}\textbullet}}
+% Pastille (compétence, langue) : fond clair, texte foncé ; les pastilles passent à la ligne entre elles.
+% \pastillev : la même, suivie d'une virgule de la couleur du fond (invisible), collée au texte : le
+% texte du PDF reste « Excel, Sage, TVA » pour les logiciels de tri (ATS) et pour l'import d'un CV.
+\newcommand{\pastille}[1]{\colorbox{clair}{\strut\small #1}}
+\newcommand{\pastillev}[1]{\colorbox{clair}{\strut\small #1\rlap{\textcolor{clair}{,}}}\hspace{3pt}\allowbreak}
+\setlength{\fboxsep}{3pt}
+
+\begin{document}
+
+% ---------- En-tête : barre de couleur, nom, poste, contact ; photo ronde à droite ----------
+\noindent
+\begin{minipage}[c]{\BLOCK{if cv.photo}0.76\textwidth\BLOCK{else}\textwidth\BLOCK{endif}}
+  {\color{accent}\rule[-0.2cm]{6pt}{1.6cm}}\hspace{10pt}%
+  \begin{minipage}[b]{\dimexpr\linewidth-16pt\relax}
+    {\fontsize{28}{32}\selectfont\bfseries\color{accent}\VAR{cv.nom}\par}
+\BLOCK{if cv.titre}
+    \vspace{3pt}{\Large\color{gris}\VAR{cv.titre}\par}
+\BLOCK{endif}
+  \end{minipage}
+\BLOCK{if cv.contact_tex}
+  \par\vspace{9pt}{\small \VAR{cv.contact_tex}\par}
+\BLOCK{endif}
+\BLOCK{if cv.etat_civil}
+  \vspace{3pt}{\footnotesize\color{gris}
+\BLOCK{for ligne in cv.etat_civil}
+  \VAR{ligne[0]} : \VAR{ligne[1]}\BLOCK{if not loop.last} \textbar{}\BLOCK{endif}
+
+\BLOCK{endfor}
+  \par}
+\BLOCK{endif}
+\end{minipage}%
+\BLOCK{if cv.photo}
+\hfill
+\begin{minipage}[c]{0.22\textwidth}\raggedleft
+\sbox0{\includegraphics{\VAR{cv.photo}}}
+\ifdim\wd0>\ht0 \def\dimphoto{height=3.2cm}\else\def\dimphoto{width=3.2cm}\fi
+\begin{tikzpicture}
+  \clip (0,0) circle (1.6cm);
+  \node at (0,0) {\expandafter\includegraphics\expandafter[\dimphoto]{\VAR{cv.photo}}};
+  \draw[accent, line width=3pt] (0,0) circle (1.6cm);
+\end{tikzpicture}
+\end{minipage}
+\BLOCK{endif}
+\par\vspace{4pt}
+
+\BLOCK{if cv.profil}
+\section{\VAR{t.profil}}
+\VAR{cv.profil}\par
+\BLOCK{endif}
+
+\BLOCK{if cv.experiences}
+\section{\VAR{t.experiences}}
+\BLOCK{for exp in cv.experiences}
+\textbf{\VAR{exp.poste}}\hfill{\small\bfseries\color{accent}\VAR{exp.dates}}\par
+\BLOCK{if exp.entreprise or exp.lieu}
+{\color{gris}\VAR{[exp.entreprise, exp.lieu]|select|join(", ")}\par}
+\BLOCK{endif}
+\BLOCK{if exp.points}
+\begin{itemize}
+  \BLOCK{for point in exp.points}
+  \item {}\VAR{point}
+  \BLOCK{endfor}
+\end{itemize}
+\BLOCK{endif}
+\BLOCK{if not loop.last}\vspace{6pt}\BLOCK{endif}
+\BLOCK{endfor}
+\BLOCK{endif}
+
+\BLOCK{if cv.formations}
+\section{\VAR{t.formations}}
+\BLOCK{for f in cv.formations}
+\textbf{\VAR{f.diplome}}\hfill{\small\bfseries\color{accent}\VAR{f.dates}}\par
+\BLOCK{if f.ecole}
+{\color{gris}\VAR{f.ecole}\par}
+\BLOCK{endif}
+\BLOCK{if f.details}
+{\small \VAR{f.details}\par}
+\BLOCK{endif}
+\BLOCK{if not loop.last}\vspace{4pt}\BLOCK{endif}
+\BLOCK{endfor}
+\BLOCK{endif}
+
+\BLOCK{if cv.competences}
+\section{\VAR{t.competences}}
+\BLOCK{for c in cv.competences}
+\BLOCK{if c.categorie}{\small\bfseries{}\VAR{c.categorie}}\par\vspace{2pt}\BLOCK{endif}
+\BLOCK{for mot in c.liste.split(",") if mot.strip()}\BLOCK{if loop.last}\pastille\BLOCK{else}\pastillev\BLOCK{endif}{\VAR{mot.strip()}}\BLOCK{endfor}
+\par\vspace{4pt}
+\BLOCK{endfor}
+\BLOCK{endif}
+
+\BLOCK{if cv.langues}
+\section{\VAR{t.langues}}
+\BLOCK{for l in cv.langues}\BLOCK{if loop.last}\pastille\BLOCK{else}\pastillev\BLOCK{endif}{\textbf{\VAR{l.langue}}\BLOCK{if l.niveau} -- \VAR{l.niveau}\BLOCK{endif}}\BLOCK{endfor}
+\par
+\BLOCK{endif}
+
+\BLOCK{if cv.certifications}
+\section{\VAR{t.certifications}}
+\BLOCK{for c in cv.certifications}
+\textbf{\VAR{c.titre}}\BLOCK{if c.organisme}, \VAR{c.organisme}\BLOCK{endif}\hfill{\small\bfseries\color{accent}\VAR{c.date}}\par
+\BLOCK{endfor}
+\BLOCK{endif}
+
+\BLOCK{if cv.projets}
+\section{\VAR{t.projets}}
+\BLOCK{for pr in cv.projets}
+\textbf{\VAR{pr.titre}}\hfill{\small\bfseries\color{accent}\VAR{pr.dates}}\par
+\BLOCK{if pr.details}
+\VAR{pr.details}\par
+\BLOCK{endif}
+\BLOCK{if not loop.last}\vspace{4pt}\BLOCK{endif}
+\BLOCK{endfor}
+\BLOCK{endif}
+
+\BLOCK{if cv.interets}
+\section{\VAR{t.interets}}
+\VAR{cv.interets}\par
+\BLOCK{endif}
+
+\BLOCK{if cv.references}
+\section{\VAR{t.references}}
+\BLOCK{for r in cv.references}
+\textbf{\VAR{r.nom}}\BLOCK{if r.fonction}, \VAR{r.fonction}\BLOCK{endif}\BLOCK{if r.contact} -- \VAR{r.contact}\BLOCK{endif}\par
+\BLOCK{endfor}
+\BLOCK{endif}
+
+\BLOCK{if o.certifier}
+\vspace{10pt}
+\textit{\VAR{t.certif}}
+\BLOCK{endif}
+
+\end{document}
