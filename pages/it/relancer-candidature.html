@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block titre %}Sollecitare una candidatura: quando, come e con quale messaggio{% endblock %}
+{% block description %}Nessuna risposta dopo aver inviato il CV? Quando sollecitare, per e-mail o per telefono, un modello di messaggio e cosa fare dopo un rifiuto.{% endblock %}
+{% block contenu %}
+<h1>Sollecitare una candidatura senza disturbare</h1>
+<p class="chapeau">Un selezionatore riceve spesso decine di candidature per un solo posto. Un sollecito breve e cortese riporta il tuo nome al momento giusto e dimostra che il posto ti interessa davvero. Non ti farà mai perdere una possibilità.</p>
+
+<h2>1. Quando sollecitare</h2>
+<ul>
+  <li><strong>Dopo l'invio del CV</strong>: da 7 a 10 giorni lavorativi, salvo se l'annuncio indica una data di risposta; in quel caso aspetta quella data.</li>
+  <li><strong>Dopo un colloquio</strong>: un breve messaggio di ringraziamento il giorno stesso o il giorno dopo, poi un sollecito se non hai notizie alla data indicata (o dopo una settimana).</li>
+  <li><strong>Non più di due solleciti</strong>: senza risposta dopo il secondo, passa ad altre offerte.</li>
+</ul>
+
+<h2>2. Per e-mail, rispondendo al primo invio</h2>
+<p>Rispondi al messaggio con cui hai inviato il CV: il selezionatore ritrova la tua candidatura con un colpo d'occhio. Mantieni lo stesso oggetto, preceduto da «Sollecito:».</p>
+
+<h2>3. Un modello di messaggio</h2>
+<blockquote>
+<p>Gentile Responsabile della selezione,</p>
+<p>il 3 marzo Le ho inviato la mia candidatura per la posizione di assistente contabile (riferimento AC-12). Sono ancora molto interessata a questo ruolo: la mia esperienza con l'IVA e le riconciliazioni bancarie corrisponde alle Sue esigenze.</p>
+<p>Resto disponibile per un colloquio nella data che preferisce e Le allego di nuovo il mio CV.</p>
+<p>Cordiali saluti,</p>
+</blockquote>
+<p>Bastano quattro o cinque righe: la data e la posizione, il tuo interesse, un argomento, la tua disponibilità. Nessun rimprovero, nessun «non ho ancora ricevuto risposta».</p>
+
+<h2>4. E per telefono?</h2>
+<p>In una piccola azienda una chiamata breve funziona bene: presentati, cita la posizione e la data d'invio, chiedi a che punto è la selezione. Prepara due frasi sul tuo profilo: potrebbero farti subito una domanda.</p>
+
+<h2>5. Dopo un rifiuto</h2>
+<p>Rispondi comunque: ringrazia, di' che l'azienda continua a interessarti e chiedi in una frase che cosa ti è mancato. I consigli ricevuti servono per la candidatura successiva, e una risposta cortese lascia un buon ricordo.</p>
+
+<aside class="appel">
+  <p>In «Il mio spazio», «Le mie candidature» conserva la data di ogni invio e la data in cui sollecitare: il filtro «Da sollecitare» ti mostra chi contattare oggi.</p>
+  <a href="{{ p }}/compte" class="bouton principal grand">Segui le mie candidature</a>
+  <a href="{{ p }}/creer?type=lettre&amp;exemple=1" class="bouton grand">Scrivi la mia lettera</a>
+</aside>
+{% endblock %}

@@ -132,7 +132,7 @@ async function parcours() {
 // ---------- 2. Chaque page, à plusieurs largeurs ----------
 const PAGES = ["/", "/creer", "/creer?exemple=1", "/creer?type=plan", "/creer?type=arbre", "/creer?type=admin", "/compte",
                "/contact", "/cv-ats", "/modele-cv-afrique", "/plan-de-localisation", "/confidentialite", "/en/", "/en/creer",
-               "/it/compte", "/hors-ligne.html", "/page-qui-n-existe-pas"];
+               "/it/compte", "/cv-canada", "/it/relancer-candidature", "/hors-ligne.html", "/page-qui-n-existe-pas"];
 const LARGEURS = [[360, 740, true], [390, 844, true], [768, 1024, true], [1280, 900, false], [1920, 1080, false]];
 const CONTROLE = `(() => {
   const r = { debord: [], alt: [], champs: [], boutons: [], h1: [...document.querySelectorAll("h1")].filter(h => h.closest("[hidden]") === null).length, lang: document.documentElement.lang, titre: document.title };

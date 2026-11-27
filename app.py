@@ -250,7 +250,7 @@ def sante():
 # --------------------------------------------------------------------------
 # Adresse -> fichier de pages/. Les guides sont aussi listés dans le plan du site.
 GUIDES = ["modele-cv-afrique", "cv-europass", "cv-sans-experience", "lettre-de-motivation",
-          "cv-ats", "cv-infirmier", "cv-commercial",
+          "cv-ats", "cv-infirmier", "cv-commercial", "cv-canada", "cv-en-anglais", "relancer-candidature",
           # Pages des autres services (plan, arbre, documents administratifs), pour les moteurs de recherche.
           "plan-de-localisation", "arbre-genealogique", "demande-administrative", "attestation-sur-l-honneur"]
 LEGALES = ["mentions-legales", "confidentialite", "conditions", "contact"]
@@ -259,7 +259,8 @@ IMAGES_PARTAGE = {"modele-cv-afrique": "modele_africain", "cv-europass": "modele
                   "cv-sans-experience": "modele_compact", "lettre-de-motivation": "lettre_moderne",
                   "cv-ats": "modele_classique", "cv-infirmier": "modele_elegant", "cv-commercial": "modele_moderne",
                   "plan-de-localisation": "exemple_plan", "arbre-genealogique": "exemple_arbre",
-                  "demande-administrative": "exemple_demande", "attestation-sur-l-honneur": "exemple_attestation"}
+                  "demande-administrative": "exemple_demande", "attestation-sur-l-honneur": "exemple_attestation",
+                  "cv-canada": "modele_classique", "cv-en-anglais": "modele_minimal", "relancer-candidature": "lettre_epure"}
 
 
 # Le site existe en trois langues : français à la racine, anglais sous /en/, italien sous /it/.

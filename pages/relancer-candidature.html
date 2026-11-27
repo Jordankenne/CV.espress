@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block titre %}Relancer une candidature : quand, comment, avec quel message{% endblock %}
+{% block description %}Pas de réponse après avoir envoyé ton CV ? Quand relancer, par e-mail ou par téléphone, un modèle de message, et que faire après un refus.{% endblock %}
+{% block contenu %}
+<h1>Relancer une candidature sans déranger</h1>
+<p class="chapeau">Un recruteur reçoit souvent des dizaines de candidatures pour un seul poste. Une relance courte et polie rappelle ton nom au bon moment et montre que le poste t'intéresse vraiment. Elle ne te fera jamais perdre une place.</p>
+
+<h2>1. Quand relancer</h2>
+<ul>
+  <li><strong>Après l'envoi du CV</strong> : 7 à 10 jours ouvrés, sauf si l'annonce donne une date de réponse ; attends alors cette date.</li>
+  <li><strong>Après un entretien</strong> : un court message de remerciement le jour même ou le lendemain, puis une relance si tu n'as pas de nouvelles à la date annoncée (ou une semaine après).</li>
+  <li><strong>Pas plus de deux relances</strong> : sans réponse après la deuxième, passe à d'autres offres.</li>
+</ul>
+
+<h2>2. Par e-mail, en répondant à ton premier envoi</h2>
+<p>Réponds au message dans lequel tu as envoyé ton CV : le recruteur retrouve ta candidature d'un coup d'œil. Garde le même objet, précédé de « Relance : ».</p>
+
+<h2>3. Un modèle de message</h2>
+<blockquote>
+<p>Madame, Monsieur,</p>
+<p>Le 3 mars, je vous ai adressé ma candidature au poste d'assistante comptable (référence AC-12). Ce poste m'intéresse toujours vivement : mon expérience de la TVA et des rapprochements bancaires correspond à vos besoins.</p>
+<p>Je reste disponible pour un entretien à la date qui vous conviendra, et je vous joins de nouveau mon CV.</p>
+<p>Je vous prie d'agréer, Madame, Monsieur, mes salutations distinguées.</p>
+</blockquote>
+<p>Quatre ou cinq lignes suffisent : la date et le poste, ton intérêt, un argument, ta disponibilité. Pas de reproche, pas de « je n'ai toujours pas de réponse ».</p>
+
+<h2>4. Et par téléphone ?</h2>
+<p>Dans une petite entreprise, un appel bref fonctionne bien : présente-toi, cite le poste et la date d'envoi, demande où en est le recrutement. Prépare deux phrases sur ton profil : on peut te poser une question tout de suite.</p>
+
+<h2>5. Après un refus</h2>
+<p>Réponds quand même : remercie, dis que tu restes intéressé par l'entreprise, et demande en une phrase ce qui t'a manqué. Les conseils reçus servent pour la candidature suivante, et une réponse courtoise laisse un bon souvenir.</p>
+
+<aside class="appel">
+  <p>Dans « Mon espace », « Mes candidatures » garde la date de chaque envoi et la date à laquelle relancer : le filtre « À relancer » te montre qui relancer aujourd'hui.</p>
+  <a href="{{ p }}/compte" class="bouton principal grand">Suivre mes candidatures</a>
+  <a href="{{ p }}/creer?type=lettre&amp;exemple=1" class="bouton grand">Écrire ma lettre</a>
+</aside>
+{% endblock %}
